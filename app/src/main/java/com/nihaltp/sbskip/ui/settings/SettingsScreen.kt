@@ -29,8 +29,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.nihaltp.sbskip.R
 import com.nihaltp.sbskip.model.ThemeMode
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -46,12 +48,12 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings") },
+                title = { Text(stringResource(id = R.string.settings_title)) },
                 navigationIcon = {
                     OutlinedButton(onClick = onBack) {
                         Icon(Icons.Outlined.ArrowBack, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Back")
+                        Text(stringResource(id = R.string.settings_back))
                     }
                 },
             )
@@ -65,42 +67,42 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item {
-                SettingsSection(title = "General") {
-                    SettingToggleRow("Dynamic color", "Use system colors when available.", dynamicColor) { dynamicColor = it }
-                    SettingToggleRow("Notifications", "Show foreground and completion updates.", notificationsEnabled) { notificationsEnabled = it }
-                    SettingValueRow("Theme mode", ThemeMode.SYSTEM.name)
+                SettingsSection(title = stringResource(id = R.string.settings_section_general)) {
+                    SettingToggleRow(stringResource(id = R.string.settings_dynamic_color_title), stringResource(id = R.string.settings_dynamic_color_desc), dynamicColor) { dynamicColor = it }
+                    SettingToggleRow(stringResource(id = R.string.settings_notifications_title), stringResource(id = R.string.settings_notifications_desc), notificationsEnabled) { notificationsEnabled = it }
+                    SettingValueRow(stringResource(id = R.string.settings_theme_mode), ThemeMode.SYSTEM.name)
                 }
             }
 
             item {
-                SettingsSection(title = "Downloads") {
-                    SettingValueRow("Video folder", "Movies/SB Skip/")
-                    SettingValueRow("Audio folder", "Music/SB Skip/")
-                    SettingValueRow("Temp folder", "App cache / SAF target")
+                SettingsSection(title = stringResource(id = R.string.settings_section_downloads)) {
+                    SettingValueRow(stringResource(id = R.string.settings_video_folder), stringResource(id = R.string.default_video_folder))
+                    SettingValueRow(stringResource(id = R.string.settings_audio_folder), stringResource(id = R.string.default_audio_folder))
+                    SettingValueRow(stringResource(id = R.string.settings_temp_folder), stringResource(id = R.string.default_temp_folder))
                 }
             }
 
             item {
-                SettingsSection(title = "SponsorBlock") {
-                    SettingValueRow("Global categories", "Sponsor, Intro, Outro, and more")
-                    SettingValueRow("Per-download overrides", "Enabled")
+                SettingsSection(title = stringResource(id = R.string.settings_section_sponsorblock)) {
+                    SettingValueRow(stringResource(id = R.string.settings_global_categories), stringResource(id = R.string.settings_global_categories_value))
+                    SettingValueRow(stringResource(id = R.string.settings_per_download_overrides), stringResource(id = R.string.settings_per_download_overrides_value))
                 }
             }
 
             item {
-                SettingsSection(title = "Advanced") {
-                    SettingToggleRow("Keep temp files", "Useful while debugging FFmpeg and yt-dlp processing.", keepTempFiles) { keepTempFiles = it }
-                    SettingToggleRow("Verbose logging", "Capture detailed queue and processor logs.", verboseLogging) { verboseLogging = it }
-                    SettingValueRow("Concurrent queue limit", "1 (sequential)")
+                SettingsSection(title = stringResource(id = R.string.settings_section_advanced)) {
+                    SettingToggleRow(stringResource(id = R.string.settings_keep_temp_files_title), stringResource(id = R.string.settings_keep_temp_files_desc), keepTempFiles) { keepTempFiles = it }
+                    SettingToggleRow(stringResource(id = R.string.verbose_logging), stringResource(id = R.string.verbose_logging_desc), verboseLogging) { verboseLogging = it }
+                    SettingValueRow(stringResource(id = R.string.settings_concurrent_limit), stringResource(id = R.string.concurrent_limit_value))
                 }
             }
 
             item {
-                SettingsSection(title = "About") {
-                    SettingValueRow("App version", "0.1.0")
-                    SettingValueRow("GitHub", "github.com/nihaltp/SBSkip")
-                    SettingValueRow("Issues", "github.com/nihaltp/SBSkip/issues")
-                    SettingValueRow("Licenses", "Open source components")
+                SettingsSection(title = stringResource(id = R.string.about_section)) {
+                    SettingValueRow(stringResource(id = R.string.app_version), stringResource(id = R.string.app_version_value))
+                    SettingValueRow(stringResource(id = R.string.label_github), stringResource(id = R.string.app_github))
+                    SettingValueRow(stringResource(id = R.string.label_issues), stringResource(id = R.string.app_issues))
+                    SettingValueRow(stringResource(id = R.string.label_licenses), stringResource(id = R.string.app_licenses))
                 }
             }
         }

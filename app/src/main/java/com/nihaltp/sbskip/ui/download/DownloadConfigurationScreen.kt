@@ -26,8 +26,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.nihaltp.sbskip.R
 import com.nihaltp.sbskip.model.DownloadConfigurationState
 import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.model.SponsorBlockCategory
@@ -45,12 +47,12 @@ fun DownloadConfigurationScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Download configuration") },
+                title = { Text(stringResource(id = R.string.download_config_title)) },
                 navigationIcon = {
                     OutlinedButton(onClick = onBack) {
                         Icon(Icons.Outlined.ArrowBack, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Back")
+                        Text(stringResource(id = com.nihaltp.sbskip.R.string.settings_back))
                     }
                 },
             )
@@ -66,9 +68,9 @@ fun DownloadConfigurationScreen(
             item {
                 Card(colors = CardDefaults.cardColors()) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("Preview", fontWeight = FontWeight.SemiBold)
-                        Text(state.title.ifBlank { "Selected video" })
-                        Text(state.thumbnailUrl ?: "Thumbnail will appear after metadata fetch.")
+                        Text(stringResource(id = R.string.preview), fontWeight = FontWeight.SemiBold)
+                        Text(state.title.ifBlank { stringResource(id = R.string.selected_video) })
+                        Text(state.thumbnailUrl ?: stringResource(id = R.string.thumbnail_will_appear))
                     }
                 }
             }
@@ -76,16 +78,16 @@ fun DownloadConfigurationScreen(
             item {
                 Card {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text("Media type", fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(id = R.string.media_type), fontWeight = FontWeight.SemiBold)
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            FilterChip(selected = state.request.mediaType == MediaType.VIDEO, onClick = { onMediaTypeChange(MediaType.VIDEO) }, label = { Text("Video") })
-                            FilterChip(selected = state.request.mediaType == MediaType.AUDIO, onClick = { onMediaTypeChange(MediaType.AUDIO) }, label = { Text("Audio") })
+                            FilterChip(selected = state.request.mediaType == MediaType.VIDEO, onClick = { onMediaTypeChange(MediaType.VIDEO) }, label = { Text(stringResource(id = R.string.label_video)) })
+                            FilterChip(selected = state.request.mediaType == MediaType.AUDIO, onClick = { onMediaTypeChange(MediaType.AUDIO) }, label = { Text(stringResource(id = R.string.label_audio)) })
                         }
                         HorizontalDivider()
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("Use global SponsorBlock defaults", fontWeight = FontWeight.Medium)
-                                Text("Turn this off to override categories for this download.")
+                                Text(stringResource(id = R.string.use_global_sponsorblock_defaults), fontWeight = FontWeight.Medium)
+                                Text(stringResource(id = R.string.sponsorblock_override_desc))
                             }
                             Switch(checked = state.request.useGlobalSponsorBlockSettings, onCheckedChange = onUseGlobalSettingsChange)
                         }
@@ -96,13 +98,13 @@ fun DownloadConfigurationScreen(
             item {
                 Card {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text("SponsorBlock categories", fontWeight = FontWeight.SemiBold)
-                        Text("Enable or disable categories that should be trimmed from the media.")
+                        Text(stringResource(id = R.string.sponsorblock_categories), fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(id = R.string.sponsorblock_categories_desc))
                         sponsorBlockCategories.forEach { category ->
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text(category.label)
+                                Text(stringResource(id = category.labelResId))
                                 Button(onClick = { onToggleCategory(category.category) }) {
-                                    Text("Toggle")
+                                    Text(stringResource(id = R.string.toggle))
                                 }
                             }
                         }
@@ -112,21 +114,21 @@ fun DownloadConfigurationScreen(
 
             item {
                 Button(onClick = onStartDownload, modifier = Modifier.fillMaxWidth()) {
-                    Text("Start download")
+                    Text(stringResource(id = R.string.start_download))
                 }
             }
         }
     }
 }
 
-private data class CategoryRow(val category: SponsorBlockCategory, val label: String)
+private data class CategoryRow(val category: SponsorBlockCategory, val labelResId: Int)
 
 private val sponsorBlockCategories = listOf(
-    CategoryRow(SponsorBlockCategory.SPONSOR, "Sponsor"),
-    CategoryRow(SponsorBlockCategory.SELF_PROMOTION, "Self promotion"),
-    CategoryRow(SponsorBlockCategory.INTRO, "Intro"),
-    CategoryRow(SponsorBlockCategory.OUTRO, "Outro"),
-    CategoryRow(SponsorBlockCategory.INTERACTION_REMINDER, "Interaction reminder"),
-    CategoryRow(SponsorBlockCategory.PREVIEW_RECAP, "Preview / recap"),
-    CategoryRow(SponsorBlockCategory.FILLER_TANGENT, "Filler / tangent"),
+    CategoryRow(SponsorBlockCategory.SPONSOR, com.nihaltp.sbskip.R.string.category_sponsor),
+    CategoryRow(SponsorBlockCategory.SELF_PROMOTION, com.nihaltp.sbskip.R.string.category_self_promotion),
+    CategoryRow(SponsorBlockCategory.INTRO, com.nihaltp.sbskip.R.string.category_intro),
+    CategoryRow(SponsorBlockCategory.OUTRO, com.nihaltp.sbskip.R.string.category_outro),
+    CategoryRow(SponsorBlockCategory.INTERACTION_REMINDER, com.nihaltp.sbskip.R.string.category_interaction_reminder),
+    CategoryRow(SponsorBlockCategory.PREVIEW_RECAP, com.nihaltp.sbskip.R.string.category_preview_recap),
+    CategoryRow(SponsorBlockCategory.FILLER_TANGENT, com.nihaltp.sbskip.R.string.category_filler_tangent),
 )

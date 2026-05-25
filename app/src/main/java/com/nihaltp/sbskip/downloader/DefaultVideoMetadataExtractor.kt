@@ -20,7 +20,7 @@ class DefaultVideoMetadataExtractor @Inject constructor(
     }
 
     private fun YtDlpExecutionResult.toVideoMetadata(): VideoMetadata {
-        val title = jsonValue("title") ?: throw IllegalStateException("Missing yt-dlp title")
+        val title = jsonValue("title") ?: throw IllegalStateException()
         val thumbnailUrl = jsonValue("thumbnail")
         val durationSeconds = jsonValue("duration")?.toLongOrNull()
         return VideoMetadata(title = title, thumbnailUrl = thumbnailUrl, durationSeconds = durationSeconds)

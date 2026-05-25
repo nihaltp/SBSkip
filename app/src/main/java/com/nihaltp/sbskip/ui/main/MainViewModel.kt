@@ -1,11 +1,14 @@
 package com.nihaltp.sbskip.ui.main
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.nihaltp.sbskip.R
 import com.nihaltp.sbskip.data.repository.QueueRepository
 import com.nihaltp.sbskip.model.MainUiState
 import com.nihaltp.sbskip.navigation.ShareIntentEvent
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,6 +19,7 @@ import javax.inject.Inject
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val queueRepository: QueueRepository,
+    @ApplicationContext private val context: Context,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(MainUiState())
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
@@ -35,7 +39,7 @@ class MainViewModel @Inject constructor(
     fun queueCurrentUrl() {
         val input = uiState.value.urlInput
         if (input.isBlank()) {
-            _uiState.update { it.copy(snackbarMessage = "Paste a YouTube URL first.") }
+            _uiState.update { it.copy(snackbarMessage = context.getString(R.string.snackbar_paste_first)) }
             return
         }
 
@@ -66,7 +70,7 @@ class MainViewModel @Inject constructor(
     fun removeQueueItem(id: Long) {
         viewModelScope.launch {
             queueRepository.remove(id)
-            _uiState.update { it.copy(snackbarMessage = "Item removed.") }
+            _uiState.update { it.copy(snackbarMessage = context.getString(com.nihaltp.sbskip.R.string.snackbar_item_removed)) }
         }
     }
 

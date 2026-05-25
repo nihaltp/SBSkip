@@ -42,10 +42,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.nihaltp.sbskip.R
 import com.nihaltp.sbskip.model.DownloadQueueItem
 import com.nihaltp.sbskip.model.DownloadQueueStatus
 import com.nihaltp.sbskip.model.MainUiState
@@ -65,6 +67,7 @@ fun MainScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val clipboardManager = LocalClipboardManager.current
     val coroutineScope = rememberCoroutineScope()
+    val clipboardEmptyText = stringResource(id = R.string.clipboard_empty)
 
     LaunchedEffect(uiState.snackbarMessage) {
         uiState.snackbarMessage?.let {
@@ -76,11 +79,11 @@ fun MainScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("SB Skip") },
+                title = { Text(stringResource(id = R.string.title_main)) },
                 actions = {
                     AssistChip(
                         onClick = onOpenSettings,
-                        label = { Text("Settings") },
+                        label = { Text(stringResource(id = R.string.label_settings)) },
                         leadingIcon = { Icon(Icons.Outlined.Settings, contentDescription = null) },
                     )
                 },
@@ -101,29 +104,29 @@ fun MainScreen(
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Text("Paste a YouTube link", fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(id = R.string.paste_youtube_link_prompt), fontWeight = FontWeight.SemiBold)
                         OutlinedTextField(
                             value = uiState.urlInput,
                             onValueChange = onUrlChange,
                             modifier = Modifier.fillMaxWidth(),
-                            placeholder = { Text("https://www.youtube.com/watch?v=...") },
+                            placeholder = { Text(stringResource(id = R.string.placeholder_url)) },
                             singleLine = true,
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             ElevatedButton(onClick = {
                                 val pasted = clipboardManager.getText()?.text.orEmpty().trim()
                                 if (pasted.isBlank()) {
-                                    coroutineScope.launch { snackbarHostState.showSnackbar("Clipboard is empty") }
+                                    coroutineScope.launch { snackbarHostState.showSnackbar(clipboardEmptyText) }
                                 } else {
                                     onUrlChange(pasted)
                                 }
                             }) {
                                 Icon(Icons.Outlined.ContentPaste, contentDescription = null)
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Paste")
+                                Text(stringResource(id = R.string.paste_button))
                             }
                             Button(onClick = onSubmit) {
-                                Text("Add to queue")
+                                Text(stringResource(id = R.string.add_to_queue))
                             }
                         }
                     }
@@ -131,14 +134,14 @@ fun MainScreen(
             }
 
             item {
-                SectionHeader(title = "Current queue")
+                SectionHeader(title = stringResource(id = R.string.current_queue))
             }
 
             if (uiState.queueItems.isEmpty()) {
                 item {
                     EmptyStateCard(
-                        title = "No downloads yet",
-                        body = "Paste a URL to add the first item to the queue.",
+                        title = stringResource(id = R.string.no_downloads_yet_title),
+                        body = stringResource(id = R.string.no_downloads_yet_body),
                     )
                 }
             } else {
@@ -208,7 +211,7 @@ private fun QueueItemCard(
                         StatusChip(item.status)
                     }
 
-                    Text("Duration: ${item.displayDuration}")
+                    Text(stringResource(id = R.string.duration_prefix, item.displayDuration))
 
                     item.errorMessage?.let { Text(it) }
                 }
@@ -219,11 +222,11 @@ private fun QueueItemCard(
                     Button(onClick = { onRetry(item.id) }) {
                         Icon(Icons.Outlined.Refresh, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Retry")
+                        Text(stringResource(id = R.string.retry))
                     }
                 }
                 ElevatedButton(onClick = { onRemove(item.id) }) {
-                    Text("Remove")
+                    Text(stringResource(id = R.string.remove))
                 }
             }
 
@@ -241,10 +244,10 @@ private fun StatusChip(status: DownloadQueueStatus) {
         label = {
             Text(
                 when (status) {
-                    DownloadQueueStatus.QUEUED -> "Queued"
-                    DownloadQueueStatus.FETCHING_INFO -> "Fetching info"
-                    DownloadQueueStatus.READY -> "Ready"
-                    DownloadQueueStatus.FAILED -> "Failed"
+                    DownloadQueueStatus.QUEUED -> stringResource(id = R.string.status_queued)
+                    DownloadQueueStatus.FETCHING_INFO -> stringResource(id = R.string.status_fetching_info)
+                    DownloadQueueStatus.READY -> stringResource(id = R.string.status_ready)
+                    DownloadQueueStatus.FAILED -> stringResource(id = R.string.status_failed)
                 },
             )
         },

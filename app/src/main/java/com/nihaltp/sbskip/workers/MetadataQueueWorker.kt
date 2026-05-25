@@ -45,9 +45,9 @@ class MetadataQueueWorker @AssistedInject constructor(
 
     private fun userFriendlyMessage(throwable: Throwable): String {
         return when (throwable) {
-            is IllegalArgumentException -> throwable.message ?: "Invalid YouTube URL"
-            is YtDlpExecutionException -> "yt-dlp failed to read metadata"
-            else -> throwable.message?.takeIf { it.isNotBlank() } ?: "Unable to fetch metadata"
+            is IllegalArgumentException -> throwable.message ?: applicationContext.getString(com.nihaltp.sbskip.R.string.error_invalid_youtube_url)
+            is YtDlpExecutionException -> applicationContext.getString(com.nihaltp.sbskip.R.string.yt_dlp_failed)
+            else -> throwable.message?.takeIf { it.isNotBlank() } ?: applicationContext.getString(com.nihaltp.sbskip.R.string.unable_fetch_metadata)
         }
     }
 }

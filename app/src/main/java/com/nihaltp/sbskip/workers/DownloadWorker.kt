@@ -12,13 +12,13 @@ class DownloadWorker(
     override suspend fun doWork(): Result {
         val url = inputData.getString(KEY_URL).orEmpty()
         if (url.isBlank()) {
-            return Result.failure(workDataOf(KEY_ERROR to "Missing URL"))
+            return Result.failure(workDataOf(KEY_ERROR to applicationContext.getString(com.nihaltp.sbskip.R.string.download_missing_url)))
         }
 
         return Result.success(
             workDataOf(
                 KEY_OUTPUT_PATH to "",
-                KEY_MESSAGE to "Queue pipeline scaffolded; native downloader integration comes next.",
+                KEY_MESSAGE to applicationContext.getString(com.nihaltp.sbskip.R.string.download_scaffold_message),
             ),
         )
     }

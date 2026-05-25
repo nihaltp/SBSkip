@@ -32,16 +32,10 @@
                 <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
-        <!-- Remove WorkManagerInitializer meta-data from InitializationProvider because we initialize WorkManager on-demand via Configuration.Provider -->
         <provider
             android:name="androidx.startup.InitializationProvider"
-            android:authorities="${applicationId}.androidx-startup"
             android:exported="false"
-            tools:node="merge">
-            <meta-data
-                android:name="androidx.work.WorkManagerInitializer"
-                tools:node="remove" />
-        </provider>
+            tools:node="remove" />
     </application>
 
 </manifest>

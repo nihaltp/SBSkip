@@ -1,5 +1,7 @@
 package com.nihaltp.sbskip.data.repository
 
+import android.content.Context
+import com.nihaltp.sbskip.R
 import com.nihaltp.sbskip.data.local.dao.DownloadQueueDao
 import com.nihaltp.sbskip.data.local.entity.DownloadQueueEntity
 import com.nihaltp.sbskip.model.DownloadQueueItem
@@ -9,6 +11,7 @@ import com.nihaltp.sbskip.model.VideoMetadata
 import com.nihaltp.sbskip.util.AppLogger
 import com.nihaltp.sbskip.util.YouTubeUrlParser
 import com.nihaltp.sbskip.workers.MetadataQueueWorkScheduler
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -18,6 +21,7 @@ import javax.inject.Singleton
 class DefaultQueueRepository @Inject constructor(
     private val dao: DownloadQueueDao,
     private val workScheduler: MetadataQueueWorkScheduler,
+    @ApplicationContext private val context: Context,
 ) : QueueRepository {
     override fun observeQueue(): Flow<List<DownloadQueueItem>> = dao.observeQueue().map { entities ->
         entities.map { it.toDomain() }
@@ -25,12 +29,12 @@ class DefaultQueueRepository @Inject constructor(
 
     override suspend fun enqueue(rawInput: String): QueueActionResult {
         val normalizedUrl = YouTubeUrlParser.normalize(rawInput)
-            ?: return QueueActionResult(success = false, message = "Enter a valid YouTube URL.")
+            ?: return QueueActionResult(success = false, message = context.getString(R.string.enter_valid_url))
 
         val now = System.currentTimeMillis()
         val entity = DownloadQueueEntity(
             url = normalizedUrl,
-            title = "Fetching metadata",
+            title = context.getString(R.string.fetching_metadata),
             thumbnailUrl = null,
             durationSeconds = null,
             status = DownloadQueueStatus.QUEUED,
@@ -42,7 +46,7 @@ class DefaultQueueRepository @Inject constructor(
         val id = dao.insert(entity)
         AppLogger.queue("queued item id=$id url=$normalizedUrl")
         workScheduler.schedule()
-        return QueueActionResult(success = true, message = "Queued for metadata fetch.")
+        return QueueActionResult(success = true, message = context.getString(R.string.queued_for_metadata_fetch))
     }
 
     override suspend fun retry(itemId: Long): QueueActionResult {
@@ -54,7 +58,7 @@ class DefaultQueueRepository @Inject constructor(
         )
         AppLogger.queue("retry item id=$itemId")
         workScheduler.schedule()
-        return QueueActionResult(success = true, message = "Retry started.")
+        return QueueActionResult(success = true, message = context.getString(R.string.retry_started))
     }
 
     override suspend fun remove(itemId: Long) {

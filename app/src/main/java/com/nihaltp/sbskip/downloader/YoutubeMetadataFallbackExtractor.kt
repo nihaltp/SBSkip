@@ -21,8 +21,8 @@ class YoutubeMetadataFallbackExtractor @Inject constructor() {
         .build()
 
     suspend fun extract(url: String): VideoMetadata = withContext(Dispatchers.IO) {
-        val normalizedUrl = YouTubeUrlParser.normalize(url) ?: throw IllegalArgumentException("Invalid YouTube URL")
-        val videoId = YouTubeUrlParser.extractVideoId(normalizedUrl) ?: throw IllegalArgumentException("Unable to read video id")
+        val normalizedUrl = YouTubeUrlParser.normalize(url) ?: throw IllegalArgumentException()
+        val videoId = YouTubeUrlParser.extractVideoId(normalizedUrl) ?: throw IllegalArgumentException()
 
         val titleAndThumb = fetchOEmbed(normalizedUrl)
         val durationSeconds = fetchDuration(videoId)
@@ -40,11 +40,11 @@ class YoutubeMetadataFallbackExtractor @Inject constructor() {
 
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
-                throw IllegalStateException("oEmbed request failed with ${response.code}")
+                throw IllegalStateException()
             }
 
             val json = JSONObject(response.body?.string().orEmpty())
-            val title = json.optString("title").ifBlank { throw IllegalStateException("Missing title from oEmbed") }
+            val title = json.optString("title").ifBlank { throw IllegalStateException() }
             return title to json.optString("thumbnail_url").takeIf { it.isNotBlank() }
         }
     }
