@@ -72,6 +72,18 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun updateVideoFolder(folder: String) {
+        viewModelScope.launch {
+            settingsRepository.update { it.copy(videoFolder = folder) }
+        }
+    }
+
+    fun updateAudioFolder(folder: String) {
+        viewModelScope.launch {
+            settingsRepository.update { it.copy(audioFolder = folder) }
+        }
+    }
+
     fun toggleSponsorBlockCategory(category: SponsorBlockCategory) {
         viewModelScope.launch {
             settingsRepository.update { current ->

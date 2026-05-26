@@ -17,12 +17,15 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
+import com.nihaltp.sbskip.data.repository.SettingsRepository
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class AndroidDownloadStorage @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val settingsRepository: SettingsRepository,
 ) : DownloadStorage {
 
     override suspend fun resolveOutputPath(directory: String, title: String, extension: String): String = withContext(Dispatchers.IO) {
@@ -65,8 +68,14 @@ class AndroidDownloadStorage @Inject constructor(
         val filename = "$title.$extension"
         val mimeType = if (mediaType == MediaType.VIDEO) "video/$extension" else "audio/$extension"
 
+        val settings = settingsRepository.settings.first()
+        val customFolder = if (mediaType == MediaType.VIDEO) {
+            settings.videoFolder.trimEnd('/')
+        } else {
+            settings.audioFolder.trimEnd('/')
+        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val relativePath = if (mediaType == MediaType.VIDEO) "Movies/SB Skip" else "Music/SB Skip"
             val contentUri = if (mediaType == MediaType.VIDEO) {
                 MediaStore.Video.Media.EXTERNAL_CONTENT_URI
             } else {
@@ -76,7 +85,7 @@ class AndroidDownloadStorage @Inject constructor(
             val contentValues = ContentValues().apply {
                 put(MediaStore.MediaColumns.DISPLAY_NAME, filename)
                 put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
-                put(MediaStore.MediaColumns.RELATIVE_PATH, relativePath)
+                put(MediaStore.MediaColumns.RELATIVE_PATH, customFolder)
             }
 
             val resolver = context.contentResolver
@@ -89,7 +98,7 @@ class AndroidDownloadStorage @Inject constructor(
                         input.copyTo(output)
                     }
                 } ?: throw IOException("Failed to open MediaStore output stream")
-                AppLogger.worker("Saved clean file to MediaStore Scoped Storage: $relativePath/$filename")
+                AppLogger.worker("Saved clean file to MediaStore Scoped Storage: $customFolder/$filename")
                 uri.toString()
             } catch (e: Exception) {
                 // Cleanup inserted failed record
@@ -98,12 +107,8 @@ class AndroidDownloadStorage @Inject constructor(
             }
         } else {
             // Android 9 and below - direct legacy write
-            val publicDir = if (mediaType == MediaType.VIDEO) {
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES)
-            } else {
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
-            }
-            val targetFolder = File(publicDir, "SB Skip")
+            val root = Environment.getExternalStorageDirectory()
+            val targetFolder = File(root, customFolder)
             if (!targetFolder.exists()) {
                 targetFolder.mkdirs()
             }

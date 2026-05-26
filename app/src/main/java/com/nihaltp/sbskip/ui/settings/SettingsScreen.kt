@@ -1,5 +1,10 @@
 package com.nihaltp.sbskip.ui.settings
 
+import android.content.Intent
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -13,6 +18,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -20,14 +28,21 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -46,6 +61,30 @@ fun SettingsScreen(
 ) {
     val settingsState by viewModel.settings.collectAsState()
     val settings = settingsState
+
+    val context = LocalContext.current
+    var showLicensesDialog by remember { mutableStateOf(false) }
+
+    val videoFolderLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        uri?.let {
+            val resolvedPath = resolveRelativePathFromUri(it)
+            viewModel.updateVideoFolder(resolvedPath)
+        }
+    }
+
+    val audioFolderLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        uri?.let {
+            val resolvedPath = resolveRelativePathFromUri(it)
+            viewModel.updateAudioFolder(resolvedPath)
+        }
+    }
+
+    var activeDialogType by remember { mutableStateOf<SettingsDialogType?>(null) }
+    var textInputState by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
@@ -93,7 +132,16 @@ fun SettingsScreen(
                             checked = settings.notificationsEnabled,
                             onCheckedChange = viewModel::updateNotificationsEnabled
                         )
-                        SettingValueRow(stringResource(id = R.string.settings_theme_mode), settings.themeMode.name)
+                        val themeModeLabel = when (settings.themeMode) {
+                            ThemeMode.LIGHT -> "Light Mode"
+                            ThemeMode.DARK -> "Dark Mode"
+                            ThemeMode.SYSTEM -> "System Default"
+                        }
+                        SettingValueRow(
+                            title = stringResource(id = R.string.settings_theme_mode),
+                            value = themeModeLabel,
+                            onClick = { activeDialogType = SettingsDialogType.THEME }
+                        )
                     }
                 }
 
@@ -105,15 +153,41 @@ fun SettingsScreen(
                             checked = settings.overwriteBehavior,
                             onCheckedChange = viewModel::updateOverwriteBehavior
                         )
-                        SettingValueRow("Cleaned File Suffix", settings.autoCleanSuffix)
-                        SettingValueRow(stringResource(id = R.string.settings_video_folder), settings.videoFolder)
-                        SettingValueRow(stringResource(id = R.string.settings_audio_folder), settings.audioFolder)
+                        SettingValueRow(
+                            title = "Cleaned File Suffix",
+                            value = settings.autoCleanSuffix,
+                            onClick = {
+                                activeDialogType = SettingsDialogType.SUFFIX
+                                textInputState = settings.autoCleanSuffix
+                            }
+                        )
+                        SettingValueRow(
+                            title = stringResource(id = R.string.settings_video_folder),
+                            value = settings.videoFolder,
+                            onClick = {
+                                videoFolderLauncher.launch(null)
+                            }
+                        )
+                        SettingValueRow(
+                            title = stringResource(id = R.string.settings_audio_folder),
+                            value = settings.audioFolder,
+                            onClick = {
+                                audioFolderLauncher.launch(null)
+                            }
+                        )
                     }
                 }
 
                 item {
                     SettingsSection(title = "SponsorBlock Configuration") {
-                        SettingValueRow("SponsorBlock Server API URL", settings.sponsorBlockUrl)
+                        SettingValueRow(
+                            title = "SponsorBlock Server API URL",
+                            value = settings.sponsorBlockUrl,
+                            onClick = {
+                                activeDialogType = SettingsDialogType.SB_URL
+                                textInputState = settings.sponsorBlockUrl
+                            }
+                        )
                         HorizontalDivider()
                         Text("Active Skip Categories", fontWeight = FontWeight.Medium, modifier = Modifier.padding(vertical = 4.dp))
 
@@ -156,13 +230,193 @@ fun SettingsScreen(
                 item {
                     SettingsSection(title = stringResource(id = R.string.about_section)) {
                         SettingValueRow(stringResource(id = R.string.app_version), "0.2.0")
-                        SettingValueRow(stringResource(id = R.string.label_github), stringResource(id = R.string.app_github))
-                        SettingValueRow(stringResource(id = R.string.label_issues), stringResource(id = R.string.app_issues))
-                        SettingValueRow(stringResource(id = R.string.label_licenses), stringResource(id = R.string.app_licenses))
+                        SettingValueRow(
+                            title = stringResource(id = R.string.label_github),
+                            value = stringResource(id = R.string.app_github),
+                            onClick = {
+                                val url = "https://" + context.getString(R.string.app_github)
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                context.startActivity(intent)
+                            }
+                        )
+                        SettingValueRow(
+                            title = stringResource(id = R.string.label_issues),
+                            value = stringResource(id = R.string.app_issues),
+                            onClick = {
+                                val url = "https://" + context.getString(R.string.app_issues)
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                context.startActivity(intent)
+                            }
+                        )
+                        SettingValueRow(
+                            title = stringResource(id = R.string.label_licenses),
+                            value = stringResource(id = R.string.app_licenses),
+                            onClick = {
+                                showLicensesDialog = true
+                            }
+                        )
                     }
                 }
             }
         }
+    }
+
+    // Active Interactive Settings Dialog
+    settings?.let { nonNullSettings ->
+        activeDialogType?.let { dialogType ->
+            when (dialogType) {
+                SettingsDialogType.THEME -> {
+                    AlertDialog(
+                        onDismissRequest = { activeDialogType = null },
+                        title = { Text(stringResource(id = R.string.settings_theme_mode)) },
+                        text = {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                ThemeMode.entries.forEach { mode ->
+                                    val label = when (mode) {
+                                        ThemeMode.LIGHT -> "Light Mode"
+                                        ThemeMode.DARK -> "Dark Mode"
+                                        ThemeMode.SYSTEM -> "System Default"
+                                    }
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                viewModel.updateThemeMode(mode)
+                                                activeDialogType = null
+                                            }
+                                            .padding(vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        RadioButton(
+                                            selected = nonNullSettings.themeMode == mode,
+                                            onClick = {
+                                                viewModel.updateThemeMode(mode)
+                                                activeDialogType = null
+                                            }
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(label)
+                                    }
+                                }
+                            }
+                        },
+                        confirmButton = {},
+                        dismissButton = {
+                            TextButton(onClick = { activeDialogType = null }) {
+                                Text("Cancel")
+                            }
+                        }
+                    )
+                }
+                else -> {
+                    val dialogTitle = when (dialogType) {
+                        SettingsDialogType.SUFFIX -> "Cleaned File Suffix"
+                        SettingsDialogType.SB_URL -> "SponsorBlock Server API URL"
+                        else -> ""
+                    }
+                    val dialogLabel = when (dialogType) {
+                        SettingsDialogType.SUFFIX -> "Suffix (e.g. _cleaned)"
+                        SettingsDialogType.SB_URL -> "Server API Base URL"
+                        else -> ""
+                    }
+                    AlertDialog(
+                        onDismissRequest = { activeDialogType = null },
+                        title = { Text(dialogTitle) },
+                        text = {
+                            Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                                OutlinedTextField(
+                                    value = textInputState,
+                                    onValueChange = { textInputState = it },
+                                    label = { Text(dialogLabel) },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    when (dialogType) {
+                                        SettingsDialogType.SUFFIX -> viewModel.updateAutoCleanSuffix(textInputState)
+                                        SettingsDialogType.SB_URL -> viewModel.updateSponsorBlockUrl(textInputState)
+                                        else -> {}
+                                    }
+                                    activeDialogType = null
+                                }
+                            ) {
+                                Text("Save")
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { activeDialogType = null }) {
+                                Text("Cancel")
+                            }
+                        }
+                    )
+                }
+            }
+        }
+    }
+
+    if (showLicensesDialog) {
+        AlertDialog(
+            onDismissRequest = { showLicensesDialog = false },
+            title = { Text("Open Source Licenses") },
+            text = {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.height(300.dp)
+                ) {
+                    item {
+                        Column {
+                            Text("FFmpeg Kit (min-gpl / LTS 16kb)", fontWeight = FontWeight.Bold)
+                            Text("License: LGPL 3.0 / GPLv3", style = MaterialTheme.typography.bodySmall)
+                            Text("An actively maintained FFmpeg compilation for Android.", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                    item {
+                        Column {
+                            Text("Jetpack Compose & AndroidX Libraries", fontWeight = FontWeight.Bold)
+                            Text("License: Apache License 2.0", style = MaterialTheme.typography.bodySmall)
+                            Text("Core UI frameworks, WorkManager orchestration, Room database, and Jetpack DataStore preferences.", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                    item {
+                        Column {
+                            Text("Kotlin & Kotlinx Serialization / Coroutines", fontWeight = FontWeight.Bold)
+                            Text("License: Apache License 2.0", style = MaterialTheme.typography.bodySmall)
+                            Text("Modern, reactive language runtime, JSON serializers, and asynchronous flows.", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                    item {
+                        Column {
+                            Text("Dagger Hilt Dependency Injection", fontWeight = FontWeight.Bold)
+                            Text("License: Apache License 2.0", style = MaterialTheme.typography.bodySmall)
+                            Text("Google's compiled dependency injection standard for Android.", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                    item {
+                        Column {
+                            Text("OkHttp & Retrofit", fontWeight = FontWeight.Bold)
+                            Text("License: Apache License 2.0", style = MaterialTheme.typography.bodySmall)
+                            Text("Square's robust, fast http client engine and type-safe HTTP clients.", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                    item {
+                        Column {
+                            Text("Coil Image Loader", fontWeight = FontWeight.Bold)
+                            Text("License: Apache License 2.0", style = MaterialTheme.typography.bodySmall)
+                            Text("Kotlin-first, fast image loading library for Jetpack Compose.", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(onClick = { showLicensesDialog = false }) {
+                    Text("Close")
+                }
+            }
+        )
     }
 }
 
@@ -194,13 +448,30 @@ private fun SettingToggleRow(
 }
 
 @Composable
-private fun SettingValueRow(title: String, value: String) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+private fun SettingValueRow(
+    title: String,
+    value: String,
+    onClick: (() -> Unit)? = null,
+) {
+    val modifier = if (onClick != null) {
+        Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(vertical = 8.dp)
+    } else {
+        Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+    }
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(title, fontWeight = FontWeight.Medium)
-            Text(value)
+            Text(title, fontWeight = FontWeight.Medium, style = MaterialTheme.typography.bodyLarge)
+            Text(value, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Spacer(modifier = Modifier.height(1.dp))
     }
 }
 
@@ -217,3 +488,21 @@ private val sponsorBlockCategories = listOf(
     CategoryRow(SponsorBlockCategory.FILLER_TANGENT, R.string.category_filler_tangent),
     CategoryRow(SponsorBlockCategory.MUSIC_OFFTOPIC, R.string.category_music_non_music_section),
 )
+
+private enum class SettingsDialogType {
+    THEME,
+    SUFFIX,
+    SB_URL
+}
+
+private fun resolveRelativePathFromUri(uri: Uri): String {
+    val docId = try {
+        android.provider.DocumentsContract.getTreeDocumentId(uri)
+    } catch (e: Exception) {
+        uri.path
+    } ?: ""
+    val split = docId.split(":")
+    val rawPath = if (split.size > 1) split[1] else docId
+    val trimmedPath = rawPath.trim('/')
+    return if (trimmedPath.isEmpty()) "SB Skip/" else "$trimmedPath/"
+}
