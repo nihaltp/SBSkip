@@ -10,6 +10,8 @@ data class DownloadQueueEntity(
     val id: Long = 0,
     val url: String,
     val title: String,
+    val localFileUri: String,
+    val mediaType: String,
     val thumbnailUrl: String?,
     val durationSeconds: Long?,
     val status: DownloadQueueStatus,

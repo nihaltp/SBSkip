@@ -14,6 +14,9 @@ interface DownloadQueueDao {
     @Query("SELECT * FROM download_queue ORDER BY createdAtEpochMillis DESC, id DESC")
     fun observeQueue(): Flow<List<DownloadQueueEntity>>
 
+    @Query("SELECT * FROM download_queue WHERE id = :id")
+    suspend fun findById(id: Long): DownloadQueueEntity?
+
     @Query("SELECT * FROM download_queue WHERE status = 'QUEUED' ORDER BY createdAtEpochMillis ASC, id ASC LIMIT 1")
     suspend fun findNextQueuedItem(): DownloadQueueEntity?
 
@@ -42,17 +45,29 @@ interface DownloadQueueDao {
         SET title = :title,
             thumbnailUrl = :thumbnailUrl,
             durationSeconds = :durationSeconds,
-            status = :status,
+            updatedAtEpochMillis = :updatedAtEpochMillis
+        WHERE id = :id
+        """,
+    )
+    suspend fun updateMetadata(
+        id: Long,
+        title: String,
+        thumbnailUrl: String?,
+        durationSeconds: Long?,
+        updatedAtEpochMillis: Long,
+    )
+
+    @Query(
+        """
+        UPDATE download_queue
+        SET status = :status,
             errorMessage = NULL,
             updatedAtEpochMillis = :updatedAtEpochMillis
         WHERE id = :id
         """,
     )
-    suspend fun markReady(
+    suspend fun markStatus(
         id: Long,
-        title: String,
-        thumbnailUrl: String?,
-        durationSeconds: Long?,
         status: DownloadQueueStatus,
         updatedAtEpochMillis: Long,
     )

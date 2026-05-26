@@ -1,6 +1,7 @@
 package com.nihaltp.sbskip
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.os.SystemClock
 import androidx.activity.ComponentActivity
@@ -46,8 +47,14 @@ private fun App(shareEvent: ShareIntentEvent?) {
 
 private fun Intent.toShareIntentEvent(): ShareIntentEvent? {
     if (action != Intent.ACTION_SEND) return null
-    if (type != "text/plain") return null
-    val text = getStringExtra(Intent.EXTRA_TEXT)?.trim().orEmpty()
-    if (text.isBlank()) return null
-    return ShareIntentEvent(text = text, token = SystemClock.elapsedRealtimeNanos())
+    val currentType = type ?: return null
+    return if (currentType == "text/plain") {
+        val text = getStringExtra(Intent.EXTRA_TEXT)?.trim().orEmpty()
+        if (text.isBlank()) null else ShareIntentEvent(text = text, token = SystemClock.elapsedRealtimeNanos())
+    } else if (currentType.startsWith("video/") || currentType.startsWith("audio/")) {
+        val fileUri = getParcelableExtra<android.os.Parcelable>(Intent.EXTRA_STREAM) as? Uri
+        if (fileUri == null) null else ShareIntentEvent(fileUri = fileUri, token = SystemClock.elapsedRealtimeNanos())
+    } else {
+        null
+    }
 }

@@ -2,8 +2,9 @@ package com.nihaltp.sbskip.model
 
 enum class DownloadQueueStatus {
     QUEUED,
-    FETCHING_INFO,
-    READY,
+    FETCHING_SEGMENTS,
+    PROCESSING,
+    COMPLETED,
     FAILED,
 }
 
@@ -11,6 +12,8 @@ data class DownloadQueueItem(
     val id: Long,
     val url: String,
     val title: String,
+    val localFileUri: String,
+    val mediaType: MediaType,
     val thumbnailUrl: String?,
     val durationSeconds: Long?,
     val status: DownloadQueueStatus,
@@ -33,6 +36,8 @@ data class DownloadQueueItem(
 
 data class MainUiState(
     val urlInput: String = "",
+    val selectedFileUri: String? = null,
+    val selectedFileName: String = "",
     val queueItems: List<DownloadQueueItem> = emptyList(),
     val snackbarMessage: String? = null,
 )
@@ -40,10 +45,4 @@ data class MainUiState(
 data class QueueActionResult(
     val success: Boolean,
     val message: String,
-)
-
-data class VideoMetadata(
-    val title: String,
-    val thumbnailUrl: String?,
-    val durationSeconds: Long?,
 )

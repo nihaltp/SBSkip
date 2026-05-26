@@ -16,13 +16,15 @@ enum class DownloadStatus {
 }
 
 enum class SponsorBlockCategory {
-    SPONSOR,
-    SELF_PROMOTION,
-    INTRO,
-    OUTRO,
-    INTERACTION_REMINDER,
-    PREVIEW_RECAP,
-    FILLER_TANGENT,
+    SPONSOR,              // Sponsor segments
+    SELF_PROMOTION,       // Unpaid/Self Promotion segments
+    INTERACTION_REMINDER, // Interaction Reminder segments
+    INTRO,                // Intermission/Intro Animation segments
+    OUTRO,                // Endcards/Credits segments
+    PREVIEW_RECAP,        // Preview/Recap segments
+    HOOK,                 // Hook/Greetings segments
+    FILLER_TANGENT,       // Tangents/Jokes segments
+    MUSIC_OFFTOPIC,       // Music: Non-Music Section segments
 }
 
 enum class ThemeMode {
@@ -49,6 +51,16 @@ data class MediaMetadata(
     val thumbnailUrl: String? = null,
     val durationSeconds: Long? = null,
     val uploader: String? = null,
+    val webpageUrl: String? = null,
+    val extractor: String? = null,
+)
+data class VideoMetadata(
+    val title: String,
+    val thumbnailUrl: String?,
+    val durationSeconds: Long?,
+    val uploader: String? = null,
+    val webpageUrl: String? = null,
+    val extractor: String? = null,
 )
 
 data class QueueItem(
@@ -70,6 +82,7 @@ data class RecentDownload(
 )
 
 data class DownloadConfigurationState(
+    val queueItemId: Long? = null,
     val title: String = "",
     val thumbnailUrl: String? = null,
     val request: DownloadRequest = DownloadRequest(),

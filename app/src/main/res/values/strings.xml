@@ -21,6 +21,8 @@
 
     <string name="status_queued">Queued</string>
     <string name="status_fetching_info">Fetching info</string>
+    <string name="status_downloading">Downloading</string>
+    <string name="status_completed">Completed</string>
     <string name="status_ready">Ready</string>
     <string name="status_failed">Failed</string>
 
@@ -38,6 +40,15 @@
 
     <string name="download_missing_url">Missing URL</string>
     <string name="download_scaffold_message">Queue pipeline scaffolded; native downloader integration comes next.</string>
+    <string name="download_started">Download started.</string>
+    <string name="download_item_not_ready">Item is not ready yet.</string>
+    <string name="download_completed">Download completed.</string>
+    <string name="download_failed_yt_dlp">yt-dlp download failed</string>
+    <string name="download_failed_generic">Download failed</string>
+    <string name="download_cancelled">Download cancelled.</string>
+    <string name="notification_channel_download_name">Downloads</string>
+    <string name="notification_channel_download_description">Active and completed download notifications.</string>
+    <string name="notification_download_in_progress">Download in progress...</string>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
@@ -84,12 +95,14 @@
     <string name="start_download">Start download</string>
 
     <string name="category_sponsor">Sponsor</string>
-    <string name="category_self_promotion">Self promotion</string>
-    <string name="category_intro">Intro</string>
-    <string name="category_outro">Outro</string>
-    <string name="category_interaction_reminder">Interaction reminder</string>
-    <string name="category_preview_recap">Preview / recap</string>
-    <string name="category_filler_tangent">Filler / tangent</string>
+    <string name="category_self_promotion">Unpaid / Self Promotion</string>
+    <string name="category_interaction_reminder">Interaction Reminder</string>
+    <string name="category_intro">Intermission / Intro Animation</string>
+    <string name="category_outro">Endcards / Credits</string>
+    <string name="category_preview_recap">Preview / Recap</string>
+    <string name="category_hook_greetings">Hook / Greetings</string>
+    <string name="category_filler_tangent">Tangents / Jokes</string>
+    <string name="category_music_non_music_section">Music: Non-Music Section</string>
 
     <string name="verbose_logging">Verbose logging</string>
     <string name="verbose_logging_desc">Capture detailed queue and processor logs.</string>

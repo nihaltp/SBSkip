@@ -37,7 +37,8 @@ fun AppNavGraph(
             MainScreen(
                 uiState = uiState,
                 onUrlChange = viewModel::onUrlChanged,
-                onSubmit = viewModel::queueCurrentUrl,
+                onFileSelected = viewModel::onFileSelected,
+                onSubmit = viewModel::queueCurrentItem,
                 onOpenSettings = { navController.navigate(Destination.Settings.route) },
                 onRemoveQueueItem = viewModel::removeQueueItem,
                 onRetryQueueItem = viewModel::retryQueueItem,

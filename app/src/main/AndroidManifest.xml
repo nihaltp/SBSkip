@@ -36,6 +36,11 @@
             android:name="androidx.startup.InitializationProvider"
             android:exported="false"
             tools:node="remove" />
+
+        <service
+            android:name="androidx.work.impl.foreground.SystemForegroundService"
+            android:foregroundServiceType="dataSync"
+            tools:replace="android:foregroundServiceType" />
     </application>
 
 </manifest>

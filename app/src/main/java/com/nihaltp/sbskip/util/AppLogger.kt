@@ -5,19 +5,37 @@ import android.util.Log
 object AppLogger {
     private const val TAG_PREFIX = "SBSkip"
 
+    private fun safeLogD(tag: String, message: String) {
+        try {
+            Log.d(tag, message)
+        } catch (e: Throwable) {
+            // Running on plain JVM unit tests where android.util.Log is not available.
+            System.out.println("$tag: $message")
+        }
+    }
+
+    private fun safeLogE(tag: String, throwable: Throwable, message: String) {
+        try {
+            Log.e(tag, message, throwable)
+        } catch (e: Throwable) {
+            System.err.println("$tag: $message")
+            throwable.printStackTrace(System.err)
+        }
+    }
+
     fun queue(message: String) {
-        Log.d("$TAG_PREFIX-Queue", message)
+        safeLogD("$TAG_PREFIX-Queue", message)
     }
 
     fun worker(message: String) {
-        Log.d("$TAG_PREFIX-Worker", message)
+        safeLogD("$TAG_PREFIX-Worker", message)
     }
 
     fun metadata(message: String) {
-        Log.d("$TAG_PREFIX-Metadata", message)
+        safeLogD("$TAG_PREFIX-Metadata", message)
     }
 
     fun error(tag: String, throwable: Throwable, message: String) {
-        Log.e("$TAG_PREFIX-$tag", message, throwable)
+        safeLogE("$TAG_PREFIX-$tag", throwable, message)
     }
 }
