@@ -333,15 +333,31 @@ fun MainScreen(
                             Text(item.status.name, style = MaterialTheme.typography.bodyMedium)
                         }
                     }
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Text("Imported Source URI", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
-                        Text(
-                            text = item.localFileUri.ifBlank { "N/A" },
-                            style = MaterialTheme.typography.bodySmall,
-                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                            maxLines = 3,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Column {
+                            Text("Imported Path", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                            SelectionContainer {
+                                Text(
+                                    text = formatUriToPath(item.localFileUri),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                            }
+                        }
+
+                        if (!item.outputPath.isNullOrBlank() && item.outputPath != item.localFileUri) {
+                            Column {
+                                Text("Saved Location", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                                SelectionContainer {
+                                    Text(
+                                        text = formatUriToPath(item.outputPath),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             },
@@ -498,5 +514,43 @@ private fun DetailRow(label: String, value: String) {
         SelectionContainer {
             Text(value, style = MaterialTheme.typography.bodyMedium)
         }
+    }
+}
+
+private fun formatUriToPath(uriString: String?): String {
+    if (uriString.isNullOrBlank()) return "N/A"
+    try {
+        val decoded = android.net.Uri.decode(uriString)
+
+        if (decoded.contains("primary:")) {
+            return decoded.substringAfterLast("primary:")
+        }
+
+        if (decoded.contains("raw:")) {
+            return decoded.substringAfterLast("raw:")
+        }
+
+        if (decoded.contains("/document/")) {
+            val docPart = decoded.substringAfterLast("/document/")
+            if (docPart.isNotBlank()) {
+                return docPart
+            }
+        }
+
+        if (decoded.contains("/tree/")) {
+            val treePart = decoded.substringAfterLast("/tree/")
+            if (treePart.isNotBlank()) {
+                return treePart
+            }
+        }
+
+        val uri = android.net.Uri.parse(uriString)
+        if (uri.scheme == "file") {
+            return uri.path ?: decoded
+        }
+
+        return decoded
+    } catch (e: Exception) {
+        return uriString
     }
 }

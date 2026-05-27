@@ -13,7 +13,7 @@ interface QueueRepository {
     suspend fun findItemById(itemId: Long): DownloadQueueItem?
     suspend fun markFetchingSegments(itemId: Long)
     suspend fun markProcessing(itemId: Long)
-    suspend fun markCompleted(itemId: Long)
+    suspend fun markCompleted(itemId: Long, outputPath: String)
     suspend fun markFailed(itemId: Long, errorMessage: String)
     suspend fun updateMetadata(itemId: Long, title: String, thumbnailUrl: String?, durationSeconds: Long?)
 }

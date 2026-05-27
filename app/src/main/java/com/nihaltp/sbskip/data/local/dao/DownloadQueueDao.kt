@@ -72,6 +72,22 @@ interface DownloadQueueDao {
         updatedAtEpochMillis: Long,
     )
 
+    @Query(
+        """
+        UPDATE download_queue
+        SET status = 'COMPLETED',
+            outputPath = :outputPath,
+            errorMessage = NULL,
+            updatedAtEpochMillis = :updatedAtEpochMillis
+        WHERE id = :id
+        """,
+    )
+    suspend fun markCompleted(
+        id: Long,
+        outputPath: String,
+        updatedAtEpochMillis: Long,
+    )
+
     @Query("DELETE FROM download_queue WHERE id = :id")
     suspend fun deleteById(id: Long)
 

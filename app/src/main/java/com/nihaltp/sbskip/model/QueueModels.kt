@@ -20,6 +20,7 @@ data class DownloadQueueItem(
     val createdAtEpochMillis: Long,
     val updatedAtEpochMillis: Long,
     val errorMessage: String?,
+    val outputPath: String? = null,
 ) {
     val displayDuration: String
         get() = durationSeconds?.let { seconds ->

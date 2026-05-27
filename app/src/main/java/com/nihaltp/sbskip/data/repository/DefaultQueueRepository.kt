@@ -49,6 +49,7 @@ class DefaultQueueRepository @Inject constructor(
             createdAtEpochMillis = now,
             updatedAtEpochMillis = now,
             errorMessage = null,
+            outputPath = null,
         )
 
         val id = dao.insert(entity)
@@ -100,11 +101,11 @@ class DefaultQueueRepository @Inject constructor(
         )
     }
 
-    override suspend fun markCompleted(itemId: Long) {
-        AppLogger.queue("completed id=$itemId")
-        dao.markStatus(
+    override suspend fun markCompleted(itemId: Long, outputPath: String) {
+        AppLogger.queue("completed id=$itemId outputPath=$outputPath")
+        dao.markCompleted(
             id = itemId,
-            status = DownloadQueueStatus.COMPLETED,
+            outputPath = outputPath,
             updatedAtEpochMillis = System.currentTimeMillis(),
         )
     }
@@ -149,6 +150,7 @@ class DefaultQueueRepository @Inject constructor(
             createdAtEpochMillis = createdAtEpochMillis,
             updatedAtEpochMillis = updatedAtEpochMillis,
             errorMessage = errorMessage,
+            outputPath = outputPath,
         )
     }
 }

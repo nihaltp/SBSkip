@@ -144,7 +144,7 @@ class DownloadWorker @AssistedInject constructor(
             }
 
             // 4. Mark as COMPLETED
-            queueRepository.markCompleted(queueItemId)
+            queueRepository.markCompleted(queueItemId, savedUriString)
             notificationManager.showCompletion(notificationId, taskTitle)
 
             Result.success(

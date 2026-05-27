@@ -18,4 +18,5 @@ data class DownloadQueueEntity(
     val createdAtEpochMillis: Long,
     val updatedAtEpochMillis: Long,
     val errorMessage: String? = null,
+    val outputPath: String? = null,
 )
