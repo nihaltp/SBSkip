@@ -31,6 +31,8 @@ class DataStoreSettingsRepository @Inject constructor(
         val NOTIFICATIONS_ENABLED = booleanPreferencesKey("notifications_enabled")
         val VIDEO_FOLDER = stringPreferencesKey("video_folder")
         val AUDIO_FOLDER = stringPreferencesKey("audio_folder")
+        val VIDEO_FOLDER_URI = stringPreferencesKey("video_folder_uri")
+        val AUDIO_FOLDER_URI = stringPreferencesKey("audio_folder_uri")
         val TEMP_FOLDER = stringPreferencesKey("temp_folder")
         val SB_ENABLED = booleanPreferencesKey("sb_enabled")
         val SB_CATEGORIES = stringSetPreferencesKey("sb_categories")
@@ -57,6 +59,8 @@ class DataStoreSettingsRepository @Inject constructor(
             notificationsEnabled = preferences[PreferencesKeys.NOTIFICATIONS_ENABLED] ?: true,
             videoFolder = preferences[PreferencesKeys.VIDEO_FOLDER] ?: "Movies/SB Skip/",
             audioFolder = preferences[PreferencesKeys.AUDIO_FOLDER] ?: "Music/SB Skip/",
+            videoFolderUri = preferences[PreferencesKeys.VIDEO_FOLDER_URI] ?: "",
+            audioFolderUri = preferences[PreferencesKeys.AUDIO_FOLDER_URI] ?: "",
             tempFolder = preferences[PreferencesKeys.TEMP_FOLDER] ?: "SB Skip/tmp/",
             sponsorBlockSettings = SponsorBlockSettings(
                 enabled = preferences[PreferencesKeys.SB_ENABLED] ?: true,
@@ -81,6 +85,8 @@ class DataStoreSettingsRepository @Inject constructor(
                 notificationsEnabled = preferences[PreferencesKeys.NOTIFICATIONS_ENABLED] ?: true,
                 videoFolder = preferences[PreferencesKeys.VIDEO_FOLDER] ?: "Movies/SB Skip/",
                 audioFolder = preferences[PreferencesKeys.AUDIO_FOLDER] ?: "Music/SB Skip/",
+                videoFolderUri = preferences[PreferencesKeys.VIDEO_FOLDER_URI] ?: "",
+                audioFolderUri = preferences[PreferencesKeys.AUDIO_FOLDER_URI] ?: "",
                 tempFolder = preferences[PreferencesKeys.TEMP_FOLDER] ?: "SB Skip/tmp/",
                 sponsorBlockSettings = SponsorBlockSettings(
                     enabled = preferences[PreferencesKeys.SB_ENABLED] ?: true,
@@ -102,6 +108,8 @@ class DataStoreSettingsRepository @Inject constructor(
             preferences[PreferencesKeys.NOTIFICATIONS_ENABLED] = updated.notificationsEnabled
             preferences[PreferencesKeys.VIDEO_FOLDER] = updated.videoFolder
             preferences[PreferencesKeys.AUDIO_FOLDER] = updated.audioFolder
+            preferences[PreferencesKeys.VIDEO_FOLDER_URI] = updated.videoFolderUri
+            preferences[PreferencesKeys.AUDIO_FOLDER_URI] = updated.audioFolderUri
             preferences[PreferencesKeys.TEMP_FOLDER] = updated.tempFolder
             preferences[PreferencesKeys.SB_ENABLED] = updated.sponsorBlockSettings.enabled
             preferences[PreferencesKeys.SB_CATEGORIES] = updated.sponsorBlockSettings.categories.map { it.name }.toSet()

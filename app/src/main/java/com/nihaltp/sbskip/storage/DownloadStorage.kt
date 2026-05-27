@@ -4,7 +4,6 @@ import com.nihaltp.sbskip.model.MediaType
 import java.io.File
 
 interface DownloadStorage {
-    suspend fun resolveOutputPath(directory: String, title: String, extension: String): String
     suspend fun deleteTemporaryFile(path: String)
     suspend fun copyUriToTempFile(uriString: String, tempFile: File)
     suspend fun saveToPublicStorage(tempFile: File, title: String, extension: String, mediaType: MediaType): String

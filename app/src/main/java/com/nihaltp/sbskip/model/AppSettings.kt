@@ -6,6 +6,8 @@ data class AppSettings(
     val notificationsEnabled: Boolean = true,
     val videoFolder: String = "Movies/SB Skip/",
     val audioFolder: String = "Music/SB Skip/",
+    val videoFolderUri: String = "",
+    val audioFolderUri: String = "",
     val tempFolder: String = "SB Skip/tmp/",
     val sponsorBlockSettings: SponsorBlockSettings = SponsorBlockSettings(),
     val filenameReplacement: Char = '_',

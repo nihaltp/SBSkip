@@ -77,8 +77,16 @@ fun SettingsScreen(
         contract = ActivityResultContracts.OpenDocumentTree()
     ) { uri ->
         uri?.let {
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    it,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                )
+            } catch (e: Exception) {
+                com.nihaltp.sbskip.util.AppLogger.error("Settings", e, "Failed to take persistable URI permission")
+            }
             val resolvedPath = resolveRelativePathFromUri(it)
-            viewModel.updateVideoFolder(resolvedPath)
+            viewModel.updateVideoFolder(resolvedPath, it.toString())
         }
     }
 
@@ -86,8 +94,16 @@ fun SettingsScreen(
         contract = ActivityResultContracts.OpenDocumentTree()
     ) { uri ->
         uri?.let {
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    it,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                )
+            } catch (e: Exception) {
+                com.nihaltp.sbskip.util.AppLogger.error("Settings", e, "Failed to take persistable URI permission")
+            }
             val resolvedPath = resolveRelativePathFromUri(it)
-            viewModel.updateAudioFolder(resolvedPath)
+            viewModel.updateAudioFolder(resolvedPath, it.toString())
         }
     }
 

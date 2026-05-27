@@ -5,9 +5,9 @@ import android.content.Context
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
-import android.os.Environment
 import android.provider.MediaStore
 import android.provider.OpenableColumns
+import androidx.documentfile.provider.DocumentFile
 import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.util.AppLogger
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -27,15 +27,6 @@ class AndroidDownloadStorage @Inject constructor(
     @ApplicationContext private val context: Context,
     private val settingsRepository: SettingsRepository,
 ) : DownloadStorage {
-
-    override suspend fun resolveOutputPath(directory: String, title: String, extension: String): String = withContext(Dispatchers.IO) {
-        val root = Environment.getExternalStorageDirectory()
-        val dir = File(root, directory)
-        if (!dir.exists()) {
-            dir.mkdirs()
-        }
-        File(dir, "$title.$extension").absolutePath
-    }
 
     override suspend fun deleteTemporaryFile(path: String) = withContext(Dispatchers.IO) {
         try {
@@ -75,51 +66,104 @@ class AndroidDownloadStorage @Inject constructor(
             settings.audioFolder.trimEnd('/')
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val contentUri = if (mediaType == MediaType.VIDEO) {
-                MediaStore.Video.Media.EXTERNAL_CONTENT_URI
-            } else {
-                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-            }
-
-            val contentValues = ContentValues().apply {
-                put(MediaStore.MediaColumns.DISPLAY_NAME, filename)
-                put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
-                put(MediaStore.MediaColumns.RELATIVE_PATH, customFolder)
-            }
-
-            val resolver = context.contentResolver
-            val uri = resolver.insert(contentUri, contentValues)
-                ?: throw IOException("Failed to insert media entry into MediaStore")
-
+        // 1. Direct SAF Custom Folder Tree URI Write (supports ALL custom folders, external directories, SD cards, etc.)
+        val folderUriStr = if (mediaType == MediaType.VIDEO) settings.videoFolderUri else settings.audioFolderUri
+        if (folderUriStr.isNotEmpty() && folderUriStr.startsWith("content://")) {
             try {
-                resolver.openOutputStream(uri)?.use { output ->
-                    FileInputStream(tempFile).use { input ->
-                        input.copyTo(output)
+                val folderUri = Uri.parse(folderUriStr)
+                val dirFile = DocumentFile.fromTreeUri(context, folderUri)
+                if (dirFile != null && dirFile.exists() && dirFile.isDirectory) {
+                    val existingFile = dirFile.findFile(filename)
+                    if (existingFile != null && settings.overwriteBehavior) {
+                        existingFile.delete()
                     }
-                } ?: throw IOException("Failed to open MediaStore output stream")
-                AppLogger.worker("Saved clean file to MediaStore Scoped Storage: $customFolder/$filename")
-                uri.toString()
+                    val newFile = dirFile.createFile(mimeType, filename)
+                        ?: throw IOException("Failed to create document file inside SAF directory")
+
+                    context.contentResolver.openOutputStream(newFile.uri)?.use { output ->
+                        FileInputStream(tempFile).use { input ->
+                            input.copyTo(output)
+                        }
+                    } ?: throw IOException("Failed to open SAF output stream")
+                    
+                    AppLogger.worker("Successfully saved clean file to custom SAF directory: $filename")
+                    return@withContext newFile.uri.toString()
+                }
             } catch (e: Exception) {
-                // Cleanup inserted failed record
-                resolver.delete(uri, null, null)
-                throw e
+                AppLogger.error("Storage", e, "Failed to save via SAF to custom folder $folderUriStr, falling back to MediaStore")
+            }
+        }
+
+        // 2. Failsafe Fallback: Standard MediaStore or Legacy storage
+        val allowedAudioDirs = setOf("Music", "Podcasts", "Ringtones", "Alarms", "Notifications", "Audiobooks", "Recordings")
+        val allowedVideoDirs = setOf("Movies", "Pictures", "DCIM")
+        val audioDirsMap = allowedAudioDirs.associateBy { it.lowercase() }
+        val videoDirsMap = allowedVideoDirs.associateBy { it.lowercase() }
+
+        val firstSegment = customFolder.split('/').firstOrNull()?.trim() ?: ""
+        val lowerSegment = firstSegment.lowercase()
+
+        val finalFolder: String
+        var useDownloadsUri = false
+
+        if (mediaType == MediaType.VIDEO) {
+            if (videoDirsMap.containsKey(lowerSegment)) {
+                val normalizedFirst = videoDirsMap[lowerSegment]!!
+                val restOfPath = customFolder.substringAfter('/', "")
+                finalFolder = if (restOfPath.isNotEmpty()) "$normalizedFirst/$restOfPath" else normalizedFirst
+            } else if (lowerSegment == "download" || lowerSegment == "downloads") {
+                useDownloadsUri = true
+                val restOfPath = customFolder.substringAfter('/', "")
+                finalFolder = if (restOfPath.isNotEmpty()) "Download/$restOfPath" else "Download"
+            } else {
+                finalFolder = "Movies/SB Skip"
             }
         } else {
-            // Android 9 and below - direct legacy write
-            val root = Environment.getExternalStorageDirectory()
-            val targetFolder = File(root, customFolder)
-            if (!targetFolder.exists()) {
-                targetFolder.mkdirs()
+            if (audioDirsMap.containsKey(lowerSegment)) {
+                val normalizedFirst = audioDirsMap[lowerSegment]!!
+                val restOfPath = customFolder.substringAfter('/', "")
+                finalFolder = if (restOfPath.isNotEmpty()) "$normalizedFirst/$restOfPath" else normalizedFirst
+            } else if (lowerSegment == "download" || lowerSegment == "downloads") {
+                useDownloadsUri = true
+                val restOfPath = customFolder.substringAfter('/', "")
+                finalFolder = if (restOfPath.isNotEmpty()) "Download/$restOfPath" else "Download"
+            } else {
+                finalFolder = "Music/SB Skip"
             }
-            val targetFile = File(targetFolder, filename)
-            FileOutputStream(targetFile).use { output ->
+        }
+
+        val contentUri = if (useDownloadsUri) {
+            MediaStore.Downloads.EXTERNAL_CONTENT_URI
+        } else if (mediaType == MediaType.VIDEO) {
+            MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+        } else {
+            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+        }
+
+        val contentValues = ContentValues().apply {
+            put(MediaStore.MediaColumns.DISPLAY_NAME, filename)
+            put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                put(MediaStore.MediaColumns.RELATIVE_PATH, finalFolder)
+            }
+        }
+
+        val resolver = context.contentResolver
+        val uri = resolver.insert(contentUri, contentValues)
+            ?: throw IOException("Failed to insert media entry into MediaStore")
+
+        try {
+            resolver.openOutputStream(uri)?.use { output ->
                 FileInputStream(tempFile).use { input ->
                     input.copyTo(output)
                 }
-            }
-            AppLogger.worker("Saved clean file to legacy storage: ${targetFile.absolutePath}")
-            targetFile.absolutePath
+            } ?: throw IOException("Failed to open MediaStore output stream")
+            AppLogger.worker("Saved clean file to MediaStore: $finalFolder/$filename")
+            uri.toString()
+        } catch (e: Exception) {
+            // Cleanup inserted failed record
+            resolver.delete(uri, null, null)
+            throw e
         }
     }
 
