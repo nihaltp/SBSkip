@@ -2,8 +2,10 @@ package com.nihaltp.sbskip.ui.settings
 
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -16,15 +18,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Description
-import androidx.compose.foundation.background
-import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
-import android.widget.Toast
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -51,7 +48,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -74,13 +74,13 @@ fun SettingsScreen(
     var logRefreshKey by remember { mutableStateOf(0) }
 
     val videoFolderLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocumentTree()
+        contract = ActivityResultContracts.OpenDocumentTree(),
     ) { uri ->
         uri?.let {
             try {
                 context.contentResolver.takePersistableUriPermission(
                     it,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
                 )
             } catch (e: Exception) {
                 com.nihaltp.sbskip.util.AppLogger.error("Settings", e, "Failed to take persistable URI permission")
@@ -91,13 +91,13 @@ fun SettingsScreen(
     }
 
     val audioFolderLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocumentTree()
+        contract = ActivityResultContracts.OpenDocumentTree(),
     ) { uri ->
         uri?.let {
             try {
                 context.contentResolver.takePersistableUriPermission(
                     it,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
                 )
             } catch (e: Exception) {
                 com.nihaltp.sbskip.util.AppLogger.error("Settings", e, "Failed to take persistable URI permission")
@@ -130,7 +130,7 @@ fun SettingsScreen(
                     .fillMaxSize()
                     .padding(paddingValues),
                 verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 CircularProgressIndicator()
             }
@@ -148,13 +148,13 @@ fun SettingsScreen(
                             title = stringResource(id = R.string.settings_dynamic_color_title),
                             description = stringResource(id = R.string.settings_dynamic_color_desc),
                             checked = settings.dynamicColor,
-                            onCheckedChange = viewModel::updateDynamicColor
+                            onCheckedChange = viewModel::updateDynamicColor,
                         )
                         SettingToggleRow(
                             title = stringResource(id = R.string.settings_notifications_title),
                             description = stringResource(id = R.string.settings_notifications_desc),
                             checked = settings.notificationsEnabled,
-                            onCheckedChange = viewModel::updateNotificationsEnabled
+                            onCheckedChange = viewModel::updateNotificationsEnabled,
                         )
                         val themeModeLabel = when (settings.themeMode) {
                             ThemeMode.LIGHT -> "Light Mode"
@@ -164,7 +164,7 @@ fun SettingsScreen(
                         SettingValueRow(
                             title = stringResource(id = R.string.settings_theme_mode),
                             value = themeModeLabel,
-                            onClick = { activeDialogType = SettingsDialogType.THEME }
+                            onClick = { activeDialogType = SettingsDialogType.THEME },
                         )
                     }
                 }
@@ -172,33 +172,35 @@ fun SettingsScreen(
                 item {
                     SettingsSection(title = "Cleaner Storage Settings") {
                         SettingToggleRow(
-                            title = "Overwrite Cleaned Files",
-                            description = "Overwrites files with the same name. If disabled, a unique suffix will be added.",
+                            title = "Overwrite Files",
+                            description = "Save the cleaned file directly where it was picked from, overwriting the original file.",
                             checked = settings.overwriteBehavior,
-                            onCheckedChange = viewModel::updateOverwriteBehavior
+                            onCheckedChange = viewModel::updateOverwriteBehavior,
                         )
-                        SettingValueRow(
-                            title = "Cleaned File Suffix",
-                            value = settings.autoCleanSuffix,
-                            onClick = {
-                                activeDialogType = SettingsDialogType.SUFFIX
-                                textInputState = settings.autoCleanSuffix
-                            }
-                        )
-                        SettingValueRow(
-                            title = stringResource(id = R.string.settings_video_folder),
-                            value = settings.videoFolder,
-                            onClick = {
-                                videoFolderLauncher.launch(null)
-                            }
-                        )
-                        SettingValueRow(
-                            title = stringResource(id = R.string.settings_audio_folder),
-                            value = settings.audioFolder,
-                            onClick = {
-                                audioFolderLauncher.launch(null)
-                            }
-                        )
+                        if (!settings.overwriteBehavior) {
+                            SettingValueRow(
+                                title = "Cleaned File Suffix",
+                                value = settings.autoCleanSuffix,
+                                onClick = {
+                                    activeDialogType = SettingsDialogType.SUFFIX
+                                    textInputState = settings.autoCleanSuffix
+                                },
+                            )
+                            SettingValueRow(
+                                title = stringResource(id = R.string.settings_video_folder),
+                                value = settings.videoFolder,
+                                onClick = {
+                                    videoFolderLauncher.launch(null)
+                                },
+                            )
+                            SettingValueRow(
+                                title = stringResource(id = R.string.settings_audio_folder),
+                                value = settings.audioFolder,
+                                onClick = {
+                                    audioFolderLauncher.launch(null)
+                                },
+                            )
+                        }
                     }
                 }
 
@@ -210,7 +212,7 @@ fun SettingsScreen(
                             onClick = {
                                 activeDialogType = SettingsDialogType.SB_URL
                                 textInputState = settings.sponsorBlockUrl
-                            }
+                            },
                         )
                         HorizontalDivider()
                         Text("Active Skip Categories", fontWeight = FontWeight.Medium, modifier = Modifier.padding(vertical = 4.dp))
@@ -222,12 +224,12 @@ fun SettingsScreen(
                                     .fillMaxWidth()
                                     .padding(vertical = 4.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Text(stringResource(id = categoryRow.labelResId))
                                 Checkbox(
                                     checked = isChecked,
-                                    onCheckedChange = { viewModel.toggleSponsorBlockCategory(categoryRow.category) }
+                                    onCheckedChange = { viewModel.toggleSponsorBlockCategory(categoryRow.category) },
                                 )
                             }
                         }
@@ -240,22 +242,22 @@ fun SettingsScreen(
                             title = stringResource(id = R.string.settings_keep_temp_files_title),
                             description = stringResource(id = R.string.settings_keep_temp_files_desc),
                             checked = settings.keepTempFiles,
-                            onCheckedChange = viewModel::updateKeepTempFiles
+                            onCheckedChange = viewModel::updateKeepTempFiles,
                         )
                         SettingToggleRow(
                             title = stringResource(id = R.string.verbose_logging),
                             description = stringResource(id = R.string.verbose_logging_desc),
                             checked = settings.verboseLogging,
-                            onCheckedChange = viewModel::updateVerboseLogging
+                            onCheckedChange = viewModel::updateVerboseLogging,
                         )
                         if (settings.verboseLogging) {
                             OutlinedButton(
                                 onClick = { showLogsDialog = true },
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
                             ) {
                                 Icon(
                                     imageVector = Icons.Outlined.Description,
-                                    contentDescription = null
+                                    contentDescription = null,
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text("View Logs")
@@ -274,7 +276,7 @@ fun SettingsScreen(
                                 val url = "https://" + context.getString(R.string.app_github)
                                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                                 context.startActivity(intent)
-                            }
+                            },
                         )
                         SettingValueRow(
                             title = stringResource(id = R.string.label_issues),
@@ -283,14 +285,14 @@ fun SettingsScreen(
                                 val url = "https://" + context.getString(R.string.app_issues)
                                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                                 context.startActivity(intent)
-                            }
+                            },
                         )
                         SettingValueRow(
                             title = stringResource(id = R.string.label_licenses),
                             value = stringResource(id = R.string.app_licenses),
                             onClick = {
                                 showLicensesDialog = true
-                            }
+                            },
                         )
                     }
                 }
@@ -322,14 +324,14 @@ fun SettingsScreen(
                                                 activeDialogType = null
                                             }
                                             .padding(vertical = 8.dp),
-                                        verticalAlignment = Alignment.CenterVertically
+                                        verticalAlignment = Alignment.CenterVertically,
                                     ) {
                                         RadioButton(
                                             selected = nonNullSettings.themeMode == mode,
                                             onClick = {
                                                 viewModel.updateThemeMode(mode)
                                                 activeDialogType = null
-                                            }
+                                            },
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text(label)
@@ -342,7 +344,7 @@ fun SettingsScreen(
                             TextButton(onClick = { activeDialogType = null }) {
                                 Text("Cancel")
                             }
-                        }
+                        },
                     )
                 }
                 else -> {
@@ -366,7 +368,7 @@ fun SettingsScreen(
                                     onValueChange = { textInputState = it },
                                     label = { Text(dialogLabel) },
                                     singleLine = true,
-                                    modifier = Modifier.fillMaxWidth()
+                                    modifier = Modifier.fillMaxWidth(),
                                 )
                             }
                         },
@@ -379,7 +381,7 @@ fun SettingsScreen(
                                         else -> {}
                                     }
                                     activeDialogType = null
-                                }
+                                },
                             ) {
                                 Text("Save")
                             }
@@ -388,7 +390,7 @@ fun SettingsScreen(
                             TextButton(onClick = { activeDialogType = null }) {
                                 Text("Cancel")
                             }
-                        }
+                        },
                     )
                 }
             }
@@ -402,7 +404,7 @@ fun SettingsScreen(
             text = {
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.height(300.dp)
+                    modifier = Modifier.height(300.dp),
                 ) {
                     item {
                         Column {
@@ -452,7 +454,7 @@ fun SettingsScreen(
                 Button(onClick = { showLicensesDialog = false }) {
                     Text("Close")
                 }
-            }
+            },
         )
     }
 
@@ -465,12 +467,12 @@ fun SettingsScreen(
             text = {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     SelectionContainer(
                         modifier = Modifier
                             .weight(1f)
-                            .fillMaxWidth()
+                            .fillMaxWidth(),
                     ) {
                         LazyColumn(
                             modifier = Modifier
@@ -478,15 +480,15 @@ fun SettingsScreen(
                                 .height(300.dp)
                                 .background(
                                     color = MaterialTheme.colorScheme.surfaceVariant,
-                                    shape = MaterialTheme.shapes.small
+                                    shape = MaterialTheme.shapes.small,
                                 )
-                                .padding(8.dp)
+                                .padding(8.dp),
                         ) {
                             item {
                                 Text(
                                     text = logs.ifEmpty { "No logs captured yet." },
                                     style = MaterialTheme.typography.bodySmall,
-                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
                                 )
                             }
                         }
@@ -501,7 +503,7 @@ fun SettingsScreen(
                             Toast.makeText(context, "Logs copied to clipboard", Toast.LENGTH_SHORT).show()
                         }
                     },
-                    enabled = logs.isNotEmpty()
+                    enabled = logs.isNotEmpty(),
                 ) {
                     Text("Copy")
                 }
@@ -513,7 +515,7 @@ fun SettingsScreen(
                             viewModel.clearLogs()
                             logRefreshKey++
                             Toast.makeText(context, "Logs cleared", Toast.LENGTH_SHORT).show()
-                        }
+                        },
                     ) {
                         Text("Clear")
                     }
@@ -522,7 +524,7 @@ fun SettingsScreen(
                         Text("Close")
                     }
                 }
-            }
+            },
         )
     }
 }
@@ -573,7 +575,7 @@ private fun SettingValueRow(
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(title, fontWeight = FontWeight.Medium, style = MaterialTheme.typography.bodyLarge)
@@ -599,7 +601,7 @@ private val sponsorBlockCategories = listOf(
 private enum class SettingsDialogType {
     THEME,
     SUFFIX,
-    SB_URL
+    SB_URL,
 }
 
 private fun resolveRelativePathFromUri(uri: Uri): String {

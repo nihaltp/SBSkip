@@ -8,7 +8,6 @@ import androidx.work.workDataOf
 import com.nihaltp.sbskip.R
 import com.nihaltp.sbskip.data.repository.QueueRepository
 import com.nihaltp.sbskip.data.repository.SettingsRepository
-import com.nihaltp.sbskip.model.DownloadQueueStatus
 import com.nihaltp.sbskip.notifications.DownloadNotificationManager
 import com.nihaltp.sbskip.processing.MediaProcessor
 import com.nihaltp.sbskip.processing.SegmentProcessor
@@ -104,8 +103,8 @@ class DownloadWorker @AssistedInject constructor(
 
             // Setup cache paths
             val cacheDir = applicationContext.cacheDir
-            tempInputFile = File(cacheDir, "clean_in_${queueItemId}.${localMetadata.extension}")
-            tempOutputFile = File(cacheDir, "clean_out_${queueItemId}.${localMetadata.extension}")
+            tempInputFile = File(cacheDir, "clean_in_$queueItemId.${localMetadata.extension}")
+            tempOutputFile = File(cacheDir, "clean_out_$queueItemId.${localMetadata.extension}")
 
             // Copy imported SAF Content URI file locally to cache for native random-access FFmpeg copy seeking
             downloadStorage.copyUriToTempFile(item.localFileUri, tempInputFile)
@@ -122,15 +121,27 @@ class DownloadWorker @AssistedInject constructor(
                 )
             }
 
-            // 3. Save to Public Directory via MediaStore Scoped Storage
+            // 3. Save / overwrite media file
             notificationManager.showActive(notificationId, taskTitle, 95, "Saving cleaned media...")
-            val outputSuffix = settings.autoCleanSuffix
-            val savedUriString = downloadStorage.saveToPublicStorage(
-                tempFile = tempOutputFile,
-                title = "$taskTitle$outputSuffix",
-                extension = localMetadata.extension,
-                mediaType = item.mediaType,
-            )
+            val savedUriString = if (settings.overwriteBehavior) {
+                val resolver = applicationContext.contentResolver
+                val targetUri = android.net.Uri.parse(item.localFileUri)
+                resolver.openOutputStream(targetUri, "w")?.use { output ->
+                    java.io.FileInputStream(tempOutputFile).use { input ->
+                        input.copyTo(output)
+                    }
+                } ?: throw IOException("Failed to open output stream for source file to overwrite")
+                AppLogger.worker("Successfully overwrote the original file where it was picked from: ${item.localFileUri}")
+                item.localFileUri
+            } else {
+                val outputSuffix = settings.autoCleanSuffix
+                downloadStorage.saveToPublicStorage(
+                    tempFile = tempOutputFile,
+                    title = "$taskTitle$outputSuffix",
+                    extension = localMetadata.extension,
+                    mediaType = item.mediaType,
+                )
+            }
 
             // 4. Mark as COMPLETED
             queueRepository.markCompleted(queueItemId)
