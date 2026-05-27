@@ -6,8 +6,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nihaltp.sbskip.R
 import com.nihaltp.sbskip.data.repository.QueueRepository
-import com.nihaltp.sbskip.model.DownloadQueueItem
-import com.nihaltp.sbskip.model.DownloadQueueStatus
 import com.nihaltp.sbskip.model.MainUiState
 import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.navigation.ShareIntentEvent
@@ -49,7 +47,7 @@ class MainViewModel @Inject constructor(
             _uiState.update {
                 it.copy(
                     selectedFileUri = uri.toString(),
-                    selectedFileName = name
+                    selectedFileName = name,
                 )
             }
         }
@@ -91,7 +89,7 @@ class MainViewModel @Inject constructor(
                         urlInput = "",
                         selectedFileUri = null,
                         selectedFileName = "",
-                        snackbarMessage = "Media enqueued for SponsorBlock cleaning!"
+                        snackbarMessage = context.getString(R.string.snackbar_media_enqueued),
                     )
                 } else {
                     it.copy(snackbarMessage = result.message)

@@ -60,7 +60,7 @@ class DefaultQueueRepository @Inject constructor(
 
     override suspend fun retry(itemId: Long): QueueActionResult {
         val item = dao.findById(itemId)
-            ?: return QueueActionResult(success = false, message = "Item not found")
+            ?: return QueueActionResult(success = false, message = context.getString(R.string.error_item_not_found))
 
         dao.updateStatus(
             id = itemId,

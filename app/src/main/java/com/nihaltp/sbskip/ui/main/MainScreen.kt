@@ -136,7 +136,7 @@ fun MainScreen(
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Text("Select Local File & Provide Link", fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(id = R.string.select_local_file_title), fontWeight = FontWeight.SemiBold)
 
                         // 1. File picker section
                         Surface(
@@ -153,12 +153,12 @@ fun MainScreen(
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = if (uiState.selectedFileUri != null) "Selected File" else "Import Media File",
+                                        text = if (uiState.selectedFileUri != null) stringResource(id = R.string.selected_file_label) else stringResource(id = R.string.import_media_file_label),
                                         fontWeight = FontWeight.Medium,
                                         color = Color.Gray,
                                     )
                                     Text(
-                                        text = uiState.selectedFileName.ifBlank { "No media file selected" },
+                                        text = uiState.selectedFileName.ifBlank { stringResource(id = R.string.no_media_selected) },
                                         fontWeight = FontWeight.SemiBold,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
@@ -171,7 +171,7 @@ fun MainScreen(
                                 ) {
                                     Icon(Icons.Outlined.FolderOpen, contentDescription = null)
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Pick File")
+                                    Text(stringResource(id = R.string.pick_file_button))
                                 }
                             }
                         }
@@ -181,7 +181,7 @@ fun MainScreen(
                             value = uiState.urlInput,
                             onValueChange = onUrlChange,
                             modifier = Modifier.fillMaxWidth(),
-                            placeholder = { Text("Paste YouTube URL or video ID") },
+                            placeholder = { Text(stringResource(id = R.string.paste_youtube_prompt)) },
                             singleLine = true,
                         )
 
@@ -205,7 +205,7 @@ fun MainScreen(
                             ) {
                                 Icon(Icons.Outlined.CleaningServices, contentDescription = null)
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Clean Media")
+                                Text(stringResource(id = R.string.clean_media_button))
                             }
                         }
                     }
@@ -213,14 +213,14 @@ fun MainScreen(
             }
 
             item {
-                SectionHeader(title = "Media Cleaning Queue")
+                SectionHeader(title = stringResource(id = R.string.media_queue_title))
             }
 
             if (uiState.queueItems.isEmpty()) {
                 item {
                     EmptyStateCard(
-                        title = "No cleaning jobs yet",
-                        body = "Import a local video/audio file and paste its corresponding YouTube link to start cleaning SponsorBlock segments.",
+                        title = stringResource(id = R.string.no_jobs_title),
+                        body = stringResource(id = R.string.no_jobs_body),
                     )
                 }
             } else {
@@ -242,10 +242,10 @@ fun MainScreen(
         val context = LocalContext.current
         AlertDialog(
             onDismissRequest = { errorDialogItem = null },
-            title = { Text("Pipeline Error Details") },
+            title = { Text(stringResource(id = R.string.error_details_title)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("The cleaning pipeline encountered a failure:", fontWeight = FontWeight.Medium)
+                    Text(stringResource(id = R.string.error_details_intro), fontWeight = FontWeight.Medium)
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = Color.Black.copy(alpha = 0.05f),
@@ -257,7 +257,7 @@ fun MainScreen(
                             style = MaterialTheme.typography.bodyMedium,
                         )
                     }
-                    Text("You can report this bug to the GitHub issue page. A formatted report containing the stack trace and file details will be pre-populated for you.", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                    Text(stringResource(id = R.string.error_report_explanation), style = MaterialTheme.typography.bodySmall, color = Color.Gray)
                 }
             },
             confirmButton = {
@@ -287,12 +287,12 @@ fun MainScreen(
                 ) {
                     Icon(Icons.Outlined.BugReport, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Report to GitHub")
+                    Text(stringResource(id = R.string.report_to_github))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { errorDialogItem = null }) {
-                    Text("Dismiss")
+                    Text(stringResource(id = R.string.dismiss))
                 }
             },
         )
@@ -303,24 +303,24 @@ fun MainScreen(
         val context = LocalContext.current
         AlertDialog(
             onDismissRequest = { detailsDialogItem = null },
-            title = { Text("Media Details", fontWeight = FontWeight.Bold) },
+            title = { Text(stringResource(id = R.string.media_details_title), fontWeight = FontWeight.Bold) },
             text = {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    DetailRow(label = "Title", value = item.title)
-                    DetailRow(label = "YouTube URL", value = item.url)
+                    DetailRow(label = stringResource(id = R.string.label_title), value = item.title)
+                    DetailRow(label = stringResource(id = R.string.youtube_url_label), value = item.url)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("Media Type", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                            Text(stringResource(id = R.string.media_type), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
                             Text(item.mediaType.name, style = MaterialTheme.typography.bodyMedium)
                         }
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("Duration", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                            Text(stringResource(id = R.string.duration_label), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
                             Text(item.displayDuration, style = MaterialTheme.typography.bodyMedium)
                         }
                     }
@@ -329,7 +329,7 @@ fun MainScreen(
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("Status", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                            Text(stringResource(id = R.string.status_label), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
                             Text(item.status.name, style = MaterialTheme.typography.bodyMedium)
                         }
                     }
@@ -338,7 +338,7 @@ fun MainScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Column {
-                            Text("Imported Path", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                            Text(stringResource(id = R.string.imported_path_label), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
                             SelectionContainer {
                                 Text(
                                     text = formatUriToPath(item.localFileUri),
@@ -349,7 +349,7 @@ fun MainScreen(
 
                         if (!item.outputPath.isNullOrBlank() && item.outputPath != item.localFileUri) {
                             Column {
-                                Text("Saved Location", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                                Text(stringResource(id = R.string.saved_location_label), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
                                 SelectionContainer {
                                     Text(
                                         text = formatUriToPath(item.outputPath),
@@ -366,24 +366,24 @@ fun MainScreen(
                     TextButton(
                         onClick = {
                             clipboardManager.setText(AnnotatedString(item.title))
-                            Toast.makeText(context, "Title copied to clipboard", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.title_copied_toast), Toast.LENGTH_SHORT).show()
                         },
                     ) {
-                        Text("Copy Title")
+                        Text(stringResource(id = R.string.copy_title))
                     }
                     TextButton(
                         onClick = {
                             clipboardManager.setText(AnnotatedString(item.url))
-                            Toast.makeText(context, "URL copied to clipboard", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.url_copied_toast), Toast.LENGTH_SHORT).show()
                         },
                     ) {
-                        Text("Copy URL")
+                        Text(stringResource(id = R.string.copy_url))
                     }
                 }
             },
             dismissButton = {
                 TextButton(onClick = { detailsDialogItem = null }) {
-                    Text("Close")
+                    Text(stringResource(id = R.string.close))
                 }
             },
         )
@@ -457,7 +457,7 @@ private fun QueueItemCard(
 
                     item.errorMessage?.let {
                         Text(
-                            text = "Error (click to expand): $it",
+                            text = stringResource(id = R.string.error_click_to_expand_prefix, it),
                             color = Color.Red,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
@@ -497,8 +497,8 @@ private fun StatusChip(status: DownloadQueueStatus) {
             Text(
                 when (status) {
                     DownloadQueueStatus.QUEUED -> stringResource(id = R.string.status_queued)
-                    DownloadQueueStatus.FETCHING_SEGMENTS -> "Fetching API"
-                    DownloadQueueStatus.PROCESSING -> "Cleaning..."
+                    DownloadQueueStatus.FETCHING_SEGMENTS -> stringResource(id = R.string.status_fetching_api)
+                    DownloadQueueStatus.PROCESSING -> stringResource(id = R.string.status_cleaning)
                     DownloadQueueStatus.COMPLETED -> stringResource(id = R.string.status_completed)
                     DownloadQueueStatus.FAILED -> stringResource(id = R.string.status_failed)
                 },

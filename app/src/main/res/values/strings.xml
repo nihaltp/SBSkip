@@ -115,4 +115,80 @@
     <string name="label_github">GitHub</string>
     <string name="label_issues">Issues</string>
     <string name="label_licenses">Licenses</string>
+
+    <!-- Main Screen -->
+    <string name="select_local_file_title">Select Local File &amp; Provide Link</string>
+    <string name="selected_file_label">Selected File</string>
+    <string name="import_media_file_label">Import Media File</string>
+    <string name="no_media_selected">No media file selected</string>
+    <string name="pick_file_button">Pick File</string>
+    <string name="paste_youtube_prompt">Paste YouTube URL or video ID</string>
+    <string name="clean_media_button">Clean Media</string>
+    <string name="media_queue_title">Media Cleaning Queue</string>
+    <string name="no_jobs_title">No cleaning jobs yet</string>
+    <string name="no_jobs_body">Import a local video/audio file and paste its corresponding YouTube link to start cleaning SponsorBlock segments.</string>
+
+    <!-- Error Details Dialog -->
+    <string name="error_details_title">Pipeline Error Details</string>
+    <string name="error_details_intro">The cleaning pipeline encountered a failure:</string>
+    <string name="error_report_explanation">You can report this bug to the GitHub issue page. A formatted report containing the stack trace and file details will be pre-populated for you.</string>
+    <string name="report_to_github">Report to GitHub</string>
+    <string name="dismiss">Dismiss</string>
+
+    <!-- Media Details Dialog -->
+    <string name="media_details_title">Media Details</string>
+    <string name="label_title">Title</string>
+    <string name="youtube_url_label">YouTube URL</string>
+    <string name="duration_label">Duration</string>
+    <string name="status_label">Status</string>
+    <string name="imported_path_label">Imported Path</string>
+    <string name="saved_location_label">Saved Location</string>
+    <string name="copy_title">Copy Title</string>
+    <string name="copy_url">Copy URL</string>
+    <string name="close">Close</string>
+    <string name="title_copied_toast">Title copied to clipboard</string>
+    <string name="url_copied_toast">URL copied to clipboard</string>
+    <string name="error_click_to_expand_prefix">Error (click to expand): %1$s</string>
+    <string name="status_fetching_api">Fetching API</string>
+    <string name="status_cleaning">Cleaning...</string>
+
+    <!-- Settings Screen Updates -->
+    <string name="settings_cleaner_storage_title">Cleaner Storage Settings</string>
+    <string name="settings_overwrite_files_title">Overwrite Files</string>
+    <string name="settings_overwrite_files_desc">Save the cleaned file directly where it was picked from, overwriting the original file.</string>
+    <string name="settings_suffix_title">Cleaned File Suffix</string>
+    <string name="settings_section_sponsorblock_config">SponsorBlock Configuration</string>
+    <string name="settings_sb_url_title">SponsorBlock Server API URL</string>
+    <string name="settings_sb_categories_title">Active Skip Categories</string>
+    <string name="settings_categories_selected_format">%1$d of %2$d selected</string>
+    <string name="settings_view_logs_button">View Logs</string>
+    <string name="licenses_title">Open Source Licenses</string>
+    <string name="logs_title">Application Logs</string>
+    <string name="logs_empty">No logs captured yet.</string>
+    <string name="logs_copied_toast">Logs copied to clipboard</string>
+    <string name="logs_cleared_toast">Logs cleared</string>
+    <string name="copy">Copy</string>
+    <string name="clear">Clear</string>
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+    <string name="done">Done</string>
+    <string name="select_all">Select All</string>
+    <string name="theme_mode_light">Light Mode</string>
+    <string name="theme_mode_dark">Dark Mode</string>
+    <string name="theme_mode_system">System Default</string>
+    <string name="settings_sb_categories_dialog_title">Active Skip Categories</string>
+    <string name="settings_suffix_field_label">Suffix (e.g. _cleaned)</string>
+    <string name="settings_sb_url_field_label">Server API Base URL</string>
+
+    <!-- Translation Section -->
+    <string name="settings_section_translation">Translation</string>
+    <string name="settings_request_translation">Request Translation</string>
+    <string name="settings_request_translation_desc">Help translate SBSkip to your language</string>
+
+    <!-- Worker and ViewModels -->
+    <string name="notification_copying_cache">Copying media to cache...</string>
+    <string name="notification_trimming_segments">Trimming SponsorBlock segments (%1$d%%)...</string>
+    <string name="notification_saving_media">Saving cleaned media...</string>
+    <string name="error_item_not_found">Item not found</string>
+    <string name="snackbar_media_enqueued">Media enqueued for SponsorBlock cleaning!</string>
 </resources>

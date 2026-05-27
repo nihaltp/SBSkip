@@ -157,9 +157,9 @@ fun SettingsScreen(
                             onCheckedChange = viewModel::updateNotificationsEnabled,
                         )
                         val themeModeLabel = when (settings.themeMode) {
-                            ThemeMode.LIGHT -> "Light Mode"
-                            ThemeMode.DARK -> "Dark Mode"
-                            ThemeMode.SYSTEM -> "System Default"
+                            ThemeMode.LIGHT -> stringResource(id = R.string.theme_mode_light)
+                            ThemeMode.DARK -> stringResource(id = R.string.theme_mode_dark)
+                            ThemeMode.SYSTEM -> stringResource(id = R.string.theme_mode_system)
                         }
                         SettingValueRow(
                             title = stringResource(id = R.string.settings_theme_mode),
@@ -170,16 +170,16 @@ fun SettingsScreen(
                 }
 
                 item {
-                    SettingsSection(title = "Cleaner Storage Settings") {
+                    SettingsSection(title = stringResource(id = R.string.settings_cleaner_storage_title)) {
                         SettingToggleRow(
-                            title = "Overwrite Files",
-                            description = "Save the cleaned file directly where it was picked from, overwriting the original file.",
+                            title = stringResource(id = R.string.settings_overwrite_files_title),
+                            description = stringResource(id = R.string.settings_overwrite_files_desc),
                             checked = settings.overwriteBehavior,
                             onCheckedChange = viewModel::updateOverwriteBehavior,
                         )
                         if (!settings.overwriteBehavior) {
                             SettingValueRow(
-                                title = "Cleaned File Suffix",
+                                title = stringResource(id = R.string.settings_suffix_title),
                                 value = settings.autoCleanSuffix,
                                 onClick = {
                                     activeDialogType = SettingsDialogType.SUFFIX
@@ -205,9 +205,9 @@ fun SettingsScreen(
                 }
 
                 item {
-                    SettingsSection(title = "SponsorBlock Configuration") {
+                    SettingsSection(title = stringResource(id = R.string.settings_section_sponsorblock_config)) {
                         SettingValueRow(
-                            title = "SponsorBlock Server API URL",
+                            title = stringResource(id = R.string.settings_sb_url_title),
                             value = settings.sponsorBlockUrl,
                             onClick = {
                                 activeDialogType = SettingsDialogType.SB_URL
@@ -215,8 +215,12 @@ fun SettingsScreen(
                             },
                         )
                         SettingValueRow(
-                            title = "Active Skip Categories",
-                            value = "${settings.sponsorBlockSettings.categories.size} of ${sponsorBlockCategories.size} selected",
+                            title = stringResource(id = R.string.settings_sb_categories_title),
+                            value = stringResource(
+                                id = R.string.settings_categories_selected_format,
+                                settings.sponsorBlockSettings.categories.size,
+                                sponsorBlockCategories.size
+                            ),
                             onClick = {
                                 activeDialogType = SettingsDialogType.SB_CATEGORIES
                             },
@@ -248,7 +252,7 @@ fun SettingsScreen(
                                     contentDescription = null,
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("View Logs")
+                                Text(stringResource(id = R.string.settings_view_logs_button))
                             }
                         }
                     }
@@ -284,6 +288,20 @@ fun SettingsScreen(
                         )
                     }
                 }
+
+                item {
+                    SettingsSection(title = stringResource(id = R.string.settings_section_translation)) {
+                        SettingValueRow(
+                            title = stringResource(id = R.string.settings_request_translation),
+                            value = stringResource(id = R.string.settings_request_translation_desc),
+                            onClick = {
+                                val url = "https://github.com/nihaltp/SBSkip/issues/new?title=" + Uri.encode("Translation Request") + "&body=" + Uri.encode("I would like to help translate SBSkip into [LANGUAGE].")
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                context.startActivity(intent)
+                            },
+                        )
+                    }
+                }
             }
         }
     }
@@ -300,9 +318,9 @@ fun SettingsScreen(
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 ThemeMode.entries.forEach { mode ->
                                     val label = when (mode) {
-                                        ThemeMode.LIGHT -> "Light Mode"
-                                        ThemeMode.DARK -> "Dark Mode"
-                                        ThemeMode.SYSTEM -> "System Default"
+                                        ThemeMode.LIGHT -> stringResource(id = R.string.theme_mode_light)
+                                        ThemeMode.DARK -> stringResource(id = R.string.theme_mode_dark)
+                                        ThemeMode.SYSTEM -> stringResource(id = R.string.theme_mode_system)
                                     }
                                     Row(
                                         modifier = Modifier
@@ -330,7 +348,7 @@ fun SettingsScreen(
                         confirmButton = {},
                         dismissButton = {
                             TextButton(onClick = { activeDialogType = null }) {
-                                Text("Cancel")
+                                Text(stringResource(id = R.string.cancel))
                             }
                         },
                     )
@@ -338,7 +356,7 @@ fun SettingsScreen(
                 SettingsDialogType.SB_CATEGORIES -> {
                     AlertDialog(
                         onDismissRequest = { activeDialogType = null },
-                        title = { Text("Active Skip Categories") },
+                        title = { Text(stringResource(id = R.string.settings_sb_categories_dialog_title)) },
                         text = {
                             LazyColumn(
                                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -354,7 +372,7 @@ fun SettingsScreen(
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text("Select All", fontWeight = FontWeight.Bold)
+                                        Text(stringResource(id = R.string.select_all), fontWeight = FontWeight.Bold)
                                         Checkbox(
                                             checked = allSelected,
                                             onCheckedChange = { viewModel.setAllSponsorBlockCategories(!allSelected) }
@@ -386,20 +404,20 @@ fun SettingsScreen(
                         },
                         confirmButton = {
                             Button(onClick = { activeDialogType = null }) {
-                                Text("Done")
+                                Text(stringResource(id = R.string.done))
                             }
                         }
                     )
                 }
                 else -> {
                     val dialogTitle = when (dialogType) {
-                        SettingsDialogType.SUFFIX -> "Cleaned File Suffix"
-                        SettingsDialogType.SB_URL -> "SponsorBlock Server API URL"
+                        SettingsDialogType.SUFFIX -> stringResource(id = R.string.settings_suffix_title)
+                        SettingsDialogType.SB_URL -> stringResource(id = R.string.settings_sb_url_title)
                         else -> ""
                     }
                     val dialogLabel = when (dialogType) {
-                        SettingsDialogType.SUFFIX -> "Suffix (e.g. _cleaned)"
-                        SettingsDialogType.SB_URL -> "Server API Base URL"
+                        SettingsDialogType.SUFFIX -> stringResource(id = R.string.settings_suffix_field_label)
+                        SettingsDialogType.SB_URL -> stringResource(id = R.string.settings_sb_url_field_label)
                         else -> ""
                     }
                     AlertDialog(
@@ -427,12 +445,12 @@ fun SettingsScreen(
                                     activeDialogType = null
                                 },
                             ) {
-                                Text("Save")
+                                Text(stringResource(id = R.string.save))
                             }
                         },
                         dismissButton = {
                             TextButton(onClick = { activeDialogType = null }) {
-                                Text("Cancel")
+                                Text(stringResource(id = R.string.cancel))
                             }
                         },
                     )
@@ -444,7 +462,7 @@ fun SettingsScreen(
     if (showLicensesDialog) {
         AlertDialog(
             onDismissRequest = { showLicensesDialog = false },
-            title = { Text("Open Source Licenses") },
+            title = { Text(stringResource(id = R.string.licenses_title)) },
             text = {
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -496,7 +514,7 @@ fun SettingsScreen(
             },
             confirmButton = {
                 Button(onClick = { showLicensesDialog = false }) {
-                    Text("Close")
+                    Text(stringResource(id = R.string.close))
                 }
             },
         )
@@ -507,7 +525,7 @@ fun SettingsScreen(
         val logs = remember(logRefreshKey) { viewModel.getLogs() }
         AlertDialog(
             onDismissRequest = { showLogsDialog = false },
-            title = { Text("Application Logs") },
+            title = { Text(stringResource(id = R.string.logs_title)) },
             text = {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -530,7 +548,7 @@ fun SettingsScreen(
                         ) {
                             item {
                                 Text(
-                                    text = logs.ifEmpty { "No logs captured yet." },
+                                    text = logs.ifEmpty { stringResource(id = R.string.logs_empty) },
                                     style = MaterialTheme.typography.bodySmall,
                                     fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
                                 )
@@ -544,12 +562,12 @@ fun SettingsScreen(
                     onClick = {
                         if (logs.isNotEmpty()) {
                             clipboardManager.setText(AnnotatedString(logs))
-                            Toast.makeText(context, "Logs copied to clipboard", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.logs_copied_toast), Toast.LENGTH_SHORT).show()
                         }
                     },
                     enabled = logs.isNotEmpty(),
                 ) {
-                    Text("Copy")
+                    Text(stringResource(id = R.string.copy))
                 }
             },
             dismissButton = {
@@ -558,14 +576,14 @@ fun SettingsScreen(
                         onClick = {
                             viewModel.clearLogs()
                             logRefreshKey++
-                            Toast.makeText(context, "Logs cleared", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.logs_cleared_toast), Toast.LENGTH_SHORT).show()
                         },
                     ) {
-                        Text("Clear")
+                        Text(stringResource(id = R.string.clear))
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     TextButton(onClick = { showLogsDialog = false }) {
-                        Text("Close")
+                        Text(stringResource(id = R.string.close))
                     }
                 }
             },

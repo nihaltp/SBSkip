@@ -99,7 +99,7 @@ class DownloadWorker @AssistedInject constructor(
 
             // 2. Mark as PROCESSING
             queueRepository.markProcessing(queueItemId)
-            notificationManager.showActive(notificationId, taskTitle, 20, "Copying media to cache...")
+            notificationManager.showActive(notificationId, taskTitle, 20, applicationContext.getString(R.string.notification_copying_cache))
 
             // Setup cache paths
             val cacheDir = applicationContext.cacheDir
@@ -117,12 +117,12 @@ class DownloadWorker @AssistedInject constructor(
                     id = notificationId,
                     title = taskTitle,
                     progress = mappedProgress,
-                    message = "Trimming SponsorBlock segments ($percent%)...",
+                    message = applicationContext.getString(R.string.notification_trimming_segments, percent),
                 )
             }
 
             // 3. Save / overwrite media file
-            notificationManager.showActive(notificationId, taskTitle, 95, "Saving cleaned media...")
+            notificationManager.showActive(notificationId, taskTitle, 95, applicationContext.getString(R.string.notification_saving_media))
             val savedUriString = if (settings.overwriteBehavior) {
                 val resolver = applicationContext.contentResolver
                 val targetUri = android.net.Uri.parse(item.localFileUri)
