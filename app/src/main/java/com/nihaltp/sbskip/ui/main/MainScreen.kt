@@ -2,6 +2,7 @@ package com.nihaltp.sbskip.ui.main
 
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.CleaningServices
@@ -50,8 +52,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -59,6 +61,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -88,13 +91,14 @@ fun MainScreen(
     val clipboardEmptyText = stringResource(id = R.string.clipboard_empty)
 
     var errorDialogItem by remember { mutableStateOf<DownloadQueueItem?>(null) }
+    var detailsDialogItem by remember { mutableStateOf<DownloadQueueItem?>(null) }
 
     // Document picker for MP4, M4A, and MP3
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
         onResult = { uri ->
             uri?.let(onFileSelected)
-        }
+        },
     )
 
     LaunchedEffect(uiState.snackbarMessage) {
@@ -138,32 +142,32 @@ fun MainScreen(
                         Surface(
                             shape = RoundedCornerShape(12.dp),
                             color = Color.Black.copy(alpha = 0.05f),
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
                         ) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(12.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         text = if (uiState.selectedFileUri != null) "Selected File" else "Import Media File",
                                         fontWeight = FontWeight.Medium,
-                                        color = Color.Gray
+                                        color = Color.Gray,
                                     )
                                     Text(
                                         text = uiState.selectedFileName.ifBlank { "No media file selected" },
                                         fontWeight = FontWeight.SemiBold,
                                         maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
+                                        overflow = TextOverflow.Ellipsis,
                                     )
                                 }
                                 ElevatedButton(
                                     onClick = {
                                         filePickerLauncher.launch(arrayOf("video/mp4", "audio/mpeg", "audio/mp3", "audio/x-m4a", "audio/mp4"))
-                                    }
+                                    },
                                 ) {
                                     Icon(Icons.Outlined.FolderOpen, contentDescription = null)
                                     Spacer(modifier = Modifier.width(4.dp))
@@ -197,7 +201,7 @@ fun MainScreen(
 
                             Button(
                                 onClick = onSubmit,
-                                enabled = uiState.selectedFileUri != null && uiState.urlInput.isNotBlank()
+                                enabled = uiState.selectedFileUri != null && uiState.urlInput.isNotBlank(),
                             ) {
                                 Icon(Icons.Outlined.CleaningServices, contentDescription = null)
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -225,7 +229,8 @@ fun MainScreen(
                         item = queueItem,
                         onRetry = onRetryQueueItem,
                         onRemove = onRemoveQueueItem,
-                        onErrorClick = { errorDialogItem = it }
+                        onErrorClick = { errorDialogItem = it },
+                        onCardClick = { detailsDialogItem = it },
                     )
                 }
             }
@@ -244,12 +249,12 @@ fun MainScreen(
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = Color.Black.copy(alpha = 0.05f),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
                         Text(
                             text = item.errorMessage.orEmpty(),
                             modifier = Modifier.padding(12.dp),
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodyMedium,
                         )
                     }
                     Text("You can report this bug to the GitHub issue page. A formatted report containing the stack trace and file details will be pre-populated for you.", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
@@ -278,7 +283,7 @@ fun MainScreen(
                         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(githubUrl))
                         context.startActivity(intent)
                         errorDialogItem = null
-                    }
+                    },
                 ) {
                     Icon(Icons.Outlined.BugReport, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
@@ -289,7 +294,82 @@ fun MainScreen(
                 TextButton(onClick = { errorDialogItem = null }) {
                     Text("Dismiss")
                 }
-            }
+            },
+        )
+    }
+
+    // Full media details popup for card clicks
+    detailsDialogItem?.let { item ->
+        val context = LocalContext.current
+        AlertDialog(
+            onDismissRequest = { detailsDialogItem = null },
+            title = { Text("Media Details", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    DetailRow(label = "Title", value = item.title)
+                    DetailRow(label = "YouTube URL", value = item.url)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Media Type", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                            Text(item.mediaType.name, style = MaterialTheme.typography.bodyMedium)
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Duration", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                            Text(item.displayDuration, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Status", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                            Text(item.status.name, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text("Imported Source URI", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                        Text(
+                            text = item.localFileUri.ifBlank { "N/A" },
+                            style = MaterialTheme.typography.bodySmall,
+                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(
+                        onClick = {
+                            clipboardManager.setText(AnnotatedString(item.title))
+                            Toast.makeText(context, "Title copied to clipboard", Toast.LENGTH_SHORT).show()
+                        },
+                    ) {
+                        Text("Copy Title")
+                    }
+                    TextButton(
+                        onClick = {
+                            clipboardManager.setText(AnnotatedString(item.url))
+                            Toast.makeText(context, "URL copied to clipboard", Toast.LENGTH_SHORT).show()
+                        },
+                    ) {
+                        Text("Copy URL")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { detailsDialogItem = null }) {
+                    Text("Close")
+                }
+            },
         )
     }
 }
@@ -318,10 +398,16 @@ private fun QueueItemCard(
     onRetry: (Long) -> Unit,
     onRemove: (Long) -> Unit,
     onErrorClick: (DownloadQueueItem) -> Unit,
+    onCardClick: (DownloadQueueItem) -> Unit,
 ) {
     Card {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onCardClick(item) },
+            ) {
                 Surface(
                     modifier = Modifier
                         .width(104.dp)
@@ -361,7 +447,7 @@ private fun QueueItemCard(
                             overflow = TextOverflow.Ellipsis,
                             fontWeight = FontWeight.Medium,
                             textDecoration = TextDecoration.Underline,
-                            modifier = Modifier.clickable { onErrorClick(item) }
+                            modifier = Modifier.clickable { onErrorClick(item) },
                         )
                     }
                 }
@@ -403,4 +489,14 @@ private fun StatusChip(status: DownloadQueueStatus) {
             )
         },
     )
+}
+
+@Composable
+private fun DetailRow(label: String, value: String) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(label, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+        SelectionContainer {
+            Text(value, style = MaterialTheme.typography.bodyMedium)
+        }
+    }
 }
