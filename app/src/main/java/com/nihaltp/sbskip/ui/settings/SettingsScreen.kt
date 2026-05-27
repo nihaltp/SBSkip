@@ -18,6 +18,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.foundation.background
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
+import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -64,6 +70,8 @@ fun SettingsScreen(
 
     val context = LocalContext.current
     var showLicensesDialog by remember { mutableStateOf(false) }
+    var showLogsDialog by remember { mutableStateOf(false) }
+    var logRefreshKey by remember { mutableStateOf(0) }
 
     val videoFolderLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree()
@@ -224,6 +232,19 @@ fun SettingsScreen(
                             checked = settings.verboseLogging,
                             onCheckedChange = viewModel::updateVerboseLogging
                         )
+                        if (settings.verboseLogging) {
+                            OutlinedButton(
+                                onClick = { showLogsDialog = true },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Description,
+                                    contentDescription = null
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("View Logs")
+                            }
+                        }
                     }
                 }
 
@@ -414,6 +435,76 @@ fun SettingsScreen(
             confirmButton = {
                 Button(onClick = { showLicensesDialog = false }) {
                     Text("Close")
+                }
+            }
+        )
+    }
+
+    if (showLogsDialog) {
+        val clipboardManager = LocalClipboardManager.current
+        val logs = remember(logRefreshKey) { viewModel.getLogs() }
+        AlertDialog(
+            onDismissRequest = { showLogsDialog = false },
+            title = { Text("Application Logs") },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    SelectionContainer(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                    ) {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(300.dp)
+                                .background(
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
+                                    shape = MaterialTheme.shapes.small
+                                )
+                                .padding(8.dp)
+                        ) {
+                            item {
+                                Text(
+                                    text = logs.ifEmpty { "No logs captured yet." },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (logs.isNotEmpty()) {
+                            clipboardManager.setText(AnnotatedString(logs))
+                            Toast.makeText(context, "Logs copied to clipboard", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    enabled = logs.isNotEmpty()
+                ) {
+                    Text("Copy")
+                }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(
+                        onClick = {
+                            viewModel.clearLogs()
+                            logRefreshKey++
+                            Toast.makeText(context, "Logs cleared", Toast.LENGTH_SHORT).show()
+                        }
+                    ) {
+                        Text("Clear")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    TextButton(onClick = { showLogsDialog = false }) {
+                        Text("Close")
+                    }
                 }
             }
         )

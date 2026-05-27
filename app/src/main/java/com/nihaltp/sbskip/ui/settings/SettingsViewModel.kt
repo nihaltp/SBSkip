@@ -101,4 +101,12 @@ class SettingsViewModel @Inject constructor(
             }
         }
     }
+
+    fun getLogs(): String {
+        return com.nihaltp.sbskip.util.AppLogger.getLogs()
+    }
+
+    fun clearLogs() {
+        com.nihaltp.sbskip.util.AppLogger.clearLogs()
+    }
 }
