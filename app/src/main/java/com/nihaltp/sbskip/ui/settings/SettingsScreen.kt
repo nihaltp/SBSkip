@@ -214,25 +214,13 @@ fun SettingsScreen(
                                 textInputState = settings.sponsorBlockUrl
                             },
                         )
-                        HorizontalDivider()
-                        Text("Active Skip Categories", fontWeight = FontWeight.Medium, modifier = Modifier.padding(vertical = 4.dp))
-
-                        sponsorBlockCategories.forEach { categoryRow ->
-                            val isChecked = categoryRow.category in settings.sponsorBlockSettings.categories
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(stringResource(id = categoryRow.labelResId))
-                                Checkbox(
-                                    checked = isChecked,
-                                    onCheckedChange = { viewModel.toggleSponsorBlockCategory(categoryRow.category) },
-                                )
-                            }
-                        }
+                        SettingValueRow(
+                            title = "Active Skip Categories",
+                            value = "${settings.sponsorBlockSettings.categories.size} of ${sponsorBlockCategories.size} selected",
+                            onClick = {
+                                activeDialogType = SettingsDialogType.SB_CATEGORIES
+                            },
+                        )
                     }
                 }
 
@@ -345,6 +333,62 @@ fun SettingsScreen(
                                 Text("Cancel")
                             }
                         },
+                    )
+                }
+                SettingsDialogType.SB_CATEGORIES -> {
+                    AlertDialog(
+                        onDismissRequest = { activeDialogType = null },
+                        title = { Text("Active Skip Categories") },
+                        text = {
+                            LazyColumn(
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.height(350.dp).fillMaxWidth()
+                            ) {
+                                val allSelected = nonNullSettings.sponsorBlockSettings.categories.size == sponsorBlockCategories.size
+                                item {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { viewModel.setAllSponsorBlockCategories(!allSelected) }
+                                            .padding(vertical = 8.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text("Select All", fontWeight = FontWeight.Bold)
+                                        Checkbox(
+                                            checked = allSelected,
+                                            onCheckedChange = { viewModel.setAllSponsorBlockCategories(!allSelected) }
+                                        )
+                                    }
+                                    HorizontalDivider()
+                                }
+
+                                sponsorBlockCategories.forEach { categoryRow ->
+                                    item {
+                                        val isChecked = categoryRow.category in nonNullSettings.sponsorBlockSettings.categories
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable { viewModel.toggleSponsorBlockCategory(categoryRow.category) }
+                                                .padding(vertical = 8.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(stringResource(id = categoryRow.labelResId))
+                                            Checkbox(
+                                                checked = isChecked,
+                                                onCheckedChange = { viewModel.toggleSponsorBlockCategory(categoryRow.category) }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        confirmButton = {
+                            Button(onClick = { activeDialogType = null }) {
+                                Text("Done")
+                            }
+                        }
                     )
                 }
                 else -> {
@@ -602,6 +646,7 @@ private enum class SettingsDialogType {
     THEME,
     SUFFIX,
     SB_URL,
+    SB_CATEGORIES,
 }
 
 private fun resolveRelativePathFromUri(uri: Uri): String {

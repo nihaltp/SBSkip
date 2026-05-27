@@ -21,7 +21,7 @@ class SettingsViewModel @Inject constructor(
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = null
+            initialValue = null,
         )
 
     fun updateThemeMode(themeMode: ThemeMode) {
@@ -92,6 +92,23 @@ class SettingsViewModel @Inject constructor(
                     currentCategories - category
                 } else {
                     currentCategories + category
+                }
+                current.copy(
+                    sponsorBlockSettings = current.sponsorBlockSettings.copy(
+                        categories = updatedCategories,
+                    ),
+                )
+            }
+        }
+    }
+
+    fun setAllSponsorBlockCategories(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.update { current ->
+                val updatedCategories = if (enabled) {
+                    SponsorBlockCategory.entries.toSet()
+                } else {
+                    emptySet()
                 }
                 current.copy(
                     sponsorBlockSettings = current.sponsorBlockSettings.copy(
