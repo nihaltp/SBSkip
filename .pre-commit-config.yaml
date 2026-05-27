@@ -12,7 +12,7 @@ repos:
     hooks:
       - id: ktlint-format
         name: ktlint format
-        entry: cmd /c gradlew.bat -q :app:ktlintFormat
+        entry: cmd /c gradlew.bat :app:ktlintFormat
         language: system
         description: "Run ktlint format via Gradle"
         types: [kotlin]
@@ -24,7 +24,7 @@ repos:
     hooks:
       - id: ktlint-check
         name: ktlint check
-        entry: cmd /c gradlew.bat -q :app:ktlintCheck
+        entry: cmd /c gradlew.bat :app:ktlintCheck
         language: system
         description: "Run ktlint Check via Gradle"
         types: [kotlin]
