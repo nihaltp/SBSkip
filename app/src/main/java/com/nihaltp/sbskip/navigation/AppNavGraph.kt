@@ -47,6 +47,8 @@ fun AppNavGraph(
                 onRemoveQueueItem = viewModel::removeQueueItem,
                 onRetryQueueItem = viewModel::retryQueueItem,
                 onSnackbarShown = viewModel::consumeSnackbarMessage,
+                onProceedAnyway = viewModel::proceedWithMismatch,
+                onCancelMismatchDialog = viewModel::dismissDurationMismatchDialog,
             )
         }
 

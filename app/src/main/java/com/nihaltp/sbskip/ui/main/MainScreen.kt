@@ -94,6 +94,8 @@ fun MainScreen(
     onRemoveQueueItem: (Long) -> Unit,
     onRetryQueueItem: (Long) -> Unit,
     onSnackbarShown: () -> Unit,
+    onProceedAnyway: () -> Unit,
+    onCancelMismatchDialog: () -> Unit,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val clipboardManager = LocalClipboardManager.current
@@ -176,8 +178,12 @@ fun MainScreen(
                             }
 
                             if (showLocalCleanButton || showDownloadAndCleanButton) {
-                                Button(onClick = onSubmit) {
-                                    if (uiState.isFetchingMetadata) {
+                                val isLoading = uiState.isFetchingMetadata || uiState.isVerifyingDuration
+                                Button(
+                                    onClick = onSubmit,
+                                    enabled = !isLoading,
+                                ) {
+                                    if (isLoading) {
                                         CircularProgressIndicator(modifier = Modifier.height(18.dp).width(18.dp), strokeWidth = 2.dp)
                                         Spacer(modifier = Modifier.width(8.dp))
                                     } else {
@@ -185,7 +191,9 @@ fun MainScreen(
                                         Spacer(modifier = Modifier.width(8.dp))
                                     }
                                     Text(
-                                        text = if (showDownloadAndCleanButton) {
+                                        text = if (uiState.isVerifyingDuration) {
+                                            stringResource(id = R.string.dialog_verifying_duration)
+                                        } else if (showDownloadAndCleanButton) {
                                             stringResource(id = R.string.download_and_clean_button)
                                         } else {
                                             stringResource(id = R.string.clean_media_button)
@@ -329,7 +337,7 @@ fun MainScreen(
                             |
                             |* **App Version**: ${BuildConfig.VERSION_NAME}
                             |* **Video Title**: ${item.title}
-                            |* **Video URL**: ${item.url}
+                            |* **Video URL**: ${item.cleanUrl}
                             |* **Media Type**: ${item.mediaType.name}
                             |
                             |#### Exception Stack Trace
@@ -370,7 +378,7 @@ fun MainScreen(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     DetailRow(label = stringResource(id = R.string.label_title), value = item.title)
-                    DetailRow(label = stringResource(id = R.string.youtube_url_label), value = item.url)
+                    DetailRow(label = stringResource(id = R.string.youtube_url_label), value = item.cleanUrl)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -433,7 +441,7 @@ fun MainScreen(
                     }
                     TextButton(
                         onClick = {
-                            clipboardManager.setText(AnnotatedString(item.url))
+                            clipboardManager.setText(AnnotatedString(item.cleanUrl))
                             Toast.makeText(context, context.getString(R.string.url_copied_toast), Toast.LENGTH_SHORT).show()
                         },
                     ) {
@@ -444,6 +452,36 @@ fun MainScreen(
             dismissButton = {
                 TextButton(onClick = { detailsDialogItem = null }) {
                     Text(stringResource(id = R.string.close))
+                }
+            },
+        )
+    }
+
+    if (uiState.showDurationMismatchDialog) {
+        val fileDurationStr = uiState.mismatchFileDuration.let { seconds ->
+            val minutes = seconds / 60
+            val remaining = seconds % 60
+            "%d:%02d".format(minutes, remaining)
+        }
+        val youtubeDurationStr = uiState.mismatchYoutubeDuration.let { seconds ->
+            val minutes = seconds / 60
+            val remaining = seconds % 60
+            "%d:%02d".format(minutes, remaining)
+        }
+        AlertDialog(
+            onDismissRequest = onCancelMismatchDialog,
+            title = { Text(stringResource(id = R.string.dialog_duration_mismatch_title)) },
+            text = {
+                Text(stringResource(id = R.string.dialog_duration_mismatch_message, fileDurationStr, youtubeDurationStr))
+            },
+            confirmButton = {
+                Button(onClick = onProceedAnyway) {
+                    Text(stringResource(id = R.string.dialog_duration_mismatch_proceed))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onCancelMismatchDialog) {
+                    Text(stringResource(id = R.string.cancel))
                 }
             },
         )
@@ -629,7 +667,7 @@ private fun QueueItemCard(
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(item.title, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text(item.url, maxLines = 1, overflow = TextOverflow.Ellipsis, color = Color.Gray)
+                            Text(item.cleanUrl, maxLines = 1, overflow = TextOverflow.Ellipsis, color = Color.Gray)
                         }
                         StatusChip(status = item.status)
                     }

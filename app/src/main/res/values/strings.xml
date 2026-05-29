@@ -211,4 +211,10 @@
     <string name="notification_saving_media">Saving cleaned media...</string>
     <string name="error_item_not_found">Item not found</string>
     <string name="snackbar_media_enqueued">Media enqueued for SponsorBlock cleaning!</string>
+
+    <!-- Duration Mismatch Dialog -->
+    <string name="dialog_duration_mismatch_title">Duration Mismatch</string>
+    <string name="dialog_duration_mismatch_message">The imported local file duration (%1$s) does not match the YouTube video duration (%2$s).\n\nEven a difference of 1 second is big. Do you want to proceed anyway?</string>
+    <string name="dialog_duration_mismatch_proceed">Proceed Anyway</string>
+    <string name="dialog_verifying_duration">Verifying duration…</string>
 </resources>

@@ -33,6 +33,9 @@ data class DownloadQueueItem(
                 "%d:%02d".format(minutes, remainingSeconds)
             }
         } ?: "--:--"
+
+    val cleanUrl: String
+        get() = url.substringBefore("?bypassDurationCheck").substringBefore("&bypassDurationCheck")
 }
 
 data class PendingDownload(
@@ -48,6 +51,13 @@ data class DetectedFile(
     val score: Int,
 )
 
+data class PendingEnqueueData(
+    val fileUri: String,
+    val title: String,
+    val youtubeUrl: String,
+    val mediaType: MediaType,
+)
+
 data class MainUiState(
     val urlInput: String = "",
     val selectedFileUri: String? = null,
@@ -55,6 +65,11 @@ data class MainUiState(
     val isNewPipeInstalled: Boolean = false,
     val isFetchingMetadata: Boolean = false,
     val isDetectingFile: Boolean = false,
+    val isVerifyingDuration: Boolean = false,
+    val showDurationMismatchDialog: Boolean = false,
+    val mismatchFileDuration: Long = 0L,
+    val mismatchYoutubeDuration: Long = 0L,
+    val pendingEnqueueData: PendingEnqueueData? = null,
     val pendingDownload: PendingDownload? = null,
     val detectedFile: DetectedFile? = null,
     val detectedFileName: String? = null,
