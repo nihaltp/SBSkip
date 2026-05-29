@@ -1,0 +1,1 @@
+Remove SponsorBlock segments from downloaded videos and audio files.
