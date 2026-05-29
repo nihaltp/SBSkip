@@ -7,9 +7,23 @@ plugins {
     id("com.google.dagger.hilt.android")
 }
 
+import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
+val keystoreProperties = Properties().apply {
+    load(rootProject.file("keystore.properties").inputStream())
+}
+
 android {
+    signingConfigs {
+        create("release") {
+            storeFile = file(keystoreProperties["storeFile"] as String)
+            storePassword = keystoreProperties["storePassword"] as String
+            keyAlias = keystoreProperties["keyAlias"] as String
+            keyPassword = keystoreProperties["keyPassword"] as String
+        }
+    }
+
     namespace = "com.nihaltp.sbskip"
     compileSdk = 35
 
@@ -37,6 +51,7 @@ android {
         }
         release {
             isMinifyEnabled = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
