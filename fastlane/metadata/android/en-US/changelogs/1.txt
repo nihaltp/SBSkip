@@ -1,0 +1,1 @@
+Initial release of SB Skip! Remove SponsorBlock-marked sections (sponsors, self-promotion, intros/outros) from your local audio and video files automatically in the background.
