@@ -1,6 +1,101 @@
+def get_version_name_from_gradle
+  gradle_file = File.expand_path("../app/build.gradle.kts", __dir__)
+  unless File.exist?(gradle_file)
+    raise "Could not find app/build.gradle.kts at #{gradle_file}"
+  end
+  content = File.read(gradle_file)
+  if match = content.match(/^\s*versionName\s*=\s*"([^"]+)"/)
+    return match[1]
+  end
+  raise "Could not find versionName in app/build.gradle.kts"
+end
+
+def get_version_code_from_gradle
+  gradle_file = File.expand_path("../app/build.gradle.kts", __dir__)
+  unless File.exist?(gradle_file)
+    raise "Could not find app/build.gradle.kts at #{gradle_file}"
+  end
+  content = File.read(gradle_file)
+  if match = content.match(/^\s*versionCode\s*=\s*(\d+)/)
+    return match[1].to_i
+  end
+  raise "Could not find versionCode in app/build.gradle.kts"
+end
+
+def update_version_name(version_name:)
+  gradle_file = File.expand_path("../app/build.gradle.kts", __dir__)
+  unless File.exist?(gradle_file)
+    raise "Could not find app/build.gradle.kts at #{gradle_file}"
+  end
+  content = File.read(gradle_file)
+  updated_content = content.gsub(/^(\s*versionName\s*=\s*)"[^"]+"/, "\\1\"#{version_name}\"")
+  File.write(gradle_file, updated_content)
+end
+
+def update_version_code(version_code:)
+  gradle_file = File.expand_path("../app/build.gradle.kts", __dir__)
+  unless File.exist?(gradle_file)
+    raise "Could not find app/build.gradle.kts at #{gradle_file}"
+  end
+  content = File.read(gradle_file)
+  updated_content = content.gsub(/^(\s*versionCode\s*=\s*)\d+/, "\\1#{version_code}")
+  File.write(gradle_file, updated_content)
+end
+
 default_platform(:android)
 
 platform :android do
+  desc "Increment patch version"
+  lane :increment_patch do
+    version = get_version_name_from_gradle
+    version_parts = version.split(".").map(&:to_i)
+    version_parts[2] += 1 # Increment patch version
+    new_version = version_parts.join(".")
+    update_version_name(version_name: new_version)
+    increment_version_code # Also increment version code when patch version is updated
+    puts "Version updated to #{new_version}"
+  end
+
+  desc "Increment minor version"
+  lane :increment_minor do
+    version = get_version_name_from_gradle
+    version_parts = version.split(".").map(&:to_i)
+    version_parts[1] += 1 # Increment minor version
+    version_parts[2] = 0  # Reset patch version
+    new_version = version_parts.join(".")
+    update_version_name(version_name: new_version)
+    increment_version_code # Also increment version code when minor version is updated
+    puts "Version updated to #{new_version}"
+  end
+
+  desc "Increment major version"
+  lane :increment_major do
+    version = get_version_name_from_gradle
+    version_parts = version.split(".").map(&:to_i)
+    version_parts[0] += 1 # Increment major version
+    version_parts[1] = 0  # Reset minor version
+    version_parts[2] = 0  # Reset patch version
+    new_version = version_parts.join(".")
+    update_version_name(version_name: new_version)
+    increment_version_code # Also increment version code when major version is updated
+    puts "Version updated to #{new_version}"
+  end
+
+  desc "Increment version code"
+  lane :increment_version_code do
+    version_code = get_version_code_from_gradle
+    new_version_code = version_code + 1 # Increment version code
+    update_version_code(version_code: new_version_code)
+    puts "Version code updated to #{new_version_code}"
+  end
+
+  desc "Print the current version name and code"
+  lane :version do
+    version_name = get_version_name_from_gradle
+    version_code = get_version_code_from_gradle
+    puts "Current version: #{version_name} (code: #{version_code})"
+  end
+
   desc "Clean the project"
   lane :clean do
     gradle(task: "clean")
