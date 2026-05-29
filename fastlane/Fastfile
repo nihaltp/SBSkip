@@ -32,27 +32,27 @@ platform :android do
   lane :screenshots do
     # Resolve device ID first
     properties = {}
-    if File.exist?("../local.properties")
-      File.readlines("../local.properties").each do |line|
+    [File.expand_path("local.properties", __dir__), File.expand_path("../local.properties", __dir__)].each do |properties_path|
+      next unless File.exist?(properties_path)
+
+      File.readlines(properties_path).each do |line|
         next if line.strip.empty? || line.start_with?("#")
         key, value = line.strip.split("=", 2)
         properties[key] = value
       end
-    elsif File.exist?("local.properties")
-      File.readlines("local.properties").each do |line|
-        next if line.strip.empty? || line.start_with?("#")
-        key, value = line.strip.split("=", 2)
-        properties[key] = value
-      end
+
+      break if properties["deviceId"] && !properties["deviceId"].strip.empty?
     end
 
-    device_id = properties["deviceId"]
-    device_id = ENV['SCREENGRAB_SPECIFIC_DEVICE'] if device_id.nil? || device_id.strip.empty? rescue nil
-    if device_id.nil? || device_id.strip.empty?
-      # Query adb for connected devices dynamically
-      devices = `adb devices`.scan(/^(\S+)\tdevice/).flatten
-      device_id = devices.first
+    connected_devices = `adb devices`.scan(/^(\S+)\tdevice/).flatten
+    preferred_device_ids = [properties["deviceId"], ENV["SCREENGRAB_SPECIFIC_DEVICE"]].compact.map { |device| device.strip }.reject(&:empty?)
+
+    device_id = preferred_device_ids.find { |preferred_device_id| connected_devices.include?(preferred_device_id) }
+    if device_id.nil? && preferred_device_ids.any?
+      puts "Configured device is not connected; falling back to the first authorized adb device."
     end
+
+    device_id ||= connected_devices.first
 
     raise "No active Android device found!" if device_id.nil? || device_id.strip.empty?
     puts "Using target device ID: #{device_id}"

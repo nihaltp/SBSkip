@@ -81,7 +81,7 @@ class ScreenshotTest {
             settingsRepository.update { it.copy(themeMode = ThemeMode.LIGHT) }
         }
         composeTestRule.waitForIdle()
-        Thread.sleep(1200) // Wait between screens/actions for fluid settled states
+        Thread.sleep(2400) // Wait between screens/actions for fluid settled states
         Screengrab.screenshot(screenshotCounter.toString())
         screenshotCounter++
 
