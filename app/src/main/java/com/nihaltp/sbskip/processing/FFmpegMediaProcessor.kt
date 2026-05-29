@@ -39,7 +39,7 @@ class FFmpegMediaProcessor @Inject constructor() : MediaProcessor {
             AppLogger.worker("Single keep range [start=$start, duration=$duration]. Running direct trim.")
 
             runFFmpegCommand(
-                "-y -ss ${formatTime(start)} -t ${formatTime(duration)} -i \"${inputFile.absolutePath}\" -c copy \"${outputFile.absolutePath}\""
+                "-y -ss ${formatTime(start)} -t ${formatTime(duration)} -i \"${inputFile.absolutePath}\" -c copy \"${outputFile.absolutePath}\"",
             )
             progressListener(100)
             return@withContext
@@ -59,7 +59,7 @@ class FFmpegMediaProcessor @Inject constructor() : MediaProcessor {
                 AppLogger.worker("Trimming segment $index [start=$start, duration=$duration] to ${tempSegmentFile.name}")
 
                 runFFmpegCommand(
-                    "-y -ss ${formatTime(start)} -t ${formatTime(duration)} -i \"${inputFile.absolutePath}\" -c copy \"${tempSegmentFile.absolutePath}\""
+                    "-y -ss ${formatTime(start)} -t ${formatTime(duration)} -i \"${inputFile.absolutePath}\" -c copy \"${tempSegmentFile.absolutePath}\"",
                 )
 
                 // Report progressive split progress
@@ -84,7 +84,7 @@ class FFmpegMediaProcessor @Inject constructor() : MediaProcessor {
 
             try {
                 runFFmpegCommand(
-                    "-y -f concat -safe 0 -i \"${concatListFile.absolutePath}\" -c copy \"${outputFile.absolutePath}\""
+                    "-y -f concat -safe 0 -i \"${concatListFile.absolutePath}\" -c copy \"${outputFile.absolutePath}\"",
                 )
             } finally {
                 // Safely clean up the concat list text file
@@ -95,7 +95,6 @@ class FFmpegMediaProcessor @Inject constructor() : MediaProcessor {
 
             progressListener(100)
             AppLogger.worker("Media processing completed successfully: ${outputFile.absolutePath}")
-
         } catch (e: Exception) {
             AppLogger.error("FFmpeg", e, "Error occurred during media processing")
             throw e

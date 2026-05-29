@@ -4,7 +4,6 @@ import android.content.ContentResolver
 import android.content.ContentUris
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.MediaStore
 import androidx.lifecycle.ViewModel
@@ -13,8 +12,6 @@ import com.nihaltp.sbskip.R
 import com.nihaltp.sbskip.data.repository.QueueRepository
 import com.nihaltp.sbskip.data.repository.SettingsRepository
 import com.nihaltp.sbskip.model.DetectedFile
-import com.nihaltp.sbskip.model.DownloadQueueStatus
-import com.nihaltp.sbskip.model.DownloaderType
 import com.nihaltp.sbskip.model.MainUiState
 import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.model.PendingDownload
@@ -310,7 +307,7 @@ class MainViewModel @Inject constructor(
                 isDetectingFile = false,
                 detectedFile = DetectedFile(uri = bestCandidate.uri, score = bestCandidate.score),
                 detectedFileName = detectedName,
-                    snackbarMessage = context.getString(R.string.found_matching_file, bestCandidate.score),
+                snackbarMessage = context.getString(R.string.found_matching_file, bestCandidate.score),
             )
         }
     }

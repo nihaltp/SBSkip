@@ -5,6 +5,9 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
+import com.arthenica.ffmpegkit.FFmpegKit
+import com.arthenica.ffmpegkit.ReturnCode
+import com.nihaltp.sbskip.BuildConfig
 import com.nihaltp.sbskip.R
 import com.nihaltp.sbskip.data.repository.QueueRepository
 import com.nihaltp.sbskip.data.repository.SettingsRepository
@@ -15,9 +18,6 @@ import com.nihaltp.sbskip.sponsorblock.SponsorBlockService
 import com.nihaltp.sbskip.storage.DownloadStorage
 import com.nihaltp.sbskip.util.AppLogger
 import com.nihaltp.sbskip.util.YouTubeUrlParser
-import com.arthenica.ffmpegkit.FFmpegKit
-import com.arthenica.ffmpegkit.ReturnCode
-import com.nihaltp.sbskip.BuildConfig
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
@@ -232,7 +232,7 @@ class DownloadWorker @AssistedInject constructor(
             "\"youtubeTitle\":\"$escapedTitle\"," +
             "\"processedAt\":\"${System.currentTimeMillis()}\"," +
             "\"sbskipVersion\":\"${BuildConfig.VERSION_NAME}\"," +
-            "\"removedCategories\":[${removedCategories}]" +
+            "\"removedCategories\":[$removedCategories]" +
             "}"
     }
 

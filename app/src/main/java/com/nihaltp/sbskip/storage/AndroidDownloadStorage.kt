@@ -8,17 +8,17 @@ import android.os.Build
 import android.provider.MediaStore
 import android.provider.OpenableColumns
 import androidx.documentfile.provider.DocumentFile
+import com.nihaltp.sbskip.data.repository.SettingsRepository
 import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.util.AppLogger
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
-import com.nihaltp.sbskip.data.repository.SettingsRepository
-import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -85,7 +85,7 @@ class AndroidDownloadStorage @Inject constructor(
                             input.copyTo(output)
                         }
                     } ?: throw IOException("Failed to open SAF output stream")
-                    
+
                     AppLogger.worker("Successfully saved clean file to custom SAF directory: $filename")
                     return@withContext newFile.uri.toString()
                 }

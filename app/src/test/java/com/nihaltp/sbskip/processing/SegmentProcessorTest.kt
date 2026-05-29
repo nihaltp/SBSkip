@@ -20,7 +20,7 @@ class SegmentProcessorTest {
     fun testDisjointSegments() {
         val segments = listOf(
             SponsorBlockSegment(SponsorBlockCategory.SPONSOR, 10.0, 20.0),
-            SponsorBlockSegment(SponsorBlockCategory.SPONSOR, 40.0, 50.0)
+            SponsorBlockSegment(SponsorBlockCategory.SPONSOR, 40.0, 50.0),
         )
         val keepRanges = SegmentProcessor.computeKeepRanges(segments, 100.0)
 
@@ -34,7 +34,7 @@ class SegmentProcessorTest {
     fun testOverlappingSegments() {
         val segments = listOf(
             SponsorBlockSegment(SponsorBlockCategory.SPONSOR, 10.0, 25.0),
-            SponsorBlockSegment(SponsorBlockCategory.SPONSOR, 20.0, 35.0)
+            SponsorBlockSegment(SponsorBlockCategory.SPONSOR, 20.0, 35.0),
         )
         val keepRanges = SegmentProcessor.computeKeepRanges(segments, 100.0)
 
@@ -48,7 +48,7 @@ class SegmentProcessorTest {
         // Gap of 0.3 seconds is less than 0.5 default threshold, so they should merge
         val segments = listOf(
             SponsorBlockSegment(SponsorBlockCategory.SPONSOR, 10.0, 20.0),
-            SponsorBlockSegment(SponsorBlockCategory.SPONSOR, 20.3, 30.0)
+            SponsorBlockSegment(SponsorBlockCategory.SPONSOR, 20.3, 30.0),
         )
         val keepRanges = SegmentProcessor.computeKeepRanges(segments, 100.0)
 
@@ -62,7 +62,7 @@ class SegmentProcessorTest {
         // Segment starting before 0 and ending after duration
         val segments = listOf(
             SponsorBlockSegment(SponsorBlockCategory.SPONSOR, -5.0, 15.0),
-            SponsorBlockSegment(SponsorBlockCategory.SPONSOR, 90.0, 105.0)
+            SponsorBlockSegment(SponsorBlockCategory.SPONSOR, 90.0, 105.0),
         )
         val keepRanges = SegmentProcessor.computeKeepRanges(segments, 100.0)
 
@@ -75,7 +75,7 @@ class SegmentProcessorTest {
         // Keep range between segments is extremely tiny (0.05 seconds), should be filtered out
         val segments = listOf(
             SponsorBlockSegment(SponsorBlockCategory.SPONSOR, 10.0, 20.0),
-            SponsorBlockSegment(SponsorBlockCategory.SPONSOR, 20.05, 30.0)
+            SponsorBlockSegment(SponsorBlockCategory.SPONSOR, 20.05, 30.0),
         )
         // Set gapThreshold to 0.0 to prevent merging, forcing a tiny keep range to be computed
         val merged = SegmentProcessor.mergeSegments(segments, gapThresholdSeconds = 0.0)
