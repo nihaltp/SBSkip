@@ -1,13 +1,11 @@
 package com.nihaltp.sbskip
 
-import android.content.Context
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.nihaltp.sbskip.data.local.database.SBSkipDatabase
 import com.nihaltp.sbskip.data.local.entity.DownloadQueueEntity
 import com.nihaltp.sbskip.data.repository.SettingsRepository
 import com.nihaltp.sbskip.di.TestEntryPoint
@@ -59,7 +57,7 @@ class ScreenshotTest {
                 createdAtEpochMillis = now,
                 updatedAtEpochMillis = now,
                 errorMessage = null,
-                outputPath = "content://com.android.externalstorage.documents/document/primary%3ADownload%2FYT%2FKULASTHREE%20(Official%20Video)%20-%20ThirumaLi%20x%20ThudWiser%20_%20Def%20Jam%20India.m4a"
+                outputPath = "content://com.android.externalstorage.documents/document/primary%3ADownload%2FYT%2FKULASTHREE%20(Official%20Video)%20-%20ThirumaLi%20x%20ThudWiser%20_%20Def%20Jam%20India.m4a",
             )
             database.downloadQueueDao().insert(entity)
         }
@@ -105,14 +103,14 @@ class ScreenshotTest {
         composeTestRule.waitForIdle()
 
         // 3. LIGHT Theme - Settings Screen
-        composeTestRule.onNodeWithText("Settings").performClick()
+        composeTestRule.onNodeWithContentDescription("Settings").performClick()
         composeTestRule.waitForIdle()
         Thread.sleep(1200) // Wait between screens/actions for fluid settled states
         Screengrab.screenshot(screenshotCounter.toString())
         screenshotCounter++
 
         // Go Back
-        composeTestRule.onNodeWithText("Back").performClick()
+        composeTestRule.onNodeWithContentDescription("Back").performClick()
         composeTestRule.waitForIdle()
 
         // 4. DARK Theme - Main Screen
@@ -144,7 +142,7 @@ class ScreenshotTest {
         composeTestRule.waitForIdle()
 
         // 6. DARK Theme - Settings Screen
-        composeTestRule.onNodeWithText("Settings").performClick()
+        composeTestRule.onNodeWithContentDescription("Settings").performClick()
         composeTestRule.waitForIdle()
         Thread.sleep(1200) // Wait between screens/actions for fluid settled states
         Screengrab.screenshot(screenshotCounter.toString())

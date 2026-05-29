@@ -31,6 +31,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -151,10 +152,14 @@ fun SettingsScreen(
             TopAppBar(
                 title = { Text(stringResource(id = R.string.settings_title)) },
                 navigationIcon = {
-                    OutlinedButton(onClick = onBack) {
-                        Icon(Icons.Outlined.ArrowBack, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(id = R.string.settings_back))
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier.padding(start = 12.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.ArrowBack,
+                            contentDescription = "Back",
+                        )
                     }
                 },
             )
@@ -275,7 +280,7 @@ fun SettingsScreen(
                             value = stringResource(
                                 id = R.string.settings_categories_selected_format,
                                 settings.sponsorBlockSettings.categories.size,
-                                sponsorBlockCategories.size
+                                sponsorBlockCategories.size,
                             ),
                             onClick = {
                                 activeDialogType = SettingsDialogType.SB_CATEGORIES
@@ -453,7 +458,7 @@ fun SettingsScreen(
                         text = {
                             LazyColumn(
                                 verticalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier.height(350.dp).fillMaxWidth()
+                                modifier = Modifier.height(350.dp).fillMaxWidth(),
                             ) {
                                 val allSelected = nonNullSettings.sponsorBlockSettings.categories.size == sponsorBlockCategories.size
                                 item {
@@ -463,12 +468,12 @@ fun SettingsScreen(
                                             .clickable { viewModel.setAllSponsorBlockCategories(!allSelected) }
                                             .padding(vertical = 8.dp),
                                         horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
+                                        verticalAlignment = Alignment.CenterVertically,
                                     ) {
                                         Text(stringResource(id = R.string.select_all), fontWeight = FontWeight.Bold)
                                         Checkbox(
                                             checked = allSelected,
-                                            onCheckedChange = { viewModel.setAllSponsorBlockCategories(!allSelected) }
+                                            onCheckedChange = { viewModel.setAllSponsorBlockCategories(!allSelected) },
                                         )
                                     }
                                     HorizontalDivider()
@@ -483,12 +488,12 @@ fun SettingsScreen(
                                                 .clickable { viewModel.toggleSponsorBlockCategory(categoryRow.category) }
                                                 .padding(vertical = 8.dp),
                                             horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
+                                            verticalAlignment = Alignment.CenterVertically,
                                         ) {
                                             Text(stringResource(id = categoryRow.labelResId))
                                             Checkbox(
                                                 checked = isChecked,
-                                                onCheckedChange = { viewModel.toggleSponsorBlockCategory(categoryRow.category) }
+                                                onCheckedChange = { viewModel.toggleSponsorBlockCategory(categoryRow.category) },
                                             )
                                         }
                                     }
@@ -499,7 +504,7 @@ fun SettingsScreen(
                             Button(onClick = { activeDialogType = null }) {
                                 Text(stringResource(id = R.string.done))
                             }
-                        }
+                        },
                     )
                 }
                 else -> {

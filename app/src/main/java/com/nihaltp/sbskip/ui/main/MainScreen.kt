@@ -38,6 +38,7 @@ import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -122,11 +123,15 @@ fun MainScreen(
             TopAppBar(
                 title = { Text(stringResource(id = R.string.title_main)) },
                 actions = {
-                    AssistChip(
+                    IconButton(
                         onClick = onOpenSettings,
-                        label = { Text(stringResource(id = R.string.label_settings)) },
-                        leadingIcon = { Icon(Icons.Outlined.Settings, contentDescription = null) },
-                    )
+                        modifier = Modifier.padding(end = 12.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Settings,
+                            contentDescription = "Back",
+                        )
+                    }
                 },
             )
         },
@@ -388,7 +393,7 @@ fun MainScreen(
                     }
                     Column(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Column {
                             Text(stringResource(id = R.string.imported_path_label), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
