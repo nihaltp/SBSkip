@@ -15,6 +15,9 @@ import com.nihaltp.sbskip.sponsorblock.SponsorBlockService
 import com.nihaltp.sbskip.storage.DownloadStorage
 import com.nihaltp.sbskip.util.AppLogger
 import com.nihaltp.sbskip.util.YouTubeUrlParser
+import com.arthenica.ffmpegkit.FFmpegKit
+import com.arthenica.ffmpegkit.ReturnCode
+import com.nihaltp.sbskip.BuildConfig
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
@@ -121,6 +124,14 @@ class DownloadWorker @AssistedInject constructor(
                 )
             }
 
+            tempOutputFile = tagProcessedMedia(
+                inputFile = tempOutputFile,
+                videoId = videoId,
+                youtubeUrl = item.url,
+                youtubeTitle = taskTitle,
+                categories = settings.sponsorBlockSettings.categories.map { it.name },
+            )
+
             // 3. Save / overwrite media file
             notificationManager.showActive(notificationId, taskTitle, 95, applicationContext.getString(R.string.notification_saving_media))
             val savedUriString = if (settings.overwriteBehavior) {
@@ -167,6 +178,66 @@ class DownloadWorker @AssistedInject constructor(
             tempInputFile?.let { if (it.exists()) it.delete() }
             tempOutputFile?.let { if (it.exists()) it.delete() }
         }
+    }
+
+    private fun tagProcessedMedia(
+        inputFile: File,
+        videoId: String,
+        youtubeUrl: String,
+        youtubeTitle: String,
+        categories: List<String>,
+    ): File {
+        if (!inputFile.exists()) return inputFile
+
+        val extension = inputFile.extension.lowercase()
+        if (extension !in setOf("mp4", "m4a", "mp3", "m4v", "mov")) {
+            return inputFile
+        }
+
+        val metadataJson = buildProcessedMetadataJson(
+            videoId = videoId,
+            youtubeUrl = youtubeUrl,
+            youtubeTitle = youtubeTitle,
+            categories = categories,
+        )
+        val taggedOutput = File(inputFile.parentFile, "${inputFile.nameWithoutExtension}_tagged.${inputFile.extension}")
+        val command = "-y -i \"${inputFile.absolutePath}\" -metadata comment=\"${escapeForFfmpeg(metadataJson)}\" -codec copy \"${taggedOutput.absolutePath}\""
+        val session = FFmpegKit.execute(command)
+        val returnCode = session.returnCode
+
+        return if (ReturnCode.isSuccess(returnCode) && taggedOutput.exists()) {
+            inputFile.delete()
+            taggedOutput
+        } else {
+            AppLogger.worker("Metadata tagging skipped or failed for ${inputFile.name}: ${session.allLogsAsString}")
+            taggedOutput.delete()
+            inputFile
+        }
+    }
+
+    private fun buildProcessedMetadataJson(
+        videoId: String,
+        youtubeUrl: String,
+        youtubeTitle: String,
+        categories: List<String>,
+    ): String {
+        val escapedTitle = youtubeTitle.replace("\\", "\\\\").replace("\"", "\\\"")
+        val escapedUrl = youtubeUrl.replace("\\", "\\\\").replace("\"", "\\\"")
+        val escapedVideoId = videoId.replace("\\", "\\\\").replace("\"", "\\\"")
+        val removedCategories = categories.joinToString(",") { "\"${it.replace("\\", "\\\\").replace("\"", "\\\"")}\"" }
+        return "{" +
+            "\"processed\":true," +
+            "\"youtubeId\":\"$escapedVideoId\"," +
+            "\"youtubeUrl\":\"$escapedUrl\"," +
+            "\"youtubeTitle\":\"$escapedTitle\"," +
+            "\"processedAt\":\"${System.currentTimeMillis()}\"," +
+            "\"sbskipVersion\":\"${BuildConfig.VERSION_NAME}\"," +
+            "\"removedCategories\":[${removedCategories}]" +
+            "}"
+    }
+
+    private fun escapeForFfmpeg(value: String): String {
+        return value.replace("\\", "\\\\").replace("\"", "\\\"")
     }
 
     companion object {

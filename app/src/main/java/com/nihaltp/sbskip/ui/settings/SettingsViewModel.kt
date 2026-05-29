@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nihaltp.sbskip.data.repository.SettingsRepository
 import com.nihaltp.sbskip.model.AppSettings
+import com.nihaltp.sbskip.model.DownloaderType
 import com.nihaltp.sbskip.model.SponsorBlockCategory
 import com.nihaltp.sbskip.model.ThemeMode
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -39,6 +40,12 @@ class SettingsViewModel @Inject constructor(
     fun updateNotificationsEnabled(enabled: Boolean) {
         viewModelScope.launch {
             settingsRepository.update { it.copy(notificationsEnabled = enabled) }
+        }
+    }
+
+    fun updateDownloaderType(downloaderType: DownloaderType) {
+        viewModelScope.launch {
+            settingsRepository.update { it.copy(downloader = downloaderType) }
         }
     }
 
@@ -81,6 +88,18 @@ class SettingsViewModel @Inject constructor(
     fun updateAudioFolder(folder: String, uriString: String) {
         viewModelScope.launch {
             settingsRepository.update { it.copy(audioFolder = folder, audioFolderUri = uriString) }
+        }
+    }
+
+    fun updateNewPipeVideoFolder(folder: String) {
+        viewModelScope.launch {
+            settingsRepository.update { it.copy(newPipeVideoFolder = folder) }
+        }
+    }
+
+    fun updateNewPipeAudioFolder(folder: String) {
+        viewModelScope.launch {
+            settingsRepository.update { it.copy(newPipeAudioFolder = folder) }
         }
     }
 

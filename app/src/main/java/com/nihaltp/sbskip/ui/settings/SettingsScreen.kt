@@ -56,6 +56,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nihaltp.sbskip.R
+import com.nihaltp.sbskip.model.DownloaderType
 import com.nihaltp.sbskip.model.SponsorBlockCategory
 import com.nihaltp.sbskip.model.ThemeMode
 
@@ -104,6 +105,40 @@ fun SettingsScreen(
             }
             val resolvedPath = resolveRelativePathFromUri(it)
             viewModel.updateAudioFolder(resolvedPath, it.toString())
+        }
+    }
+
+    val newPipeVideoFolderLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree(),
+    ) { uri ->
+        uri?.let {
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    it,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+                )
+            } catch (e: Exception) {
+                com.nihaltp.sbskip.util.AppLogger.error("Settings", e, "Failed to take persistable URI permission")
+            }
+            val resolvedPath = resolveRelativePathFromUri(it)
+            viewModel.updateNewPipeVideoFolder(resolvedPath)
+        }
+    }
+
+    val newPipeAudioFolderLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree(),
+    ) { uri ->
+        uri?.let {
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    it,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+                )
+            } catch (e: Exception) {
+                com.nihaltp.sbskip.util.AppLogger.error("Settings", e, "Failed to take persistable URI permission")
+            }
+            val resolvedPath = resolveRelativePathFromUri(it)
+            viewModel.updateNewPipeAudioFolder(resolvedPath)
         }
     }
 
@@ -165,6 +200,26 @@ fun SettingsScreen(
                             title = stringResource(id = R.string.settings_theme_mode),
                             value = themeModeLabel,
                             onClick = { activeDialogType = SettingsDialogType.THEME },
+                        )
+                    }
+                }
+
+                item {
+                    SettingsSection(title = stringResource(id = R.string.settings_section_newpipe)) {
+                        SettingValueRow(
+                            title = stringResource(id = R.string.settings_downloader_title),
+                            value = stringResource(id = R.string.settings_downloader_newpipe),
+                            onClick = { activeDialogType = SettingsDialogType.DOWNLOADER },
+                        )
+                        SettingValueRow(
+                            title = stringResource(id = R.string.settings_newpipe_video_folder_title),
+                            value = settings.newPipeVideoFolder,
+                            onClick = { newPipeVideoFolderLauncher.launch(null) },
+                        )
+                        SettingValueRow(
+                            title = stringResource(id = R.string.settings_newpipe_audio_folder_title),
+                            value = settings.newPipeAudioFolder,
+                            onClick = { newPipeAudioFolderLauncher.launch(null) },
                         )
                     }
                 }
@@ -342,6 +397,43 @@ fun SettingsScreen(
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text(label)
                                     }
+                                }
+                            }
+                        },
+                        confirmButton = {},
+                        dismissButton = {
+                            TextButton(onClick = { activeDialogType = null }) {
+                                Text(stringResource(id = R.string.cancel))
+                            }
+                        },
+                    )
+                }
+                SettingsDialogType.DOWNLOADER -> {
+                    AlertDialog(
+                        onDismissRequest = { activeDialogType = null },
+                        title = { Text(stringResource(id = R.string.settings_downloader_title)) },
+                        text = {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                val selected = nonNullSettings.downloader
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            viewModel.updateDownloaderType(DownloaderType.NEWPIPE)
+                                            activeDialogType = null
+                                        }
+                                        .padding(vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    RadioButton(
+                                        selected = selected == DownloaderType.NEWPIPE,
+                                        onClick = {
+                                            viewModel.updateDownloaderType(DownloaderType.NEWPIPE)
+                                            activeDialogType = null
+                                        },
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(stringResource(id = R.string.settings_downloader_newpipe))
                                 }
                             }
                         },
@@ -662,6 +754,7 @@ private val sponsorBlockCategories = listOf(
 
 private enum class SettingsDialogType {
     THEME,
+    DOWNLOADER,
     SUFFIX,
     SB_URL,
     SB_CATEGORIES,

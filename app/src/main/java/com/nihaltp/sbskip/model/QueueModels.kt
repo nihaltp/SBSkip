@@ -35,10 +35,29 @@ data class DownloadQueueItem(
         } ?: "--:--"
 }
 
+data class PendingDownload(
+    val videoId: String,
+    val url: String,
+    val title: String,
+    val thumbnailUrl: String?,
+    val createdAtEpochMillis: Long,
+)
+
+data class DetectedFile(
+    val uri: String,
+    val score: Int,
+)
+
 data class MainUiState(
     val urlInput: String = "",
     val selectedFileUri: String? = null,
     val selectedFileName: String = "",
+    val isNewPipeInstalled: Boolean = false,
+    val isFetchingMetadata: Boolean = false,
+    val isDetectingFile: Boolean = false,
+    val pendingDownload: PendingDownload? = null,
+    val detectedFile: DetectedFile? = null,
+    val detectedFileName: String? = null,
     val queueItems: List<DownloadQueueItem> = emptyList(),
     val snackbarMessage: String? = null,
 )

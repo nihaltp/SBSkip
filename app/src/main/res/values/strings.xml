@@ -61,6 +61,12 @@
     <string name="settings_keep_temp_files_title">Keep temp files</string>
     <string name="settings_keep_temp_files_desc">Useful while debugging FFmpeg and yt-dlp processing.</string>
     <string name="settings_theme_mode">Theme mode</string>
+    <string name="settings_section_newpipe">NewPipe</string>
+    <string name="settings_downloader_title">Downloader</string>
+    <string name="settings_downloader_newpipe">NewPipe</string>
+    <string name="settings_newpipe_video_folder_title">NewPipe Video Folder</string>
+    <string name="settings_newpipe_audio_folder_title">NewPipe Audio Folder</string>
+    <string name="settings_newpipe_folder_field_label">Folder path</string>
 
     <string name="settings_section_downloads">Downloads</string>
     <string name="settings_video_folder">Video folder</string>
@@ -117,13 +123,28 @@
     <string name="label_licenses">Licenses</string>
 
     <!-- Main Screen -->
-    <string name="select_local_file_title">Select Local File &amp; Provide Link</string>
+    <string name="select_local_file_title">Select Local File</string>
     <string name="selected_file_label">Selected File</string>
     <string name="import_media_file_label">Import Media File</string>
+    <string name="imported_file_fallback">Imported File</string>
+    <string name="detected_file_fallback">Detected File</string>
     <string name="no_media_selected">No media file selected</string>
     <string name="pick_file_button">Pick File</string>
+    <string name="remove_picked_file_button">Remove Picked File</string>
     <string name="paste_youtube_prompt">Paste YouTube URL or video ID</string>
     <string name="clean_media_button">Clean Media</string>
+    <string name="download_and_clean_button">Download and Clean</string>
+    <string name="waiting_for_download_title">Waiting for Download</string>
+    <string name="auto_detect_recent_download">[ Auto-detect recent download ]</string>
+    <string name="pick_file_manually_button">Pick File Manually</string>
+    <string name="confirm_this_file_prompt">Is this the file you want to clean?</string>
+    <string name="clean_this_file_button">Clean This File</string>
+    <string name="detecting_recent_download">Detecting recent download...</string>
+    <string name="found_matching_file">✓ Found matching file (%1$d%% confidence)</string>
+    <string name="no_pending_download">No pending download to detect.</string>
+    <string name="no_matching_download_found">No matching file found. You can pick a file manually.</string>
+    <string name="newpipe_not_installed">NewPipe is not installed.</string>
+    <string name="newpipe_launch_failed">Unable to launch NewPipe.</string>
     <string name="media_queue_title">Media Cleaning Queue</string>
     <string name="no_jobs_title">No cleaning jobs yet</string>
     <string name="no_jobs_body">Import a local video/audio file and paste its corresponding YouTube link to start cleaning SponsorBlock segments.</string>

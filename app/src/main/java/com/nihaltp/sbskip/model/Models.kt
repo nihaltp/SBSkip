@@ -5,6 +5,10 @@ enum class MediaType {
     AUDIO,
 }
 
+enum class DownloaderType {
+    NEWPIPE,
+}
+
 enum class DownloadStatus {
     QUEUED,
     FETCHING_INFO,
@@ -16,15 +20,15 @@ enum class DownloadStatus {
 }
 
 enum class SponsorBlockCategory {
-    SPONSOR,              // Sponsor segments
-    SELF_PROMOTION,       // Unpaid/Self Promotion segments
+    SPONSOR, //              Sponsor segments
+    SELF_PROMOTION, //       Unpaid/Self Promotion segments
     INTERACTION_REMINDER, // Interaction Reminder segments
-    INTRO,                // Intermission/Intro Animation segments
-    OUTRO,                // Endcards/Credits segments
-    PREVIEW_RECAP,        // Preview/Recap segments
-    HOOK,                 // Hook/Greetings segments
-    FILLER_TANGENT,       // Tangents/Jokes segments
-    MUSIC_OFFTOPIC,       // Music: Non-Music Section segments
+    INTRO, //                Intermission/Intro Animation segments
+    OUTRO, //                Endcards/Credits segments
+    PREVIEW_RECAP, //        Preview/Recap segments
+    HOOK, //                 Hook/Greetings segments
+    FILLER_TANGENT, //       Tangents/Jokes segments
+    MUSIC_OFFTOPIC, //       Music: Non-Music Section segments
 }
 
 enum class ThemeMode {

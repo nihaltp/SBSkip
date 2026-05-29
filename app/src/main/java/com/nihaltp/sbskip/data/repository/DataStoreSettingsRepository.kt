@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.nihaltp.sbskip.model.AppSettings
+import com.nihaltp.sbskip.model.DownloaderType
 import com.nihaltp.sbskip.model.SponsorBlockCategory
 import com.nihaltp.sbskip.model.SponsorBlockSettings
 import com.nihaltp.sbskip.model.ThemeMode
@@ -29,10 +30,13 @@ class DataStoreSettingsRepository @Inject constructor(
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
         val NOTIFICATIONS_ENABLED = booleanPreferencesKey("notifications_enabled")
+        val DOWNLOADER = stringPreferencesKey("downloader")
         val VIDEO_FOLDER = stringPreferencesKey("video_folder")
         val AUDIO_FOLDER = stringPreferencesKey("audio_folder")
         val VIDEO_FOLDER_URI = stringPreferencesKey("video_folder_uri")
         val AUDIO_FOLDER_URI = stringPreferencesKey("audio_folder_uri")
+        val NEWPIPE_VIDEO_FOLDER = stringPreferencesKey("newpipe_video_folder")
+        val NEWPIPE_AUDIO_FOLDER = stringPreferencesKey("newpipe_audio_folder")
         val TEMP_FOLDER = stringPreferencesKey("temp_folder")
         val SB_ENABLED = booleanPreferencesKey("sb_enabled")
         val SB_CATEGORIES = stringSetPreferencesKey("sb_categories")
@@ -49,6 +53,10 @@ class DataStoreSettingsRepository @Inject constructor(
             ThemeMode.valueOf(preferences[PreferencesKeys.THEME_MODE] ?: ThemeMode.SYSTEM.name)
         }.getOrDefault(ThemeMode.SYSTEM)
 
+        val downloader = runCatching {
+            DownloaderType.valueOf(preferences[PreferencesKeys.DOWNLOADER] ?: DownloaderType.NEWPIPE.name)
+        }.getOrDefault(DownloaderType.NEWPIPE)
+
         val categories = preferences[PreferencesKeys.SB_CATEGORIES]?.mapNotNull { name ->
             runCatching { SponsorBlockCategory.valueOf(name) }.getOrNull()
         }?.toSet() ?: SponsorBlockCategory.entries.toSet()
@@ -57,10 +65,13 @@ class DataStoreSettingsRepository @Inject constructor(
             themeMode = themeMode,
             dynamicColor = preferences[PreferencesKeys.DYNAMIC_COLOR] ?: true,
             notificationsEnabled = preferences[PreferencesKeys.NOTIFICATIONS_ENABLED] ?: true,
+            downloader = downloader,
             videoFolder = preferences[PreferencesKeys.VIDEO_FOLDER] ?: "Movies/SB Skip/",
             audioFolder = preferences[PreferencesKeys.AUDIO_FOLDER] ?: "Music/SB Skip/",
             videoFolderUri = preferences[PreferencesKeys.VIDEO_FOLDER_URI] ?: "",
             audioFolderUri = preferences[PreferencesKeys.AUDIO_FOLDER_URI] ?: "",
+            newPipeVideoFolder = preferences[PreferencesKeys.NEWPIPE_VIDEO_FOLDER] ?: "Download/NewPipe/Video/",
+            newPipeAudioFolder = preferences[PreferencesKeys.NEWPIPE_AUDIO_FOLDER] ?: "Download/NewPipe/Audio/",
             tempFolder = preferences[PreferencesKeys.TEMP_FOLDER] ?: "SB Skip/tmp/",
             sponsorBlockSettings = SponsorBlockSettings(
                 enabled = preferences[PreferencesKeys.SB_ENABLED] ?: true,
@@ -83,16 +94,21 @@ class DataStoreSettingsRepository @Inject constructor(
                 }.getOrDefault(ThemeMode.SYSTEM),
                 dynamicColor = preferences[PreferencesKeys.DYNAMIC_COLOR] ?: true,
                 notificationsEnabled = preferences[PreferencesKeys.NOTIFICATIONS_ENABLED] ?: true,
+                downloader = runCatching {
+                    DownloaderType.valueOf(preferences[PreferencesKeys.DOWNLOADER] ?: DownloaderType.NEWPIPE.name)
+                }.getOrDefault(DownloaderType.NEWPIPE),
                 videoFolder = preferences[PreferencesKeys.VIDEO_FOLDER] ?: "Movies/SB Skip/",
                 audioFolder = preferences[PreferencesKeys.AUDIO_FOLDER] ?: "Music/SB Skip/",
                 videoFolderUri = preferences[PreferencesKeys.VIDEO_FOLDER_URI] ?: "",
                 audioFolderUri = preferences[PreferencesKeys.AUDIO_FOLDER_URI] ?: "",
+                newPipeVideoFolder = preferences[PreferencesKeys.NEWPIPE_VIDEO_FOLDER] ?: "Download/NewPipe/Video/",
+                newPipeAudioFolder = preferences[PreferencesKeys.NEWPIPE_AUDIO_FOLDER] ?: "Download/NewPipe/Audio/",
                 tempFolder = preferences[PreferencesKeys.TEMP_FOLDER] ?: "SB Skip/tmp/",
                 sponsorBlockSettings = SponsorBlockSettings(
                     enabled = preferences[PreferencesKeys.SB_ENABLED] ?: true,
                     categories = preferences[PreferencesKeys.SB_CATEGORIES]?.mapNotNull { name ->
                         runCatching { SponsorBlockCategory.valueOf(name) }.getOrNull()
-                    }?.toSet() ?: SponsorBlockCategory.entries.toSet()
+                    }?.toSet() ?: SponsorBlockCategory.entries.toSet(),
                 ),
                 filenameReplacement = preferences[PreferencesKeys.FILENAME_REPLACEMENT]?.firstOrNull() ?: '_',
                 keepTempFiles = preferences[PreferencesKeys.KEEP_TEMP_FILES] ?: false,
@@ -106,10 +122,13 @@ class DataStoreSettingsRepository @Inject constructor(
             preferences[PreferencesKeys.THEME_MODE] = updated.themeMode.name
             preferences[PreferencesKeys.DYNAMIC_COLOR] = updated.dynamicColor
             preferences[PreferencesKeys.NOTIFICATIONS_ENABLED] = updated.notificationsEnabled
+            preferences[PreferencesKeys.DOWNLOADER] = updated.downloader.name
             preferences[PreferencesKeys.VIDEO_FOLDER] = updated.videoFolder
             preferences[PreferencesKeys.AUDIO_FOLDER] = updated.audioFolder
             preferences[PreferencesKeys.VIDEO_FOLDER_URI] = updated.videoFolderUri
             preferences[PreferencesKeys.AUDIO_FOLDER_URI] = updated.audioFolderUri
+            preferences[PreferencesKeys.NEWPIPE_VIDEO_FOLDER] = updated.newPipeVideoFolder
+            preferences[PreferencesKeys.NEWPIPE_AUDIO_FOLDER] = updated.newPipeAudioFolder
             preferences[PreferencesKeys.TEMP_FOLDER] = updated.tempFolder
             preferences[PreferencesKeys.SB_ENABLED] = updated.sponsorBlockSettings.enabled
             preferences[PreferencesKeys.SB_CATEGORIES] = updated.sponsorBlockSettings.categories.map { it.name }.toSet()

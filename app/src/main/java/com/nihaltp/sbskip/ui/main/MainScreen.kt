@@ -33,12 +33,14 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -79,7 +81,11 @@ fun MainScreen(
     uiState: MainUiState,
     onUrlChange: (String) -> Unit,
     onFileSelected: (Uri) -> Unit,
+    onClearSelectedFile: () -> Unit,
     onSubmit: () -> Unit,
+    onAutoDetect: () -> Unit,
+    onCancelPendingDownload: () -> Unit,
+    onConfirmDetectedFile: () -> Unit,
     onOpenSettings: () -> Unit,
     onRemoveQueueItem: (Long) -> Unit,
     onRetryQueueItem: (Long) -> Unit,
@@ -92,6 +98,8 @@ fun MainScreen(
 
     var errorDialogItem by remember { mutableStateOf<DownloadQueueItem?>(null) }
     var detailsDialogItem by remember { mutableStateOf<DownloadQueueItem?>(null) }
+    val showLocalCleanButton = uiState.selectedFileUri != null && uiState.urlInput.isNotBlank()
+    val showDownloadAndCleanButton = uiState.selectedFileUri == null && uiState.pendingDownload == null && uiState.isNewPipeInstalled && uiState.urlInput.isNotBlank()
 
     // Document picker for MP4, M4A, and MP3
     val filePickerLauncher = rememberLauncherForActivityResult(
@@ -136,9 +144,78 @@ fun MainScreen(
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
+                        Text(stringResource(id = R.string.paste_youtube_link_prompt), fontWeight = FontWeight.SemiBold)
+                        OutlinedTextField(
+                            value = uiState.urlInput,
+                            onValueChange = onUrlChange,
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = { Text(stringResource(id = R.string.paste_youtube_prompt)) },
+                            singleLine = true,
+                        )
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                            ElevatedButton(onClick = {
+                                val pasted = clipboardManager.getText()?.text.orEmpty().trim()
+                                if (pasted.isBlank()) {
+                                    coroutineScope.launch { snackbarHostState.showSnackbar(clipboardEmptyText) }
+                                } else {
+                                    onUrlChange(pasted)
+                                }
+                            }) {
+                                Icon(Icons.Outlined.ContentPaste, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(stringResource(id = R.string.paste_button))
+                            }
+
+                            if (showLocalCleanButton || showDownloadAndCleanButton) {
+                                Button(onClick = onSubmit) {
+                                    if (uiState.isFetchingMetadata) {
+                                        CircularProgressIndicator(modifier = Modifier.height(18.dp).width(18.dp), strokeWidth = 2.dp)
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                    } else {
+                                        Icon(Icons.Outlined.CleaningServices, contentDescription = null)
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                    }
+                                    Text(
+                                        text = if (showDownloadAndCleanButton) {
+                                            stringResource(id = R.string.download_and_clean_button)
+                                        } else {
+                                            stringResource(id = R.string.clean_media_button)
+                                        },
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (uiState.pendingDownload != null) {
+                item {
+                    PendingDownloadCard(
+                        pendingDownloadTitle = uiState.pendingDownload.title,
+                        thumbnailUrl = uiState.pendingDownload.thumbnailUrl,
+                        detectedFileName = uiState.detectedFileName,
+                        detectedFile = uiState.detectedFile,
+                        isDetecting = uiState.isDetectingFile,
+                        onAutoDetect = onAutoDetect,
+                        onPickFileManually = {
+                            filePickerLauncher.launch(arrayOf("video/mp4", "audio/mpeg", "audio/mp3", "audio/x-m4a", "audio/mp4"))
+                        },
+                        onCancel = onCancelPendingDownload,
+                        onConfirmDetectedFile = onConfirmDetectedFile,
+                    )
+                }
+            }
+
+            item {
+                Card(colors = CardDefaults.cardColors()) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
                         Text(stringResource(id = R.string.select_local_file_title), fontWeight = FontWeight.SemiBold)
 
-                        // 1. File picker section
                         Surface(
                             shape = RoundedCornerShape(12.dp),
                             color = Color.Black.copy(alpha = 0.05f),
@@ -164,48 +241,23 @@ fun MainScreen(
                                         overflow = TextOverflow.Ellipsis,
                                     )
                                 }
-                                ElevatedButton(
-                                    onClick = {
-                                        filePickerLauncher.launch(arrayOf("video/mp4", "audio/mpeg", "audio/mp3", "audio/x-m4a", "audio/mp4"))
-                                    },
-                                ) {
-                                    Icon(Icons.Outlined.FolderOpen, contentDescription = null)
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(stringResource(id = R.string.pick_file_button))
+                                if (uiState.selectedFileUri == null) {
+                                    ElevatedButton(
+                                        onClick = {
+                                            filePickerLauncher.launch(arrayOf("video/mp4", "audio/mpeg", "audio/mp3", "audio/x-m4a", "audio/mp4"))
+                                        },
+                                    ) {
+                                        Icon(Icons.Outlined.FolderOpen, contentDescription = null)
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(stringResource(id = R.string.pick_file_button))
+                                    }
                                 }
                             }
                         }
 
-                        // 2. YouTube URL input
-                        OutlinedTextField(
-                            value = uiState.urlInput,
-                            onValueChange = onUrlChange,
-                            modifier = Modifier.fillMaxWidth(),
-                            placeholder = { Text(stringResource(id = R.string.paste_youtube_prompt)) },
-                            singleLine = true,
-                        )
-
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            ElevatedButton(onClick = {
-                                val pasted = clipboardManager.getText()?.text.orEmpty().trim()
-                                if (pasted.isBlank()) {
-                                    coroutineScope.launch { snackbarHostState.showSnackbar(clipboardEmptyText) }
-                                } else {
-                                    onUrlChange(pasted)
-                                }
-                            }) {
-                                Icon(Icons.Outlined.ContentPaste, contentDescription = null)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(stringResource(id = R.string.paste_button))
-                            }
-
-                            Button(
-                                onClick = onSubmit,
-                                enabled = uiState.selectedFileUri != null && uiState.urlInput.isNotBlank(),
-                            ) {
-                                Icon(Icons.Outlined.CleaningServices, contentDescription = null)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(stringResource(id = R.string.clean_media_button))
+                        if (uiState.selectedFileUri != null) {
+                            TextButton(onClick = onClearSelectedFile) {
+                                Text(stringResource(id = R.string.remove_picked_file_button))
                             }
                         }
                     }
@@ -387,6 +439,92 @@ fun MainScreen(
                 }
             },
         )
+    }
+}
+
+@Composable
+private fun PendingDownloadCard(
+    pendingDownloadTitle: String,
+    thumbnailUrl: String?,
+    detectedFileName: String?,
+    detectedFile: com.nihaltp.sbskip.model.DetectedFile?,
+    isDetecting: Boolean,
+    onAutoDetect: () -> Unit,
+    onPickFileManually: () -> Unit,
+    onCancel: () -> Unit,
+    onConfirmDetectedFile: () -> Unit,
+) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    modifier = Modifier
+                        .width(88.dp)
+                        .height(88.dp)
+                        .clip(RoundedCornerShape(16.dp)),
+                    color = Color.Black.copy(alpha = 0.08f),
+                ) {
+                    if (thumbnailUrl.isNullOrBlank()) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(strokeWidth = 2.dp)
+                        }
+                    } else {
+                        AsyncImage(
+                            model = thumbnailUrl,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                }
+
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(stringResource(id = R.string.waiting_for_download_title), fontWeight = FontWeight.Bold)
+                    Text(pendingDownloadTitle, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    if (isDetecting) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(modifier = Modifier.width(18.dp).height(18.dp), strokeWidth = 2.dp)
+                            Text(stringResource(id = R.string.detecting_recent_download))
+                        }
+                    }
+                }
+            }
+
+            if (detectedFile != null) {
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(stringResource(id = R.string.found_matching_file, detectedFile.score), fontWeight = FontWeight.Bold)
+                        Text(detectedFileName ?: stringResource(id = R.string.no_media_selected), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(stringResource(id = R.string.confirm_this_file_prompt))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(onClick = onConfirmDetectedFile) {
+                                Text(stringResource(id = R.string.clean_this_file_button))
+                            }
+                            OutlinedButton(onClick = onPickFileManually) {
+                                Text(stringResource(id = R.string.pick_file_manually_button))
+                            }
+                            TextButton(onClick = onCancel) {
+                                Text(stringResource(id = R.string.cancel))
+                            }
+                        }
+                    }
+                }
+            } else {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = onAutoDetect, enabled = !isDetecting) {
+                        Text(stringResource(id = R.string.auto_detect_recent_download))
+                    }
+                    OutlinedButton(onClick = onPickFileManually) {
+                        Text(stringResource(id = R.string.pick_file_manually_button))
+                    }
+                    TextButton(onClick = onCancel) {
+                        Text(stringResource(id = R.string.cancel))
+                    }
+                }
+            }
+        }
     }
 }
 
