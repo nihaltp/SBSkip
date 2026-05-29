@@ -65,6 +65,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -133,7 +134,7 @@ fun MainScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Settings,
-                            contentDescription = "Back",
+                            contentDescription = stringResource(id = R.string.settings_title),
                         )
                     }
                 },
@@ -651,7 +652,8 @@ private fun QueueItemCard(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onCardClick(item) },
+                    .clickable { onCardClick(item) }
+                    .testTag("queue-item-card"),
             ) {
                 Surface(
                     modifier = Modifier

@@ -2,8 +2,10 @@ package com.nihaltp.sbskip
 
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.nihaltp.sbskip.data.local.entity.DownloadQueueEntity
@@ -84,15 +86,9 @@ class ScreenshotTest {
         screenshotCounter++
 
         // 2. LIGHT Theme - Media Details
-        composeTestRule.waitUntil(10000) {
-            try {
-                composeTestRule.onNodeWithText(videoTitle).assertExists()
-                true
-            } catch (e: Throwable) {
-                false
-            }
-        }
-        composeTestRule.onNodeWithText(videoTitle).performClick()
+        composeTestRule.onNodeWithText(videoTitle).performScrollTo()
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag("queue-item-card").performClick()
         composeTestRule.waitForIdle()
         Thread.sleep(1200) // Wait between screens/actions for fluid settled states
         Screengrab.screenshot(screenshotCounter.toString())
@@ -109,35 +105,32 @@ class ScreenshotTest {
         Screengrab.screenshot(screenshotCounter.toString())
         screenshotCounter++
 
-        // Go Back
+        // Return to main before switching themes
         composeTestRule.onNodeWithContentDescription("Back").performClick()
         composeTestRule.waitForIdle()
 
-        // 4. DARK Theme - Main Screen
+        // Switch to dark theme on the main screen
         runBlocking {
             settingsRepository.update { it.copy(themeMode = ThemeMode.DARK) }
         }
+        composeTestRule.waitForIdle()
+
+        // 4. DARK Theme - Main Screen
         composeTestRule.waitForIdle()
         Thread.sleep(1200) // Wait between screens/actions for fluid settled states
         Screengrab.screenshot(screenshotCounter.toString())
         screenshotCounter++
 
         // 5. DARK Theme - Media Details
-        composeTestRule.waitUntil(10000) {
-            try {
-                composeTestRule.onNodeWithText(videoTitle).assertExists()
-                true
-            } catch (e: Throwable) {
-                false
-            }
-        }
-        composeTestRule.onNodeWithText(videoTitle).performClick()
+        composeTestRule.onNodeWithText(videoTitle).performScrollTo()
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag("queue-item-card").performClick()
         composeTestRule.waitForIdle()
         Thread.sleep(1200) // Wait between screens/actions for fluid settled states
         Screengrab.screenshot(screenshotCounter.toString())
         screenshotCounter++
 
-        // Close details
+        // Close details before opening settings
         composeTestRule.onNodeWithText("Close").performClick()
         composeTestRule.waitForIdle()
 
