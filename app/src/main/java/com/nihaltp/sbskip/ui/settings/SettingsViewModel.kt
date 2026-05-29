@@ -131,8 +131,8 @@ class SettingsViewModel @Inject constructor(
                 }
                 current.copy(
                     sponsorBlockSettings = current.sponsorBlockSettings.copy(
-                        categories = updatedCategories
-                    )
+                        categories = updatedCategories,
+                    ),
                 )
             }
         }

@@ -43,7 +43,7 @@ class MainActivity : ComponentActivity() {
 
             SBSkipTheme(
                 darkTheme = darkTheme,
-                dynamicColor = dynamicColor
+                dynamicColor = dynamicColor,
             ) {
                 Surface(color = MaterialTheme.colorScheme.background) {
                     App(shareEvent = shareEvent)
