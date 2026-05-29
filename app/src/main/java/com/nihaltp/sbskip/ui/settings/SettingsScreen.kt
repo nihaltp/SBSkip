@@ -20,8 +20,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -157,7 +157,7 @@ fun SettingsScreen(
                         modifier = Modifier.padding(start = 12.dp),
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.ArrowBack,
+                            imageVector = Icons.Filled.ArrowBack,
                             contentDescription = "Back",
                         )
                     }
@@ -309,7 +309,7 @@ fun SettingsScreen(
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
                                 Icon(
-                                    imageVector = Icons.Outlined.Description,
+                                    imageVector = Icons.Filled.Description,
                                     contentDescription = null,
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))

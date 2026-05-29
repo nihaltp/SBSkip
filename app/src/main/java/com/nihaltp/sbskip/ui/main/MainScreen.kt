@@ -23,12 +23,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.BugReport
-import androidx.compose.material.icons.outlined.CleaningServices
-import androidx.compose.material.icons.outlined.ContentPaste
-import androidx.compose.material.icons.outlined.FolderOpen
-import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.CleaningServices
+import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
@@ -133,7 +133,7 @@ fun MainScreen(
                         modifier = Modifier.padding(end = 12.dp),
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.Settings,
+                            imageVector = Icons.Filled.Settings,
                             contentDescription = stringResource(id = R.string.settings_title),
                         )
                     }
@@ -173,7 +173,7 @@ fun MainScreen(
                                     onUrlChange(pasted)
                                 }
                             }) {
-                                Icon(Icons.Outlined.ContentPaste, contentDescription = null)
+                                Icon(Icons.Filled.ContentPaste, contentDescription = null)
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(stringResource(id = R.string.paste_button))
                             }
@@ -188,7 +188,7 @@ fun MainScreen(
                                         CircularProgressIndicator(modifier = Modifier.height(18.dp).width(18.dp), strokeWidth = 2.dp)
                                         Spacer(modifier = Modifier.width(8.dp))
                                     } else {
-                                        Icon(Icons.Outlined.CleaningServices, contentDescription = null)
+                                        Icon(Icons.Filled.CleaningServices, contentDescription = null)
                                         Spacer(modifier = Modifier.width(8.dp))
                                     }
                                     Text(
@@ -264,7 +264,7 @@ fun MainScreen(
                                             filePickerLauncher.launch(arrayOf("video/mp4", "audio/mpeg", "audio/mp3", "audio/x-m4a", "audio/mp4"))
                                         },
                                     ) {
-                                        Icon(Icons.Outlined.FolderOpen, contentDescription = null)
+                                        Icon(Icons.Filled.FolderOpen, contentDescription = null)
                                         Spacer(modifier = Modifier.width(4.dp))
                                         Text(stringResource(id = R.string.pick_file_button))
                                     }
@@ -354,7 +354,7 @@ fun MainScreen(
                         errorDialogItem = null
                     },
                 ) {
-                    Icon(Icons.Outlined.BugReport, contentDescription = null)
+                    Icon(Icons.Filled.BugReport, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(stringResource(id = R.string.report_to_github))
                 }
@@ -664,7 +664,7 @@ private fun QueueItemCard(
                 ) {
                     if (item.thumbnailUrl == null) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Icon(Icons.Outlined.CleaningServices, contentDescription = null, tint = Color.Gray)
+                            Icon(Icons.Filled.CleaningServices, contentDescription = null, tint = Color.Gray)
                         }
                     } else {
                         AsyncImage(
@@ -719,7 +719,7 @@ private fun QueueItemCard(
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (item.status == DownloadQueueStatus.FAILED) {
                     Button(onClick = { onRetry(item.id) }) {
-                        Icon(Icons.Outlined.Refresh, contentDescription = null)
+                        Icon(Icons.Filled.Refresh, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(stringResource(id = R.string.retry))
                     }
