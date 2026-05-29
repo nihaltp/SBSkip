@@ -488,6 +488,7 @@ fun MainScreen(
     }
 }
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun PendingDownloadCard(
     pendingDownloadTitle: String,
@@ -561,28 +562,53 @@ private fun PendingDownloadCard(
                         Text(stringResource(id = R.string.found_matching_file, detectedFile.score), fontWeight = FontWeight.Bold)
                         Text(detectedFileName ?: stringResource(id = R.string.no_media_selected), maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(stringResource(id = R.string.confirm_this_file_prompt))
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Button(onClick = onConfirmDetectedFile) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Button(
+                                onClick = onConfirmDetectedFile,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
                                 Text(stringResource(id = R.string.clean_this_file_button))
                             }
-                            OutlinedButton(onClick = onPickFileManually) {
+                            OutlinedButton(
+                                onClick = onPickFileManually,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
                                 Text(stringResource(id = R.string.pick_file_manually_button))
                             }
-                            TextButton(onClick = onCancel) {
+                            TextButton(
+                                onClick = onCancel,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
                                 Text(stringResource(id = R.string.cancel))
                             }
                         }
                     }
                 }
             } else {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = onAutoDetect, enabled = !isDetecting) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Button(
+                        onClick = onAutoDetect,
+                        enabled = !isDetecting,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
                         Text(stringResource(id = R.string.auto_detect_recent_download))
                     }
-                    OutlinedButton(onClick = onPickFileManually) {
+                    OutlinedButton(
+                        onClick = onPickFileManually,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
                         Text(stringResource(id = R.string.pick_file_manually_button))
                     }
-                    TextButton(onClick = onCancel) {
+                    TextButton(
+                        onClick = onCancel,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
                         Text(stringResource(id = R.string.cancel))
                     }
                 }
