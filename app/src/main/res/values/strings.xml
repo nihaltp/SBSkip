@@ -167,6 +167,7 @@
     <string name="close">Close</string>
     <string name="title_copied_toast">Title copied to clipboard</string>
     <string name="url_copied_toast">URL copied to clipboard</string>
+    <string name="thumbnail_copied_toast">Thumbnail image copied to clipboard</string>
     <string name="error_click_to_expand_prefix">Error (click to expand): %1$s</string>
     <string name="status_fetching_api">Fetching API</string>
     <string name="status_cleaning">Cleaning...</string>
