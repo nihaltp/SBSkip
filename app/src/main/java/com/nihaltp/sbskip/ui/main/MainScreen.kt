@@ -6,6 +6,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -61,6 +62,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -460,6 +462,8 @@ private fun PendingDownloadCard(
     onCancel: () -> Unit,
     onConfirmDetectedFile: () -> Unit,
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         modifier = Modifier.fillMaxWidth(),
@@ -481,7 +485,22 @@ private fun PendingDownloadCard(
                         AsyncImage(
                             model = thumbnailUrl,
                             contentDescription = null,
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .pointerInput(thumbnailUrl) {
+                                    detectTapGestures(
+                                        onLongPress = {
+                                            coroutineScope.launch {
+                                                val success = com.nihaltp.sbskip.util.ClipboardHelper.copyImageToClipboard(context, thumbnailUrl)
+                                                if (success) {
+                                                    Toast.makeText(context, context.getString(R.string.thumbnail_copied_toast), Toast.LENGTH_SHORT).show()
+                                                } else {
+                                                    Toast.makeText(context, "Failed to copy thumbnail image", Toast.LENGTH_SHORT).show()
+                                                }
+                                            }
+                                        },
+                                    )
+                                },
                         )
                     }
                 }
@@ -560,6 +579,8 @@ private fun QueueItemCard(
     onErrorClick: (DownloadQueueItem) -> Unit,
     onCardClick: (DownloadQueueItem) -> Unit,
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     Card {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(
@@ -583,7 +604,23 @@ private fun QueueItemCard(
                         AsyncImage(
                             model = item.thumbnailUrl,
                             contentDescription = null,
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .pointerInput(item.thumbnailUrl) {
+                                    detectTapGestures(
+                                        onLongPress = {
+                                            val url = item.thumbnailUrl
+                                            coroutineScope.launch {
+                                                val success = com.nihaltp.sbskip.util.ClipboardHelper.copyImageToClipboard(context, url)
+                                                if (success) {
+                                                    Toast.makeText(context, context.getString(R.string.thumbnail_copied_toast), Toast.LENGTH_SHORT).show()
+                                                } else {
+                                                    Toast.makeText(context, "Failed to copy thumbnail image", Toast.LENGTH_SHORT).show()
+                                                }
+                                            }
+                                        },
+                                    )
+                                },
                         )
                     }
                 }
