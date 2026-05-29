@@ -1,0 +1,113 @@
+default_platform(:android)
+
+platform :android do
+  desc "Clean the project"
+  lane :clean do
+    gradle(task: "clean")
+  end
+
+  desc "Build the debug APK"
+  lane :build_debug do
+    gradle(task: "assembleDebug")
+  end
+
+  desc "Build the release APK"
+  lane :build_release do
+    gradle(task: "assembleRelease")
+  end
+
+  desc "Build release artifacts for GitHub Releases"
+  lane :github_release do
+    release
+    sh("mkdir -p fastlane/output")
+    sh("cp app/build/outputs/apk/release/*.apk fastlane/output/ 2>/dev/null || true")
+  end
+
+  desc "Run tests"
+  lane :test do
+    gradle(task: "test")
+  end
+
+  desc "Capture screenshots of the application using Screengrab"
+  lane :screenshots do
+    # Resolve device ID first
+    properties = {}
+    if File.exist?("../local.properties")
+      File.readlines("../local.properties").each do |line|
+        next if line.strip.empty? || line.start_with?("#")
+        key, value = line.strip.split("=", 2)
+        properties[key] = value
+      end
+    elsif File.exist?("local.properties")
+      File.readlines("local.properties").each do |line|
+        next if line.strip.empty? || line.start_with?("#")
+        key, value = line.strip.split("=", 2)
+        properties[key] = value
+      end
+    end
+
+    device_id = properties["deviceId"]
+    device_id = ENV['SCREENGRAB_SPECIFIC_DEVICE'] if device_id.nil? || device_id.strip.empty? rescue nil
+    if device_id.nil? || device_id.strip.empty?
+      # Query adb for connected devices dynamically
+      devices = `adb devices`.scan(/^(\S+)\tdevice/).flatten
+      device_id = devices.first
+    end
+
+    raise "No active Android device found!" if device_id.nil? || device_id.strip.empty?
+    puts "Using target device ID: #{device_id}"
+
+    # Build the APKs
+    gradle(task: "clean")
+    gradle(task: "assembleDebug")
+    gradle(task: "assembleDebugAndroidTest")
+
+    # Uninstall existing packages to ensure a clean state
+    puts "Uninstalling previous installations..."
+    sh("adb -s #{device_id} uninstall com.nihaltp.sbskip.debug") rescue nil
+    sh("adb -s #{device_id} uninstall com.nihaltp.sbskip.debug.test") rescue nil
+
+    # Install both debug and test APKs
+    puts "Installing debug and test APKs..."
+    sh("adb -s #{device_id} install -r -t ../app/build/outputs/apk/debug/app-debug.apk")
+    sh("adb -s #{device_id} install -r -t ../app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk")
+
+    # Clean previous screenshots on the device
+    puts "Clearing previous screenshots on device..."
+    sh("adb -s #{device_id} shell rm -rf /sdcard/Android/data/com.nihaltp.sbskip.debug/files/app_screengrab") rescue nil
+
+    # Enable Do Not Disturb to block heads-up notification banners
+    puts "Enabling Do Not Disturb to suppress system notifications..."
+    sh("adb -s #{device_id} shell cmd notification set_dnd 1") rescue nil
+
+    begin
+      # Run the instrumented UI tests for locale en-US
+      puts "Running instrumented tests..."
+      sh("adb -s #{device_id} shell am instrument --no-window-animation -w -e testLocale en-US -e appendTimestamp false com.nihaltp.sbskip.debug.test/androidx.test.runner.AndroidJUnitRunner")
+
+      # Pull screenshots directly from the app's external files directory on the device
+      output_dir = "metadata/android/en-US/images/phoneScreenshots"
+      require 'fileutils'
+      FileUtils.mkdir_p(output_dir)
+      # Clear local screenshots dir first to ensure we don't have old ones
+      FileUtils.rm_rf(Dir.glob(File.join(output_dir, "*")))
+
+      puts "Pulling screenshots manually from external storage..."
+      sh("adb -s #{device_id} pull /sdcard/Android/data/com.nihaltp.sbskip.debug/files/app_screengrab/en-US/images/screenshots #{output_dir}")
+
+      # Move files out of the nested folder if ADB nested them
+      nested_dir = File.join(output_dir, "screenshots")
+      if Dir.exist?(nested_dir)
+        Dir.glob(File.join(nested_dir, "*")).each do |file|
+          FileUtils.mv(file, output_dir, force: true)
+        end
+        FileUtils.rm_rf(nested_dir)
+      end
+      puts "Successfully pulled all screenshots manually to #{output_dir}!"
+    ensure
+      # Restore original DND setting
+      puts "Disabling Do Not Disturb, restoring system state..."
+      sh("adb -s #{device_id} shell cmd notification set_dnd 0") rescue nil
+    end
+  end
+end

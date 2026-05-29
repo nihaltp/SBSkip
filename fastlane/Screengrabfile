@@ -1,0 +1,29 @@
+# Screengrab configuration
+# Learn more at https://docs.fastlane.tools/actions/screengrab/
+
+# The locales to capture screenshots for
+locales ['en-US']
+
+# The package name of the app under test
+app_package_name 'com.nihaltp.sbskip.debug'
+
+# The package name of the tests bundle
+tests_package_name 'com.nihaltp.sbskip.debug.test'
+
+# The path to your app's debug APK
+app_apk_path 'app/build/outputs/apk/debug/app-debug.apk'
+
+# The path to your app's test APK
+tests_apk_path 'app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk'
+
+# Clear all screenshots from the device before capturing new ones
+clear_previous_screenshots true
+
+# The directory where screenshots should be saved locally
+output_directory 'fastlane/metadata/android/en-US/images/phoneScreenshots'
+
+# The strategy to use for capturing screenshots
+# strategies ['adb', 'uiautomator']
+
+# Do not append timestamp suffixes to screenshot filenames
+use_timestamp_suffix false

@@ -131,6 +131,14 @@ dependencies {
     implementation("io.github.jamaismagic.ffmpeg:ffmpeg-kit-lts-16kb:6.1.7")
 
     testImplementation("junit:junit:4.13.2")
+
+    // Instrumented UI tests & Screengrab
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
+    androidTestImplementation(platform("androidx.compose:compose-bom:2024.02.02"))
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
+    androidTestImplementation("tools.fastlane:screengrab:2.1.1")
 }
 
 kapt {
