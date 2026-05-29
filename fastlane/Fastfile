@@ -76,9 +76,13 @@ platform :android do
     puts "Clearing previous screenshots on device..."
     sh("adb -s #{device_id} shell rm -rf /sdcard/Android/data/com.nihaltp.sbskip.debug/files/app_screengrab") rescue nil
 
-    # Enable Do Not Disturb to block heads-up notification banners
+    # Query original DND state (zen_mode)
+    original_zen_mode = `adb -s #{device_id} shell settings get global zen_mode`.strip rescue "0"
+    puts "Current system DND zen_mode is: #{original_zen_mode}"
+
+    # Enable Do Not Disturb (zen_mode = 1) to block heads-up notifications
     puts "Enabling Do Not Disturb to suppress system notifications..."
-    sh("adb -s #{device_id} shell cmd notification set_dnd 1") rescue nil
+    sh("adb -s #{device_id} shell settings put global zen_mode 1") rescue nil
 
     begin
       # Run the instrumented UI tests for locale en-US
@@ -105,9 +109,9 @@ platform :android do
       end
       puts "Successfully pulled all screenshots manually to #{output_dir}!"
     ensure
-      # Restore original DND setting
-      puts "Disabling Do Not Disturb, restoring system state..."
-      sh("adb -s #{device_id} shell cmd notification set_dnd 0") rescue nil
+      # Restore original DND setting precisely
+      puts "Restoring original DND zen_mode state to: #{original_zen_mode}..."
+      sh("adb -s #{device_id} shell settings put global zen_mode #{original_zen_mode}") rescue nil
     end
   end
 end
