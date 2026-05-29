@@ -171,7 +171,30 @@ class MainViewModel @Inject constructor(
         _uiState.update { it.copy(snackbarMessage = null) }
     }
 
-    private suspend fun queueCurrentItemInternal() {
+    fun proceedWithMismatch() {
+        val state = uiState.value
+        val pending = state.pendingEnqueueData ?: return
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    selectedFileUri = pending.fileUri,
+                    selectedFileName = pending.title,
+                )
+            }
+            queueCurrentItemInternal(force = true)
+        }
+    }
+
+    fun dismissDurationMismatchDialog() {
+        _uiState.update {
+            it.copy(
+                showDurationMismatchDialog = false,
+                pendingEnqueueData = null,
+            )
+        }
+    }
+
+    private suspend fun queueCurrentItemInternal(force: Boolean = false) {
         val state = uiState.value
         val fileUri = state.selectedFileUri
         val youtubeUrl = state.pendingDownload?.url ?: state.urlInput.trim()
@@ -196,7 +219,44 @@ class MainViewModel @Inject constructor(
             return
         }
 
+        val videoId = YouTubeUrlParser.extractVideoId(youtubeUrl)
+        if (videoId.isNullOrBlank()) {
+            _uiState.update { it.copy(snackbarMessage = context.getString(R.string.enter_valid_url)) }
+            return
+        }
+
         val metadata = downloadStorage.queryMetadata(fileUri)
+        val fileDuration = metadata?.durationSeconds ?: 0L
+
+        if (!force) {
+            _uiState.update { it.copy(isVerifyingDuration = true) }
+            val youtubeDuration = com.nihaltp.sbskip.util.YouTubeDurationFetcher.fetchDuration(videoId)
+            _uiState.update { it.copy(isVerifyingDuration = false) }
+
+            if (youtubeDuration != null && fileDuration != youtubeDuration) {
+                val mediaType = if (metadata?.extension == "mp3" || metadata?.extension == "m4a" || metadata?.extension == "aac") {
+                    MediaType.AUDIO
+                } else {
+                    MediaType.VIDEO
+                }
+                val title = state.selectedFileName.ifBlank { state.pendingDownload?.title ?: metadata?.title ?: context.getString(R.string.imported_file_fallback) }
+                _uiState.update {
+                    it.copy(
+                        showDurationMismatchDialog = true,
+                        mismatchFileDuration = fileDuration,
+                        mismatchYoutubeDuration = youtubeDuration,
+                        pendingEnqueueData = com.nihaltp.sbskip.model.PendingEnqueueData(
+                            fileUri = fileUri,
+                            title = title,
+                            youtubeUrl = youtubeUrl,
+                            mediaType = mediaType,
+                        ),
+                    )
+                }
+                return
+            }
+        }
+
         val mediaType = if (metadata?.extension == "mp3" || metadata?.extension == "m4a" || metadata?.extension == "aac") {
             MediaType.AUDIO
         } else {
@@ -205,10 +265,16 @@ class MainViewModel @Inject constructor(
 
         val title = state.selectedFileName.ifBlank { state.pendingDownload?.title ?: metadata?.title ?: context.getString(R.string.imported_file_fallback) }
 
+        val finalUrl = if (force) {
+            if (youtubeUrl.contains("?")) "$youtubeUrl&bypassDurationCheck=true" else "$youtubeUrl?bypassDurationCheck=true"
+        } else {
+            youtubeUrl
+        }
+
         val result = queueRepository.enqueue(
             localFileUri = fileUri,
             title = title,
-            youtubeUrl = youtubeUrl,
+            youtubeUrl = finalUrl,
             mediaType = mediaType,
         )
 
@@ -221,6 +287,8 @@ class MainViewModel @Inject constructor(
                     pendingDownload = null,
                     detectedFile = null,
                     detectedFileName = null,
+                    showDurationMismatchDialog = false,
+                    pendingEnqueueData = null,
                     snackbarMessage = context.getString(R.string.snackbar_media_enqueued),
                 )
             } else {

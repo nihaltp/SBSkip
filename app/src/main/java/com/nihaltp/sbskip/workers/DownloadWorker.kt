@@ -86,9 +86,24 @@ class DownloadWorker @AssistedInject constructor(
             val localMetadata = downloadStorage.queryMetadata(item.localFileUri)
                 ?: throw IOException("Failed to read local media file metadata")
 
+            // Check if the picked file duration matches the YouTube video duration
+            val bypassCheck = item.url.contains("bypassDurationCheck=true")
+            val youtubeDuration = com.nihaltp.sbskip.util.YouTubeDurationFetcher.fetchDuration(videoId)
+            val fileDuration = localMetadata.durationSeconds ?: 0L
+
+            if (bypassCheck) {
+                AppLogger.worker("Duration mismatch verification bypassed via explicit user request.")
+            } else if (youtubeDuration != null) {
+                val difference = kotlin.math.abs(fileDuration - youtubeDuration)
+                if (difference > 0) {
+                    throw IllegalStateException("Picked file duration ($fileDuration s) does not match YouTube video duration ($youtubeDuration s)")
+                }
+            } else {
+                AppLogger.worker("YouTube video duration could not be fetched for videoId=$videoId; skipping validation.")
+            }
+
             // Derive thumbnail dynamically and update database metadata
             val thumbnailUrl = "https://img.youtube.com/vi/$videoId/mqdefault.jpg"
-            val fileDuration = localMetadata.durationSeconds ?: 0L
             taskTitle = item.title.ifBlank { localMetadata.title }
             queueRepository.updateMetadata(queueItemId, taskTitle, thumbnailUrl, fileDuration)
 
