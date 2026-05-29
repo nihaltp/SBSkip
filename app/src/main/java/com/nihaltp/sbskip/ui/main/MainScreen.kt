@@ -69,6 +69,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.nihaltp.sbskip.BuildConfig
 import com.nihaltp.sbskip.R
 import com.nihaltp.sbskip.model.DownloadQueueItem
 import com.nihaltp.sbskip.model.DownloadQueueStatus
@@ -319,7 +320,7 @@ fun MainScreen(
                         val bodyTemplate = """
                             |### SB Skip Pipeline Error Report
                             |
-                            |* **App Version**: 0.2.0
+                            |* **App Version**: ${BuildConfig.VERSION_NAME}
                             |* **Video Title**: ${item.title}
                             |* **Video URL**: ${item.url}
                             |* **Media Type**: ${item.mediaType.name}

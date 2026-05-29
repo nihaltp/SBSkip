@@ -55,6 +55,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.nihaltp.sbskip.BuildConfig
 import com.nihaltp.sbskip.R
 import com.nihaltp.sbskip.model.DownloaderType
 import com.nihaltp.sbskip.model.SponsorBlockCategory
@@ -315,7 +316,7 @@ fun SettingsScreen(
 
                 item {
                     SettingsSection(title = stringResource(id = R.string.about_section)) {
-                        SettingValueRow(stringResource(id = R.string.app_version), "0.2.0")
+                        SettingValueRow(stringResource(id = R.string.app_version), BuildConfig.VERSION_NAME)
                         SettingValueRow(
                             title = stringResource(id = R.string.label_github),
                             value = stringResource(id = R.string.app_github),
