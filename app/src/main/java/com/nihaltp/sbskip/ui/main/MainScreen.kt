@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
@@ -97,6 +98,7 @@ fun MainScreen(
     onSnackbarShown: () -> Unit,
     onProceedAnyway: () -> Unit,
     onCancelMismatchDialog: () -> Unit,
+    onFindFile: () -> Unit,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val clipboardManager = LocalClipboardManager.current
@@ -238,14 +240,13 @@ fun MainScreen(
                             color = Color.Black.copy(alpha = 0.05f),
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Row(
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(12.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
-                                Column(modifier = Modifier.weight(1f)) {
+                                Column(modifier = Modifier.fillMaxWidth()) {
                                     Text(
                                         text = if (uiState.selectedFileUri != null) stringResource(id = R.string.selected_file_label) else stringResource(id = R.string.import_media_file_label),
                                         fontWeight = FontWeight.Medium,
@@ -254,19 +255,42 @@ fun MainScreen(
                                     Text(
                                         text = uiState.selectedFileName.ifBlank { stringResource(id = R.string.no_media_selected) },
                                         fontWeight = FontWeight.SemiBold,
-                                        maxLines = 1,
+                                        maxLines = 2,
                                         overflow = TextOverflow.Ellipsis,
                                     )
                                 }
                                 if (uiState.selectedFileUri == null) {
-                                    ElevatedButton(
-                                        onClick = {
-                                            filePickerLauncher.launch(arrayOf("video/mp4", "audio/mpeg", "audio/mp3", "audio/x-m4a", "audio/mp4"))
-                                        },
+                                    Column(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp),
                                     ) {
-                                        Icon(Icons.Filled.FolderOpen, contentDescription = null)
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(stringResource(id = R.string.pick_file_button))
+                                        ElevatedButton(
+                                            onClick = {
+                                                filePickerLauncher.launch(arrayOf("video/mp4", "audio/mpeg", "audio/mp3", "audio/x-m4a", "audio/mp4"))
+                                            },
+                                            modifier = Modifier.fillMaxWidth(),
+                                        ) {
+                                            Icon(Icons.Filled.FolderOpen, contentDescription = null)
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(stringResource(id = R.string.pick_file_button))
+                                        }
+
+                                        if (uiState.urlInput.isNotBlank()) {
+                                            val isLoading = uiState.isFetchingMetadata || uiState.isDetectingFile
+                                            OutlinedButton(
+                                                onClick = onFindFile,
+                                                enabled = !isLoading,
+                                                modifier = Modifier.fillMaxWidth(),
+                                            ) {
+                                                if (isLoading) {
+                                                    CircularProgressIndicator(modifier = Modifier.height(18.dp).width(18.dp), strokeWidth = 2.dp)
+                                                } else {
+                                                    Icon(Icons.Filled.Search, contentDescription = null)
+                                                }
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Text(stringResource(id = R.string.find_file_button))
+                                            }
+                                        }
                                     }
                                 }
                             }

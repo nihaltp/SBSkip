@@ -49,6 +49,7 @@ fun AppNavGraph(
                 onSnackbarShown = viewModel::consumeSnackbarMessage,
                 onProceedAnyway = viewModel::proceedWithMismatch,
                 onCancelMismatchDialog = viewModel::dismissDurationMismatchDialog,
+                onFindFile = viewModel::findFileForUrl,
             )
         }
 

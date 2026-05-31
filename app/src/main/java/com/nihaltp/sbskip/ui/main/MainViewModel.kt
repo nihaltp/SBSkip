@@ -144,6 +144,46 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    fun findFileForUrl() {
+        viewModelScope.launch {
+            val state = uiState.value
+            val inputUrl = state.urlInput.trim()
+            val videoId = YouTubeUrlParser.extractVideoId(inputUrl)
+
+            if (inputUrl.isBlank() || videoId.isNullOrBlank()) {
+                _uiState.update { it.copy(snackbarMessage = context.getString(R.string.enter_valid_url)) }
+                return@launch
+            }
+
+            _uiState.update { it.copy(isFetchingMetadata = true) }
+
+            val normalizedUrl = "https://www.youtube.com/watch?v=$videoId"
+            val metadata = runCatching { fetchYouTubeOEmbed(normalizedUrl) }.getOrElse {
+                YouTubeMetadata(title = state.urlInput.ifBlank { videoId }, thumbnailUrl = null)
+            }
+
+            val pendingDownload = PendingDownload(
+                videoId = videoId,
+                url = normalizedUrl,
+                title = metadata.title.ifBlank { videoId },
+                thumbnailUrl = metadata.thumbnailUrl,
+                createdAtEpochMillis = System.currentTimeMillis(),
+            )
+
+            _uiState.update {
+                it.copy(
+                    pendingDownload = pendingDownload,
+                    detectedFile = null,
+                    detectedFileName = null,
+                    isFetchingMetadata = false,
+                    snackbarMessage = null,
+                )
+            }
+
+            autoDetectAndCleanInternal()
+        }
+    }
+
     fun handleSharedText(event: ShareIntentEvent) {
         if (event.text != null) {
             onUrlChanged(event.text)
