@@ -18,6 +18,7 @@ class FFmpegMediaProcessor @Inject constructor() : MediaProcessor {
         inputFile: File,
         outputFile: File,
         keepRanges: List<Pair<Double, Double>>,
+        convertVideoToAudio: Boolean,
         progressListener: (Int) -> Unit,
     ) = withContext(Dispatchers.IO) {
         if (!inputFile.exists()) {
@@ -38,9 +39,20 @@ class FFmpegMediaProcessor @Inject constructor() : MediaProcessor {
             val duration = end - start
             AppLogger.worker("Single keep range [start=$start, duration=$duration]. Running direct trim.")
 
-            runFFmpegCommand(
-                "-y -ss ${formatTime(start)} -t ${formatTime(duration)} -i \"${inputFile.absolutePath}\" -c copy \"${outputFile.absolutePath}\"",
-            )
+            if (convertVideoToAudio) {
+                val extractionArgs = if (inputFile.extension.lowercase() in setOf("mp4", "m4v", "mov")) {
+                    "-vn -c:a copy"
+                } else {
+                    "-vn -c:a aac"
+                }
+                runFFmpegCommand(
+                    "-y -ss ${formatTime(start)} -t ${formatTime(duration)} -i \"${inputFile.absolutePath}\" $extractionArgs \"${outputFile.absolutePath}\"",
+                )
+            } else {
+                runFFmpegCommand(
+                    "-y -ss ${formatTime(start)} -t ${formatTime(duration)} -i \"${inputFile.absolutePath}\" -c copy \"${outputFile.absolutePath}\"",
+                )
+            }
             progressListener(100)
             return@withContext
         }
@@ -48,6 +60,12 @@ class FFmpegMediaProcessor @Inject constructor() : MediaProcessor {
         // Multi-segment split & concat workflow
         val tempDir = inputFile.parentFile ?: File(inputFile.path).parentFile
         val segmentFiles = mutableListOf<File>()
+
+        val actualOutputFile = if (convertVideoToAudio) {
+            File(tempDir, "temp_video_concat_${System.currentTimeMillis()}.${inputFile.extension}")
+        } else {
+            outputFile
+        }
 
         try {
             // 1. Trim each keep range into a separate temporary segment file
@@ -79,17 +97,36 @@ class FFmpegMediaProcessor @Inject constructor() : MediaProcessor {
             }
 
             // 3. Concatenate all segments using FFmpeg concat demuxer
-            AppLogger.worker("Concatenating all segments into ${outputFile.name}")
+            AppLogger.worker("Concatenating all segments into ${actualOutputFile.name}")
             progressListener(85)
 
             try {
                 runFFmpegCommand(
-                    "-y -f concat -safe 0 -i \"${concatListFile.absolutePath}\" -c copy \"${outputFile.absolutePath}\"",
+                    "-y -f concat -safe 0 -i \"${concatListFile.absolutePath}\" -c copy \"${actualOutputFile.absolutePath}\"",
                 )
             } finally {
                 // Safely clean up the concat list text file
                 if (concatListFile.exists()) {
                     concatListFile.delete()
+                }
+            }
+
+            if (convertVideoToAudio) {
+                progressListener(90)
+                AppLogger.worker("Extracting audio stream from concatenated video to ${outputFile.name}")
+                val extractionArgs = if (inputFile.extension.lowercase() in setOf("mp4", "m4v", "mov")) {
+                    "-vn -c:a copy"
+                } else {
+                    "-vn -c:a aac"
+                }
+                try {
+                    runFFmpegCommand(
+                        "-y -i \"${actualOutputFile.absolutePath}\" $extractionArgs \"${outputFile.absolutePath}\"",
+                    )
+                } finally {
+                    if (actualOutputFile.exists()) {
+                        actualOutputFile.delete()
+                    }
                 }
             }
 

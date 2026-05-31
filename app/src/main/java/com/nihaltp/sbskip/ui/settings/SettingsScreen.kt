@@ -238,6 +238,20 @@ fun SettingsScreen(
                             checked = settings.overwriteBehavior,
                             onCheckedChange = viewModel::updateOverwriteBehavior,
                         )
+                        SettingToggleRow(
+                            title = stringResource(id = R.string.settings_default_convert_video_to_audio_title),
+                            description = stringResource(id = R.string.settings_default_convert_video_to_audio_desc),
+                            checked = settings.defaultConvertVideoToAudio,
+                            onCheckedChange = viewModel::updateDefaultConvertVideoToAudio,
+                        )
+                        if (settings.defaultConvertVideoToAudio) {
+                            SettingToggleRow(
+                                title = stringResource(id = R.string.settings_default_delete_original_video_title),
+                                description = stringResource(id = R.string.settings_default_delete_original_video_desc),
+                                checked = settings.defaultDeleteOriginalVideo,
+                                onCheckedChange = viewModel::updateDefaultDeleteOriginalVideo,
+                            )
+                        }
                         if (!settings.overwriteBehavior) {
                             SettingValueRow(
                                 title = stringResource(id = R.string.settings_suffix_title),

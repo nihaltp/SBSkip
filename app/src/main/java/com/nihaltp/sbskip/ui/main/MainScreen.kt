@@ -49,6 +49,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -92,6 +93,8 @@ fun MainScreen(
     onAutoDetect: () -> Unit,
     onCancelPendingDownload: () -> Unit,
     onConfirmDetectedFile: () -> Unit,
+    onConvertVideoToAudioChange: (Boolean) -> Unit,
+    onDeleteOriginalVideoChange: (Boolean) -> Unit,
     onOpenSettings: () -> Unit,
     onRemoveQueueItem: (Long) -> Unit,
     onRetryQueueItem: (Long) -> Unit,
@@ -291,6 +294,61 @@ fun MainScreen(
                                                 Text(stringResource(id = R.string.find_file_button))
                                             }
                                         }
+                                    }
+                                }
+                            }
+                        }
+
+                        if (uiState.selectedFileUri != null && uiState.selectedFileMediaType == com.nihaltp.sbskip.model.MediaType.VIDEO) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                HorizontalDivider()
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = stringResource(id = R.string.convert_video_to_audio_title),
+                                            fontWeight = FontWeight.Medium,
+                                        )
+                                        Text(
+                                            text = stringResource(id = R.string.convert_video_to_audio_desc),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = Color.Gray,
+                                        )
+                                    }
+                                    Switch(
+                                        checked = uiState.convertVideoToAudio,
+                                        onCheckedChange = onConvertVideoToAudioChange,
+                                    )
+                                }
+
+                                if (uiState.convertVideoToAudio) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = stringResource(id = R.string.delete_original_video_title),
+                                                fontWeight = FontWeight.Medium,
+                                            )
+                                            Text(
+                                                text = stringResource(id = R.string.delete_original_video_desc),
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = Color.Gray,
+                                            )
+                                        }
+                                        Switch(
+                                            checked = uiState.deleteOriginalVideo,
+                                            onCheckedChange = onDeleteOriginalVideoChange,
+                                        )
                                     }
                                 }
                             }

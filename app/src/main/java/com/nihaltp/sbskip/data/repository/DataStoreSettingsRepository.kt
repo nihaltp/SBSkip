@@ -47,6 +47,8 @@ class DataStoreSettingsRepository @Inject constructor(
         val OVERWRITE_BEHAVIOR = booleanPreferencesKey("overwrite_behavior")
         val AUTO_CLEAN_SUFFIX = stringPreferencesKey("auto_clean_suffix")
         val SPONSORBLOCK_STATUS_URL = stringPreferencesKey("sponsorblock_status_url")
+        val DEFAULT_CONVERT_VIDEO_TO_AUDIO = booleanPreferencesKey("default_convert_video_to_audio")
+        val DEFAULT_DELETE_ORIGINAL_VIDEO = booleanPreferencesKey("default_delete_original_video")
     }
 
     override val settings: Flow<AppSettings> = context.dataStore.data.map { preferences ->
@@ -85,6 +87,8 @@ class DataStoreSettingsRepository @Inject constructor(
             sponsorBlockStatusUrl = preferences[PreferencesKeys.SPONSORBLOCK_STATUS_URL] ?: "https://status.sponsor.ajay.app",
             overwriteBehavior = preferences[PreferencesKeys.OVERWRITE_BEHAVIOR] ?: true,
             autoCleanSuffix = preferences[PreferencesKeys.AUTO_CLEAN_SUFFIX] ?: "_cleaned",
+            defaultConvertVideoToAudio = preferences[PreferencesKeys.DEFAULT_CONVERT_VIDEO_TO_AUDIO] ?: false,
+            defaultDeleteOriginalVideo = preferences[PreferencesKeys.DEFAULT_DELETE_ORIGINAL_VIDEO] ?: true,
         )
     }
 
@@ -119,6 +123,8 @@ class DataStoreSettingsRepository @Inject constructor(
                 sponsorBlockStatusUrl = preferences[PreferencesKeys.SPONSORBLOCK_STATUS_URL] ?: "https://status.sponsor.ajay.app",
                 overwriteBehavior = preferences[PreferencesKeys.OVERWRITE_BEHAVIOR] ?: true,
                 autoCleanSuffix = preferences[PreferencesKeys.AUTO_CLEAN_SUFFIX] ?: "_cleaned",
+                defaultConvertVideoToAudio = preferences[PreferencesKeys.DEFAULT_CONVERT_VIDEO_TO_AUDIO] ?: false,
+                defaultDeleteOriginalVideo = preferences[PreferencesKeys.DEFAULT_DELETE_ORIGINAL_VIDEO] ?: true,
             )
             val updated = transform(current)
 
@@ -142,6 +148,8 @@ class DataStoreSettingsRepository @Inject constructor(
             preferences[PreferencesKeys.SPONSORBLOCK_STATUS_URL] = updated.sponsorBlockStatusUrl
             preferences[PreferencesKeys.OVERWRITE_BEHAVIOR] = updated.overwriteBehavior
             preferences[PreferencesKeys.AUTO_CLEAN_SUFFIX] = updated.autoCleanSuffix
+            preferences[PreferencesKeys.DEFAULT_CONVERT_VIDEO_TO_AUDIO] = updated.defaultConvertVideoToAudio
+            preferences[PreferencesKeys.DEFAULT_DELETE_ORIGINAL_VIDEO] = updated.defaultDeleteOriginalVideo
         }
     }
 }

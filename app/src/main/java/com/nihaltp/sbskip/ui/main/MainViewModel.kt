@@ -75,10 +75,19 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             val metadata = downloadStorage.queryMetadata(uri.toString())
             val name = metadata?.let { "${it.title}.${it.extension}" } ?: context.getString(R.string.imported_file_fallback)
+            val mediaType = if (metadata?.extension == "mp3" || metadata?.extension == "m4a" || metadata?.extension == "aac") {
+                MediaType.AUDIO
+            } else {
+                MediaType.VIDEO
+            }
+            val settings = settingsRepository.settings.first()
             _uiState.update {
                 it.copy(
                     selectedFileUri = uri.toString(),
                     selectedFileName = name,
+                    selectedFileMediaType = mediaType,
+                    convertVideoToAudio = settings.defaultConvertVideoToAudio,
+                    deleteOriginalVideo = settings.defaultDeleteOriginalVideo,
                     detectedFile = null,
                     detectedFileName = null,
                 )
@@ -91,10 +100,21 @@ class MainViewModel @Inject constructor(
             it.copy(
                 selectedFileUri = null,
                 selectedFileName = "",
+                selectedFileMediaType = null,
+                convertVideoToAudio = false,
+                deleteOriginalVideo = true,
                 detectedFile = null,
                 detectedFileName = null,
             )
         }
+    }
+
+    fun onConvertVideoToAudioChanged(value: Boolean) {
+        _uiState.update { it.copy(convertVideoToAudio = value) }
+    }
+
+    fun onDeleteOriginalVideoChanged(value: Boolean) {
+        _uiState.update { it.copy(deleteOriginalVideo = value) }
     }
 
     fun queueCurrentItem() {
@@ -120,10 +140,20 @@ class MainViewModel @Inject constructor(
             val state = uiState.value
             val detected = state.detectedFile ?: return@launch
             val detectedName = state.detectedFileName
+            val metadata = downloadStorage.queryMetadata(detected.uri)
+            val mediaType = if (metadata?.extension == "mp3" || metadata?.extension == "m4a" || metadata?.extension == "aac") {
+                MediaType.AUDIO
+            } else {
+                MediaType.VIDEO
+            }
+            val settings = settingsRepository.settings.first()
             _uiState.update {
                 it.copy(
                     selectedFileUri = detected.uri,
                     selectedFileName = detectedName ?: context.getString(R.string.detected_file_fallback),
+                    selectedFileMediaType = mediaType,
+                    convertVideoToAudio = settings.defaultConvertVideoToAudio,
+                    deleteOriginalVideo = settings.defaultDeleteOriginalVideo,
                     detectedFile = null,
                     detectedFileName = null,
                 )
@@ -274,7 +304,7 @@ class MainViewModel @Inject constructor(
             _uiState.update { it.copy(isVerifyingDuration = false) }
 
             if (youtubeDuration != null && fileDuration != youtubeDuration) {
-                val mediaType = if (metadata?.extension == "mp3" || metadata?.extension == "m4a" || metadata?.extension == "aac") {
+                val mediaType = if (state.convertVideoToAudio || metadata?.extension == "mp3" || metadata?.extension == "m4a" || metadata?.extension == "aac") {
                     MediaType.AUDIO
                 } else {
                     MediaType.VIDEO
@@ -297,7 +327,7 @@ class MainViewModel @Inject constructor(
             }
         }
 
-        val mediaType = if (metadata?.extension == "mp3" || metadata?.extension == "m4a" || metadata?.extension == "aac") {
+        val mediaType = if (state.convertVideoToAudio || metadata?.extension == "mp3" || metadata?.extension == "m4a" || metadata?.extension == "aac") {
             MediaType.AUDIO
         } else {
             MediaType.VIDEO
@@ -316,6 +346,8 @@ class MainViewModel @Inject constructor(
             title = title,
             youtubeUrl = finalUrl,
             mediaType = mediaType,
+            convertVideoToAudio = state.convertVideoToAudio,
+            deleteOriginalVideo = state.deleteOriginalVideo,
         )
 
         _uiState.update {
@@ -324,6 +356,9 @@ class MainViewModel @Inject constructor(
                     urlInput = "",
                     selectedFileUri = null,
                     selectedFileName = "",
+                    selectedFileMediaType = null,
+                    convertVideoToAudio = false,
+                    deleteOriginalVideo = true,
                     pendingDownload = null,
                     detectedFile = null,
                     detectedFileName = null,

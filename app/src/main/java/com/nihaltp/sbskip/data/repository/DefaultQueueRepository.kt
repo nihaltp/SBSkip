@@ -32,6 +32,8 @@ class DefaultQueueRepository @Inject constructor(
         title: String,
         youtubeUrl: String,
         mediaType: MediaType,
+        convertVideoToAudio: Boolean,
+        deleteOriginalVideo: Boolean,
     ): QueueActionResult {
         val videoId = YouTubeUrlParser.extractVideoId(youtubeUrl)
             ?: return QueueActionResult(success = false, message = context.getString(R.string.enter_valid_url))
@@ -51,6 +53,8 @@ class DefaultQueueRepository @Inject constructor(
             updatedAtEpochMillis = now,
             errorMessage = null,
             outputPath = null,
+            convertVideoToAudio = convertVideoToAudio,
+            deleteOriginalVideo = deleteOriginalVideo,
         )
 
         val id = dao.insert(entity)
@@ -152,6 +156,8 @@ class DefaultQueueRepository @Inject constructor(
             updatedAtEpochMillis = updatedAtEpochMillis,
             errorMessage = errorMessage,
             outputPath = outputPath,
+            convertVideoToAudio = convertVideoToAudio,
+            deleteOriginalVideo = deleteOriginalVideo,
         )
     }
 }

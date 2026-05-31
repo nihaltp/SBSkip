@@ -11,6 +11,7 @@ interface MediaProcessor {
         inputFile: File,
         outputFile: File,
         keepRanges: List<Pair<Double, Double>>,
+        convertVideoToAudio: Boolean = false,
         progressListener: (Int) -> Unit = {},
     )
 }

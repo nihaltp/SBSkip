@@ -85,6 +85,18 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun updateDefaultConvertVideoToAudio(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.update { it.copy(defaultConvertVideoToAudio = enabled) }
+        }
+    }
+
+    fun updateDefaultDeleteOriginalVideo(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.update { it.copy(defaultDeleteOriginalVideo = enabled) }
+        }
+    }
+
     fun updateVideoFolder(folder: String, uriString: String) {
         viewModelScope.launch {
             settingsRepository.update { it.copy(videoFolder = folder, videoFolderUri = uriString) }

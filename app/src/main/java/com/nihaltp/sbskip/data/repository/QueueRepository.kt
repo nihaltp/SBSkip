@@ -7,7 +7,14 @@ import kotlinx.coroutines.flow.Flow
 
 interface QueueRepository {
     fun observeQueue(): Flow<List<DownloadQueueItem>>
-    suspend fun enqueue(localFileUri: String, title: String, youtubeUrl: String, mediaType: MediaType): QueueActionResult
+    suspend fun enqueue(
+        localFileUri: String,
+        title: String,
+        youtubeUrl: String,
+        mediaType: MediaType,
+        convertVideoToAudio: Boolean = false,
+        deleteOriginalVideo: Boolean = true,
+    ): QueueActionResult
     suspend fun retry(itemId: Long): QueueActionResult
     suspend fun remove(itemId: Long)
     suspend fun findItemById(itemId: Long): DownloadQueueItem?

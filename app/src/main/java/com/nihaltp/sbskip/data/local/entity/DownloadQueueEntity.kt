@@ -19,4 +19,6 @@ data class DownloadQueueEntity(
     val updatedAtEpochMillis: Long,
     val errorMessage: String? = null,
     val outputPath: String? = null,
+    val convertVideoToAudio: Boolean = false,
+    val deleteOriginalVideo: Boolean = true,
 )

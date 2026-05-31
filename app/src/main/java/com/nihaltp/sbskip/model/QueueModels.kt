@@ -21,6 +21,8 @@ data class DownloadQueueItem(
     val updatedAtEpochMillis: Long,
     val errorMessage: String?,
     val outputPath: String? = null,
+    val convertVideoToAudio: Boolean = false,
+    val deleteOriginalVideo: Boolean = true,
 ) {
     val displayDuration: String
         get() = durationSeconds?.let { seconds ->
@@ -62,6 +64,9 @@ data class MainUiState(
     val urlInput: String = "",
     val selectedFileUri: String? = null,
     val selectedFileName: String = "",
+    val selectedFileMediaType: MediaType? = null,
+    val convertVideoToAudio: Boolean = false,
+    val deleteOriginalVideo: Boolean = true,
     val isNewPipeInstalled: Boolean = false,
     val isFetchingMetadata: Boolean = false,
     val isDetectingFile: Boolean = false,

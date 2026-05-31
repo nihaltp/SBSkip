@@ -43,6 +43,8 @@ fun AppNavGraph(
                 onAutoDetect = viewModel::autoDetectAndClean,
                 onCancelPendingDownload = viewModel::cancelPendingDownload,
                 onConfirmDetectedFile = viewModel::confirmDetectedFile,
+                onConvertVideoToAudioChange = viewModel::onConvertVideoToAudioChanged,
+                onDeleteOriginalVideoChange = viewModel::onDeleteOriginalVideoChanged,
                 onOpenSettings = { navController.navigate(Destination.Settings.route) },
                 onRemoveQueueItem = viewModel::removeQueueItem,
                 onRetryQueueItem = viewModel::retryQueueItem,

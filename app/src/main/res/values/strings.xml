@@ -220,4 +220,16 @@
     <string name="dialog_duration_mismatch_message">The imported local file duration (%1$s) does not match the YouTube video duration (%2$s).\n\nEven a difference of 1 second is big. Do you want to proceed anyway?</string>
     <string name="dialog_duration_mismatch_proceed">Proceed Anyway</string>
     <string name="dialog_verifying_duration">Verifying duration…</string>
+
+    <!-- Convert Video to Audio Option -->
+    <string name="convert_video_to_audio_title">Convert Video to Audio</string>
+    <string name="convert_video_to_audio_desc">Extract audio stream into a high-quality M4A file</string>
+    <string name="delete_original_video_title">Delete Original Video</string>
+    <string name="delete_original_video_desc">Delete the source video file after successful extraction</string>
+
+    <!-- Settings Defaults -->
+    <string name="settings_default_convert_video_to_audio_title">Convert Video to Audio</string>
+    <string name="settings_default_convert_video_to_audio_desc">Enable conversion by default when importing video files</string>
+    <string name="settings_default_delete_original_video_title">Delete Original Video</string>
+    <string name="settings_default_delete_original_video_desc">Enable original deletion by default after conversion</string>
 </resources>

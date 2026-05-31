@@ -123,13 +123,14 @@ class DownloadWorker @AssistedInject constructor(
             // Setup cache paths
             val cacheDir = applicationContext.cacheDir
             tempInputFile = File(cacheDir, "clean_in_$queueItemId.${localMetadata.extension}")
-            tempOutputFile = File(cacheDir, "clean_out_$queueItemId.${localMetadata.extension}")
+            val outputExtension = if (item.convertVideoToAudio) "m4a" else localMetadata.extension
+            tempOutputFile = File(cacheDir, "clean_out_$queueItemId.$outputExtension")
 
             // Copy imported SAF Content URI file locally to cache for native random-access FFmpeg copy seeking
             downloadStorage.copyUriToTempFile(item.localFileUri, tempInputFile)
 
             // Process media with FFmpeg
-            mediaProcessor.processMedia(tempInputFile, tempOutputFile, keepRanges) { percent ->
+            mediaProcessor.processMedia(tempInputFile, tempOutputFile, keepRanges, item.convertVideoToAudio) { percent ->
                 // Progress mapped between 25% and 90%
                 val mappedProgress = 25 + (percent * 65 / 100)
                 notificationManager.showActive(
@@ -150,7 +151,30 @@ class DownloadWorker @AssistedInject constructor(
 
             // 3. Save / overwrite media file
             notificationManager.showActive(notificationId, taskTitle, 95, applicationContext.getString(R.string.notification_saving_media))
-            val savedUriString = if (settings.overwriteBehavior) {
+            val savedUriString = if (item.convertVideoToAudio) {
+                // Save to public storage as audio
+                val outputSuffix = settings.autoCleanSuffix
+                val savedUri = downloadStorage.saveToPublicStorage(
+                    tempFile = tempOutputFile,
+                    title = "$taskTitle$outputSuffix",
+                    extension = outputExtension,
+                    mediaType = com.nihaltp.sbskip.model.MediaType.AUDIO,
+                )
+
+                // If deleteOriginalVideo is true, delete the original video file
+                if (item.deleteOriginalVideo) {
+                    try {
+                        val resolver = applicationContext.contentResolver
+                        val originalUri = android.net.Uri.parse(item.localFileUri)
+                        val deletedCount = resolver.delete(originalUri, null, null)
+                        AppLogger.worker("Deleted original video file: $originalUri (count: $deletedCount)")
+                    } catch (e: Exception) {
+                        AppLogger.error("Worker", e, "Failed to delete original video file: ${item.localFileUri}")
+                    }
+                }
+
+                savedUri
+            } else if (settings.overwriteBehavior) {
                 val resolver = applicationContext.contentResolver
                 val targetUri = android.net.Uri.parse(item.localFileUri)
                 resolver.openOutputStream(targetUri, "w")?.use { output ->
