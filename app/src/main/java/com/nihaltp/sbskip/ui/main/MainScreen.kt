@@ -112,6 +112,7 @@ fun MainScreen(
     var detailsDialogItem by remember { mutableStateOf<DownloadQueueItem?>(null) }
     val showLocalCleanButton = uiState.selectedFileUri != null && uiState.urlInput.isNotBlank()
     val showDownloadAndCleanButton = uiState.selectedFileUri == null && uiState.pendingDownload == null && uiState.isNewPipeInstalled && uiState.urlInput.isNotBlank()
+    val showConvertOnlyButton = uiState.selectedFileUri != null && uiState.urlInput.isBlank() && uiState.selectedFileMediaType == com.nihaltp.sbskip.model.MediaType.VIDEO
 
     // Document picker for MP4, M4A, and MP3
     val filePickerLauncher = rememberLauncherForActivityResult(
@@ -183,7 +184,7 @@ fun MainScreen(
                                 Text(stringResource(id = R.string.paste_button))
                             }
 
-                            if (showLocalCleanButton || showDownloadAndCleanButton) {
+                            if (showLocalCleanButton || showDownloadAndCleanButton || showConvertOnlyButton) {
                                 val isLoading = uiState.isFetchingMetadata || uiState.isVerifyingDuration
                                 Button(
                                     onClick = onSubmit,
@@ -201,6 +202,8 @@ fun MainScreen(
                                             stringResource(id = R.string.dialog_verifying_duration)
                                         } else if (showDownloadAndCleanButton) {
                                             stringResource(id = R.string.download_and_clean_button)
+                                        } else if (showConvertOnlyButton) {
+                                            stringResource(id = R.string.convert_to_audio_button)
                                         } else {
                                             stringResource(id = R.string.clean_media_button)
                                         },
@@ -300,35 +303,46 @@ fun MainScreen(
                         }
 
                         if (uiState.selectedFileUri != null && uiState.selectedFileMediaType == com.nihaltp.sbskip.model.MediaType.VIDEO) {
+                            val isUrlEmpty = uiState.urlInput.isBlank()
+                            val isConvertChecked = isUrlEmpty || uiState.convertVideoToAudio
                             Column(
                                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                                 verticalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
                                 HorizontalDivider()
 
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = stringResource(id = R.string.convert_video_to_audio_title),
-                                            fontWeight = FontWeight.Medium,
-                                        )
-                                        Text(
-                                            text = stringResource(id = R.string.convert_video_to_audio_desc),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = Color.Gray,
+                                if (isUrlEmpty) {
+                                    Text(
+                                        text = stringResource(id = R.string.convert_to_audio_only_notice),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.primary,
+                                    )
+                                } else {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = stringResource(id = R.string.convert_video_to_audio_title),
+                                                fontWeight = FontWeight.Medium,
+                                            )
+                                            Text(
+                                                text = stringResource(id = R.string.convert_video_to_audio_desc),
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = Color.Gray,
+                                            )
+                                        }
+                                        Switch(
+                                            checked = uiState.convertVideoToAudio,
+                                            onCheckedChange = onConvertVideoToAudioChange,
                                         )
                                     }
-                                    Switch(
-                                        checked = uiState.convertVideoToAudio,
-                                        onCheckedChange = onConvertVideoToAudioChange,
-                                    )
                                 }
 
-                                if (uiState.convertVideoToAudio) {
+                                if (isConvertChecked) {
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween,

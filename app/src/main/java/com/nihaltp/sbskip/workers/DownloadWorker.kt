@@ -74,47 +74,56 @@ class DownloadWorker @AssistedInject constructor(
             // 1. Mark as FETCHING_SEGMENTS
             queueRepository.markFetchingSegments(queueItemId)
 
-            // Parse Video ID from YouTube URL
-            val videoId = YouTubeUrlParser.extractVideoId(item.url)
-                ?: throw IllegalArgumentException(applicationContext.getString(R.string.enter_valid_url))
-
             // Fetch settings
             val settings = settingsRepository.settings.first()
-            val categories = settings.sponsorBlockSettings.categories
 
             // Query local file metadata
             notificationManager.showActive(notificationId, taskTitle, 10, applicationContext.getString(R.string.status_fetching_info))
             val localMetadata = downloadStorage.queryMetadata(item.localFileUri)
                 ?: throw IOException("Failed to read local media file metadata")
 
-            // Check if the picked file duration matches the YouTube video duration
-            val bypassCheck = item.url.contains("bypassDurationCheck=true")
-            val youtubeDuration = com.nihaltp.sbskip.util.YouTubeDurationFetcher.fetchDuration(videoId)
             val fileDuration = localMetadata.durationSeconds ?: 0L
+            val keepRanges = mutableListOf<Pair<Double, Double>>()
 
-            if (bypassCheck) {
-                AppLogger.worker("Duration mismatch verification bypassed via explicit user request.")
-            } else if (youtubeDuration != null) {
-                val difference = kotlin.math.abs(fileDuration - youtubeDuration)
-                if (difference > 0) {
-                    throw IllegalStateException("Picked file duration ($fileDuration s) does not match YouTube video duration ($youtubeDuration s)")
+            if (item.url.isNotBlank()) {
+                // Parse Video ID from YouTube URL
+                val videoId = YouTubeUrlParser.extractVideoId(item.url)
+                    ?: throw IllegalArgumentException(applicationContext.getString(R.string.enter_valid_url))
+
+                val categories = settings.sponsorBlockSettings.categories
+
+                // Check if the picked file duration matches the YouTube video duration
+                val bypassCheck = item.url.contains("bypassDurationCheck=true")
+                val youtubeDuration = com.nihaltp.sbskip.util.YouTubeDurationFetcher.fetchDuration(videoId)
+
+                if (bypassCheck) {
+                    AppLogger.worker("Duration mismatch verification bypassed via explicit user request.")
+                } else if (youtubeDuration != null) {
+                    val difference = kotlin.math.abs(fileDuration - youtubeDuration)
+                    if (difference > 0) {
+                        throw IllegalStateException("Picked file duration ($fileDuration s) does not match YouTube video duration ($youtubeDuration s)")
+                    }
+                } else {
+                    AppLogger.worker("YouTube video duration could not be fetched for videoId=$videoId; skipping validation.")
                 }
+
+                // Derive thumbnail dynamically and update database metadata
+                val thumbnailUrl = "https://img.youtube.com/vi/$videoId/mqdefault.jpg"
+                taskTitle = item.title.ifBlank { localMetadata.title }
+                queueRepository.updateMetadata(queueItemId, taskTitle, thumbnailUrl, fileDuration)
+
+                // Fetch SponsorBlock skip segments
+                val segments = sponsorBlockService.fetchSegments(videoId, categories)
+                AppLogger.worker("Fetched ${segments.size} SponsorBlock segments for videoID=$videoId")
+
+                val computedKeepRanges = SegmentProcessor.computeKeepRanges(segments, fileDuration.toDouble())
+                keepRanges.addAll(computedKeepRanges)
+                AppLogger.worker("Computed ${keepRanges.size} keep ranges from segments")
             } else {
-                AppLogger.worker("YouTube video duration could not be fetched for videoId=$videoId; skipping validation.")
+                taskTitle = item.title.ifBlank { localMetadata.title }
+                queueRepository.updateMetadata(queueItemId, taskTitle, null, fileDuration)
+                AppLogger.worker("No YouTube URL provided; skipping SponsorBlock segmentation checks.")
             }
-
-            // Derive thumbnail dynamically and update database metadata
-            val thumbnailUrl = "https://img.youtube.com/vi/$videoId/mqdefault.jpg"
-            taskTitle = item.title.ifBlank { localMetadata.title }
-            queueRepository.updateMetadata(queueItemId, taskTitle, thumbnailUrl, fileDuration)
-
-            // Fetch SponsorBlock skip segments
-            val segments = sponsorBlockService.fetchSegments(videoId, categories)
-            AppLogger.worker("Fetched ${segments.size} SponsorBlock segments for videoID=$videoId")
-
-            // If no segments found, we can still output a clean file (which is identical to source)
-            val keepRanges = SegmentProcessor.computeKeepRanges(segments, fileDuration.toDouble())
-            AppLogger.worker("Computed ${keepRanges.size} keep ranges from segments")
 
             // 2. Mark as PROCESSING
             queueRepository.markProcessing(queueItemId)
@@ -141,13 +150,18 @@ class DownloadWorker @AssistedInject constructor(
                 )
             }
 
-            tempOutputFile = tagProcessedMedia(
-                inputFile = tempOutputFile,
-                videoId = videoId,
-                youtubeUrl = item.url,
-                youtubeTitle = taskTitle,
-                categories = settings.sponsorBlockSettings.categories.map { it.name },
-            )
+            if (item.url.isNotBlank()) {
+                val videoId = YouTubeUrlParser.extractVideoId(item.url)
+                if (videoId != null) {
+                    tempOutputFile = tagProcessedMedia(
+                        inputFile = tempOutputFile,
+                        videoId = videoId,
+                        youtubeUrl = item.url,
+                        youtubeTitle = taskTitle,
+                        categories = settings.sponsorBlockSettings.categories.map { it.name },
+                    )
+                }
+            }
 
             // 3. Save / overwrite media file
             notificationManager.showActive(notificationId, taskTitle, 95, applicationContext.getString(R.string.notification_saving_media))

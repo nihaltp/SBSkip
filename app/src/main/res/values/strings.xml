@@ -232,4 +232,8 @@
     <string name="settings_default_convert_video_to_audio_desc">Enable conversion by default when importing video files</string>
     <string name="settings_default_delete_original_video_title">Delete Original Video</string>
     <string name="settings_default_delete_original_video_desc">Enable original deletion by default after conversion</string>
+
+    <!-- Direct Video to Audio Option -->
+    <string name="convert_to_audio_button">Convert to Audio</string>
+    <string name="convert_to_audio_only_notice">No YouTube link provided. Convert this video file directly to audio.</string>
 </resources>

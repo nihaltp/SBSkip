@@ -284,50 +284,55 @@ class MainViewModel @Inject constructor(
             return
         }
 
-        if (youtubeUrl.isBlank()) {
-            _uiState.update { it.copy(snackbarMessage = context.getString(R.string.snackbar_paste_first)) }
-            return
-        }
+        val isConvertOnly = youtubeUrl.isBlank() && state.selectedFileMediaType == MediaType.VIDEO
 
-        val videoId = YouTubeUrlParser.extractVideoId(youtubeUrl)
-        if (videoId.isNullOrBlank()) {
-            _uiState.update { it.copy(snackbarMessage = context.getString(R.string.enter_valid_url)) }
-            return
-        }
-
-        val metadata = downloadStorage.queryMetadata(fileUri)
-        val fileDuration = metadata?.durationSeconds ?: 0L
-
-        if (!force) {
-            _uiState.update { it.copy(isVerifyingDuration = true) }
-            val youtubeDuration = com.nihaltp.sbskip.util.YouTubeDurationFetcher.fetchDuration(videoId)
-            _uiState.update { it.copy(isVerifyingDuration = false) }
-
-            if (youtubeDuration != null && fileDuration != youtubeDuration) {
-                val mediaType = if (state.convertVideoToAudio || metadata?.extension == "mp3" || metadata?.extension == "m4a" || metadata?.extension == "aac") {
-                    MediaType.AUDIO
-                } else {
-                    MediaType.VIDEO
-                }
-                val title = state.selectedFileName.ifBlank { state.pendingDownload?.title ?: metadata?.title ?: context.getString(R.string.imported_file_fallback) }
-                _uiState.update {
-                    it.copy(
-                        showDurationMismatchDialog = true,
-                        mismatchFileDuration = fileDuration,
-                        mismatchYoutubeDuration = youtubeDuration,
-                        pendingEnqueueData = com.nihaltp.sbskip.model.PendingEnqueueData(
-                            fileUri = fileUri,
-                            title = title,
-                            youtubeUrl = youtubeUrl,
-                            mediaType = mediaType,
-                        ),
-                    )
-                }
+        if (!isConvertOnly) {
+            if (youtubeUrl.isBlank()) {
+                _uiState.update { it.copy(snackbarMessage = context.getString(R.string.snackbar_paste_first)) }
                 return
+            }
+
+            val videoId = YouTubeUrlParser.extractVideoId(youtubeUrl)
+            if (videoId.isNullOrBlank()) {
+                _uiState.update { it.copy(snackbarMessage = context.getString(R.string.enter_valid_url)) }
+                return
+            }
+
+            val metadata = downloadStorage.queryMetadata(fileUri)
+            val fileDuration = metadata?.durationSeconds ?: 0L
+
+            if (!force) {
+                _uiState.update { it.copy(isVerifyingDuration = true) }
+                val youtubeDuration = com.nihaltp.sbskip.util.YouTubeDurationFetcher.fetchDuration(videoId)
+                _uiState.update { it.copy(isVerifyingDuration = false) }
+
+                if (youtubeDuration != null && fileDuration != youtubeDuration) {
+                    val mediaType = if (state.convertVideoToAudio || metadata?.extension == "mp3" || metadata?.extension == "m4a" || metadata?.extension == "aac") {
+                        MediaType.AUDIO
+                    } else {
+                        MediaType.VIDEO
+                    }
+                    val title = state.selectedFileName.ifBlank { state.pendingDownload?.title ?: metadata?.title ?: context.getString(R.string.imported_file_fallback) }
+                    _uiState.update {
+                        it.copy(
+                            showDurationMismatchDialog = true,
+                            mismatchFileDuration = fileDuration,
+                            mismatchYoutubeDuration = youtubeDuration,
+                            pendingEnqueueData = com.nihaltp.sbskip.model.PendingEnqueueData(
+                                fileUri = fileUri,
+                                title = title,
+                                youtubeUrl = youtubeUrl,
+                                mediaType = mediaType,
+                            ),
+                        )
+                    }
+                    return
+                }
             }
         }
 
-        val mediaType = if (state.convertVideoToAudio || metadata?.extension == "mp3" || metadata?.extension == "m4a" || metadata?.extension == "aac") {
+        val metadata = downloadStorage.queryMetadata(fileUri)
+        val mediaType = if (isConvertOnly || state.convertVideoToAudio || metadata?.extension == "mp3" || metadata?.extension == "m4a" || metadata?.extension == "aac") {
             MediaType.AUDIO
         } else {
             MediaType.VIDEO
@@ -335,7 +340,9 @@ class MainViewModel @Inject constructor(
 
         val title = state.selectedFileName.ifBlank { state.pendingDownload?.title ?: metadata?.title ?: context.getString(R.string.imported_file_fallback) }
 
-        val finalUrl = if (force) {
+        val finalUrl = if (isConvertOnly) {
+            ""
+        } else if (force) {
             if (youtubeUrl.contains("?")) "$youtubeUrl&bypassDurationCheck=true" else "$youtubeUrl?bypassDurationCheck=true"
         } else {
             youtubeUrl
@@ -346,7 +353,7 @@ class MainViewModel @Inject constructor(
             title = title,
             youtubeUrl = finalUrl,
             mediaType = mediaType,
-            convertVideoToAudio = state.convertVideoToAudio,
+            convertVideoToAudio = if (isConvertOnly) true else state.convertVideoToAudio,
             deleteOriginalVideo = state.deleteOriginalVideo,
         )
 

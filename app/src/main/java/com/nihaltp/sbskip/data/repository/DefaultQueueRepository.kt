@@ -35,11 +35,19 @@ class DefaultQueueRepository @Inject constructor(
         convertVideoToAudio: Boolean,
         deleteOriginalVideo: Boolean,
     ): QueueActionResult {
-        val videoId = YouTubeUrlParser.extractVideoId(youtubeUrl)
-            ?: return QueueActionResult(success = false, message = context.getString(R.string.enter_valid_url))
+        val videoId = if (youtubeUrl.isBlank()) {
+            null
+        } else {
+            YouTubeUrlParser.extractVideoId(youtubeUrl)
+                ?: return QueueActionResult(success = false, message = context.getString(R.string.enter_valid_url))
+        }
 
-        val hasBypass = youtubeUrl.contains("bypassDurationCheck=true")
-        val normalizedUrl = "https://www.youtube.com/watch?v=$videoId" + if (hasBypass) "&bypassDurationCheck=true" else ""
+        val normalizedUrl = if (videoId != null) {
+            val hasBypass = youtubeUrl.contains("bypassDurationCheck=true")
+            "https://www.youtube.com/watch?v=$videoId" + if (hasBypass) "&bypassDurationCheck=true" else ""
+        } else {
+            ""
+        }
         val now = System.currentTimeMillis()
         val entity = DownloadQueueEntity(
             url = normalizedUrl,

@@ -26,9 +26,20 @@ class FFmpegMediaProcessor @Inject constructor() : MediaProcessor {
         }
 
         if (keepRanges.isEmpty()) {
-            // Nothing to keep (unusual) -> copy empty or copy entire input
-            AppLogger.worker("No keep ranges specified. Copying entire source file.")
-            inputFile.copyTo(outputFile, overwrite = true)
+            if (convertVideoToAudio) {
+                AppLogger.worker("No keep ranges specified. Extracting entire audio stream.")
+                val extractionArgs = if (inputFile.extension.lowercase() in setOf("mp4", "m4v", "mov")) {
+                    "-vn -c:a copy"
+                } else {
+                    "-vn -c:a aac"
+                }
+                runFFmpegCommand(
+                    "-y -i \"${inputFile.absolutePath}\" $extractionArgs \"${outputFile.absolutePath}\"",
+                )
+            } else {
+                AppLogger.worker("No keep ranges specified. Copying entire source file.")
+                inputFile.copyTo(outputFile, overwrite = true)
+            }
             progressListener(100)
             return@withContext
         }
