@@ -67,6 +67,12 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun updateSponsorBlockStatusUrl(url: String) {
+        viewModelScope.launch {
+            settingsRepository.update { it.copy(sponsorBlockStatusUrl = url) }
+        }
+    }
+
     fun updateOverwriteBehavior(overwrite: Boolean) {
         viewModelScope.launch {
             settingsRepository.update { it.copy(overwriteBehavior = overwrite) }

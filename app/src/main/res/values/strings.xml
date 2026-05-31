@@ -199,6 +199,8 @@
     <string name="settings_sb_categories_dialog_title">Active Skip Categories</string>
     <string name="settings_suffix_field_label">Suffix (e.g. _cleaned)</string>
     <string name="settings_sb_url_field_label">Server API Base URL</string>
+    <string name="settings_sb_status_url_title">SponsorBlock Status Page URL</string>
+    <string name="settings_sb_status_url_field_label">Server Status Page URL</string>
 
     <!-- Translation Section -->
     <string name="settings_section_translation">Translation</string>

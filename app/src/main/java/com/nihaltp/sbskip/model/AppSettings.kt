@@ -17,6 +17,7 @@ data class AppSettings(
     val keepTempFiles: Boolean = false,
     val verboseLogging: Boolean = false,
     val sponsorBlockUrl: String = "https://sponsor.ajay.app",
+    val sponsorBlockStatusUrl: String = "https://status.sponsor.ajay.app",
     val overwriteBehavior: Boolean = true,
     val autoCleanSuffix: String = "_cleaned",
 )

@@ -34,6 +34,7 @@ class DownloadWorker @AssistedInject constructor(
     private val mediaProcessor: MediaProcessor,
     private val downloadStorage: DownloadStorage,
     private val notificationManager: DownloadNotificationManager,
+    private val workScheduler: DownloadWorkScheduler,
 ) : CoroutineWorker(appContext, params) {
 
     override suspend fun doWork(): Result {
@@ -187,6 +188,11 @@ class DownloadWorker @AssistedInject constructor(
             queueRepository.markFailed(queueItemId, message)
             notificationManager.showFailure(notificationId, taskTitle, message)
 
+            if (checkIfSponsorBlockIsDown(throwable)) {
+                AppLogger.worker("SponsorBlock API detected down. Enqueuing status checker...")
+                workScheduler.scheduleSponsorBlockStatusCheck()
+            }
+
             Result.failure(workDataOf(KEY_ERROR to message))
         } finally {
             // Clean up temporary files
@@ -253,6 +259,36 @@ class DownloadWorker @AssistedInject constructor(
 
     private fun escapeForFfmpeg(value: String): String {
         return value.replace("\\", "\\\\").replace("\"", "\\\"")
+    }
+
+    private suspend fun checkIfSponsorBlockIsDown(throwable: Throwable): Boolean {
+        return try {
+            val settings = settingsRepository.settings.first()
+            val statusUrl = settings.sponsorBlockStatusUrl.trim()
+            if (statusUrl.isNotBlank()) {
+                val isNetworkError = throwable is java.io.IOException && (
+                    throwable is java.net.UnknownHostException ||
+                        throwable is java.net.SocketTimeoutException ||
+                        throwable.message?.contains("Unable to resolve host", ignoreCase = true) == true ||
+                        throwable.message?.contains("timeout", ignoreCase = true) == true ||
+                        throwable.message?.contains("timed out", ignoreCase = true) == true
+                    )
+                if (isNetworkError) {
+                    try {
+                        sponsorBlockService.checkApiStatus() != "operational"
+                    } catch (e: Exception) {
+                        // If we cannot even reach the status page, assume the network/API is down
+                        true
+                    }
+                } else {
+                    false
+                }
+            } else {
+                false
+            }
+        } catch (e: Exception) {
+            false
+        }
     }
 
     companion object {

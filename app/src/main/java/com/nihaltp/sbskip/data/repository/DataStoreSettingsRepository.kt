@@ -46,6 +46,7 @@ class DataStoreSettingsRepository @Inject constructor(
         val SPONSORBLOCK_URL = stringPreferencesKey("sponsorblock_url")
         val OVERWRITE_BEHAVIOR = booleanPreferencesKey("overwrite_behavior")
         val AUTO_CLEAN_SUFFIX = stringPreferencesKey("auto_clean_suffix")
+        val SPONSORBLOCK_STATUS_URL = stringPreferencesKey("sponsorblock_status_url")
     }
 
     override val settings: Flow<AppSettings> = context.dataStore.data.map { preferences ->
@@ -81,6 +82,7 @@ class DataStoreSettingsRepository @Inject constructor(
             keepTempFiles = preferences[PreferencesKeys.KEEP_TEMP_FILES] ?: false,
             verboseLogging = preferences[PreferencesKeys.VERBOSE_LOGGING] ?: false,
             sponsorBlockUrl = preferences[PreferencesKeys.SPONSORBLOCK_URL] ?: "https://sponsor.ajay.app",
+            sponsorBlockStatusUrl = preferences[PreferencesKeys.SPONSORBLOCK_STATUS_URL] ?: "https://status.sponsor.ajay.app",
             overwriteBehavior = preferences[PreferencesKeys.OVERWRITE_BEHAVIOR] ?: true,
             autoCleanSuffix = preferences[PreferencesKeys.AUTO_CLEAN_SUFFIX] ?: "_cleaned",
         )
@@ -114,6 +116,7 @@ class DataStoreSettingsRepository @Inject constructor(
                 keepTempFiles = preferences[PreferencesKeys.KEEP_TEMP_FILES] ?: false,
                 verboseLogging = preferences[PreferencesKeys.VERBOSE_LOGGING] ?: false,
                 sponsorBlockUrl = preferences[PreferencesKeys.SPONSORBLOCK_URL] ?: "https://sponsor.ajay.app",
+                sponsorBlockStatusUrl = preferences[PreferencesKeys.SPONSORBLOCK_STATUS_URL] ?: "https://status.sponsor.ajay.app",
                 overwriteBehavior = preferences[PreferencesKeys.OVERWRITE_BEHAVIOR] ?: true,
                 autoCleanSuffix = preferences[PreferencesKeys.AUTO_CLEAN_SUFFIX] ?: "_cleaned",
             )
@@ -136,6 +139,7 @@ class DataStoreSettingsRepository @Inject constructor(
             preferences[PreferencesKeys.KEEP_TEMP_FILES] = updated.keepTempFiles
             preferences[PreferencesKeys.VERBOSE_LOGGING] = updated.verboseLogging
             preferences[PreferencesKeys.SPONSORBLOCK_URL] = updated.sponsorBlockUrl
+            preferences[PreferencesKeys.SPONSORBLOCK_STATUS_URL] = updated.sponsorBlockStatusUrl
             preferences[PreferencesKeys.OVERWRITE_BEHAVIOR] = updated.overwriteBehavior
             preferences[PreferencesKeys.AUTO_CLEAN_SUFFIX] = updated.autoCleanSuffix
         }

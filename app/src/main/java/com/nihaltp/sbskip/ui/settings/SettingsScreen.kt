@@ -276,6 +276,14 @@ fun SettingsScreen(
                             },
                         )
                         SettingValueRow(
+                            title = stringResource(id = R.string.settings_sb_status_url_title),
+                            value = settings.sponsorBlockStatusUrl,
+                            onClick = {
+                                activeDialogType = SettingsDialogType.SB_STATUS_URL
+                                textInputState = settings.sponsorBlockStatusUrl
+                            },
+                        )
+                        SettingValueRow(
                             title = stringResource(id = R.string.settings_sb_categories_title),
                             value = stringResource(
                                 id = R.string.settings_categories_selected_format,
@@ -511,11 +519,13 @@ fun SettingsScreen(
                     val dialogTitle = when (dialogType) {
                         SettingsDialogType.SUFFIX -> stringResource(id = R.string.settings_suffix_title)
                         SettingsDialogType.SB_URL -> stringResource(id = R.string.settings_sb_url_title)
+                        SettingsDialogType.SB_STATUS_URL -> stringResource(id = R.string.settings_sb_status_url_title)
                         else -> ""
                     }
                     val dialogLabel = when (dialogType) {
                         SettingsDialogType.SUFFIX -> stringResource(id = R.string.settings_suffix_field_label)
                         SettingsDialogType.SB_URL -> stringResource(id = R.string.settings_sb_url_field_label)
+                        SettingsDialogType.SB_STATUS_URL -> stringResource(id = R.string.settings_sb_status_url_field_label)
                         else -> ""
                     }
                     AlertDialog(
@@ -538,6 +548,7 @@ fun SettingsScreen(
                                     when (dialogType) {
                                         SettingsDialogType.SUFFIX -> viewModel.updateAutoCleanSuffix(textInputState)
                                         SettingsDialogType.SB_URL -> viewModel.updateSponsorBlockUrl(textInputState)
+                                        SettingsDialogType.SB_STATUS_URL -> viewModel.updateSponsorBlockStatusUrl(textInputState)
                                         else -> {}
                                     }
                                     activeDialogType = null
@@ -763,6 +774,7 @@ private enum class SettingsDialogType {
     DOWNLOADER,
     SUFFIX,
     SB_URL,
+    SB_STATUS_URL,
     SB_CATEGORIES,
 }
 

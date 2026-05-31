@@ -88,6 +88,18 @@ interface DownloadQueueDao {
         updatedAtEpochMillis: Long,
     )
 
+    @Query(
+        """
+        SELECT * FROM download_queue
+        WHERE status = 'FAILED'
+          AND (errorMessage LIKE '%timeout%'
+            OR errorMessage LIKE '%timed out%'
+            OR errorMessage LIKE '%unable to resolve host%'
+            OR errorMessage LIKE '%sponsor.ajay.app%')
+        """,
+    )
+    suspend fun findSponsorBlockFailedItems(): List<DownloadQueueEntity>
+
     @Query("DELETE FROM download_queue WHERE id = :id")
     suspend fun deleteById(id: Long)
 
