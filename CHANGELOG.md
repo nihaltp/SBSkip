@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [1.1.0] - 2026-05-31
+
+### Added
+
+- Enhance video conversion functionality and UI for direct audio conversion. (5b3993d)
+- Add video conversion options and update related settings. (7a2b796)
+- Implement file-finding functionality for YouTube URLs in `MainViewModel` and update UI accordingly. (e39c5d8)
+- Add SponsorBlock status URL handling and implement a status check worker. (2b0842a)
+- Replace outlined icons with filled icons in `MainScreen` and `SettingsScreen`. (025d88f)
+
 ## [1.0.0] - 2026-05-29
 
 ### Added
