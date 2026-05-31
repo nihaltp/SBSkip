@@ -4,8 +4,10 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.printToLog
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.nihaltp.sbskip.data.local.entity.DownloadQueueEntity
@@ -76,77 +78,87 @@ class ScreenshotTest {
         }
         composeTestRule.waitForIdle()
 
-        // 1. LIGHT Theme - Main Screen
-        runBlocking {
-            settingsRepository.update { it.copy(themeMode = ThemeMode.LIGHT) }
-        }
-        composeTestRule.waitForIdle()
-        Thread.sleep(2400) // Wait between screens/actions for fluid settled states
-        Screengrab.screenshot(screenshotCounter.toString())
-        screenshotCounter++
+        try {
+            // 1. LIGHT Theme - Main Screen
+            runBlocking {
+                settingsRepository.update { it.copy(themeMode = ThemeMode.LIGHT) }
+            }
+            composeTestRule.waitForIdle()
+            Thread.sleep(2400) // Wait between screens/actions for fluid settled states
+            Screengrab.screenshot(screenshotCounter.toString())
+            screenshotCounter++
 
-        // 2. LIGHT Theme - Media Details
-        composeTestRule.onNodeWithText(videoTitle).performScrollTo()
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithTag("queue-item-card").performClick()
-        composeTestRule.waitForIdle()
-        Thread.sleep(1200) // Wait between screens/actions for fluid settled states
-        Screengrab.screenshot(screenshotCounter.toString())
-        screenshotCounter++
+            // 2. LIGHT Theme - Media Details
+            composeTestRule.onNodeWithText(videoTitle).performScrollTo()
+            composeTestRule.waitForIdle()
+            composeTestRule.onNodeWithTag("queue-item-card").performClick()
+            composeTestRule.waitForIdle()
+            Thread.sleep(1200) // Wait between screens/actions for fluid settled states
+            Screengrab.screenshot(screenshotCounter.toString())
+            screenshotCounter++
 
-        // Close details
-        composeTestRule.onNodeWithText("Close").performClick()
-        composeTestRule.waitForIdle()
+            // Close details
+            composeTestRule.onNodeWithText("Close").performClick()
+            composeTestRule.waitForIdle()
 
-        // 3. LIGHT Theme - Settings Screen
-        composeTestRule.onNodeWithContentDescription("Settings").performClick()
-        composeTestRule.waitForIdle()
-        Thread.sleep(1200) // Wait between screens/actions for fluid settled states
-        Screengrab.screenshot(screenshotCounter.toString())
-        screenshotCounter++
+            // 3. LIGHT Theme - Settings Screen
+            composeTestRule.onNodeWithContentDescription("Settings").performClick()
+            composeTestRule.waitForIdle()
+            Thread.sleep(1200) // Wait between screens/actions for fluid settled states
+            Screengrab.screenshot(screenshotCounter.toString())
+            screenshotCounter++
 
-        // Return to main before switching themes
-        composeTestRule.onNodeWithContentDescription("Back").performClick()
-        composeTestRule.waitForIdle()
+            // Return to main before switching themes
+            composeTestRule.onNodeWithContentDescription("Back").performClick()
+            composeTestRule.waitForIdle()
 
-        // Switch to dark theme on the main screen
-        runBlocking {
-            settingsRepository.update { it.copy(themeMode = ThemeMode.DARK) }
-        }
-        composeTestRule.waitForIdle()
+            // Switch to dark theme on the main screen
+            runBlocking {
+                settingsRepository.update { it.copy(themeMode = ThemeMode.DARK) }
+            }
+            composeTestRule.waitForIdle()
 
-        // 4. DARK Theme - Main Screen
-        composeTestRule.waitForIdle()
-        Thread.sleep(1200) // Wait between screens/actions for fluid settled states
-        Screengrab.screenshot(screenshotCounter.toString())
-        screenshotCounter++
+            // 4. DARK Theme - Main Screen
+            composeTestRule.waitForIdle()
+            Thread.sleep(1200) // Wait between screens/actions for fluid settled states
+            Screengrab.screenshot(screenshotCounter.toString())
+            screenshotCounter++
 
-        // 5. DARK Theme - Media Details
-        composeTestRule.onNodeWithText(videoTitle).performScrollTo()
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithTag("queue-item-card").performClick()
-        composeTestRule.waitForIdle()
-        Thread.sleep(1200) // Wait between screens/actions for fluid settled states
-        Screengrab.screenshot(screenshotCounter.toString())
-        screenshotCounter++
+            // 5. DARK Theme - Media Details
+            composeTestRule.onNodeWithText(videoTitle).performScrollTo()
+            composeTestRule.waitForIdle()
+            composeTestRule.onNodeWithTag("queue-item-card").performClick()
+            composeTestRule.waitForIdle()
+            Thread.sleep(1200) // Wait between screens/actions for fluid settled states
+            Screengrab.screenshot(screenshotCounter.toString())
+            screenshotCounter++
 
-        // Close details before opening settings
-        composeTestRule.onNodeWithText("Close").performClick()
-        composeTestRule.waitForIdle()
+            // Close details before opening settings
+            composeTestRule.onNodeWithText("Close").performClick()
+            composeTestRule.waitForIdle()
 
-        // 6. DARK Theme - Settings Screen
-        composeTestRule.onNodeWithContentDescription("Settings").performClick()
-        composeTestRule.waitForIdle()
-        Thread.sleep(1200) // Wait between screens/actions for fluid settled states
-        Screengrab.screenshot(screenshotCounter.toString())
-        screenshotCounter++
-
-        // Copy screenshots to external files directory for reliable pulling on Windows
-        val context = InstrumentationRegistry.getInstrumentation().targetContext
-        val internalDir = java.io.File(context.filesDir.parentFile, "app_screengrab")
-        val externalDir = context.getExternalFilesDir(null)
-        if (internalDir.exists() && externalDir != null) {
-            internalDir.copyRecursively(java.io.File(externalDir, "app_screengrab"), overwrite = true)
+            // 6. DARK Theme - Settings Screen
+            composeTestRule.onNodeWithContentDescription("Settings").performClick()
+            composeTestRule.waitForIdle()
+            Thread.sleep(1200) // Wait between screens/actions for fluid settled states
+            Screengrab.screenshot(screenshotCounter.toString())
+            screenshotCounter++
+        } catch (t: Throwable) {
+            println("SCREENSHOT_TEST_FAILURE: ${t.message}")
+            try {
+                composeTestRule.onRoot().printToLog("SCREENSHOT_TEST_FAILURE_TREE")
+            } catch (e: Exception) {
+                println("Failed to print semantics tree: ${e.message}")
+            }
+            throw t
+        } finally {
+            // Copy screenshots to external files directory for reliable pulling on Windows
+            val context = InstrumentationRegistry.getInstrumentation().targetContext
+            val internalDir = java.io.File(context.filesDir.parentFile, "app_screengrab")
+            val externalDir = context.getExternalFilesDir(null)
+            if (internalDir.exists() && externalDir != null) {
+                internalDir.copyRecursively(java.io.File(externalDir, "app_screengrab"), overwrite = true)
+            }
         }
     }
 }
