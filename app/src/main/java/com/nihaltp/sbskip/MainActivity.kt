@@ -20,6 +20,8 @@ import com.nihaltp.sbskip.navigation.AppNavGraph
 import com.nihaltp.sbskip.navigation.ShareIntentEvent
 import com.nihaltp.sbskip.ui.theme.SBSkipTheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -31,6 +33,16 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (BuildConfig.DEBUG) {
+            runBlocking(Dispatchers.IO) {
+                settingsRepository.update { current ->
+                    current.copy(
+                        keepTempFiles = true,
+                        verboseLogging = true,
+                    )
+                }
+            }
+        }
         shareEvent = intent.toShareIntentEvent()
         setContent {
             val settingsState by settingsRepository.settings.collectAsState(initial = null)
