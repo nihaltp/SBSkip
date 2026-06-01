@@ -10,6 +10,21 @@ object AppLogger {
     private const val MAX_LOGS = 1000
     private val recentLogs = java.util.Collections.synchronizedList(mutableListOf<String>())
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US)
+    private var logFile: java.io.File? = null
+
+    fun init(context: android.content.Context) {
+        synchronized(this) {
+            if (logFile == null) {
+                logFile = java.io.File(context.applicationContext.filesDir, "sbskip.log")
+            }
+        }
+    }
+
+    fun initForTesting(testLogFile: java.io.File) {
+        synchronized(this) {
+            logFile = testLogFile
+        }
+    }
 
     private fun addLogEntry(tag: String, message: String) {
         val timestamp = dateFormat.format(Date())
@@ -17,6 +32,36 @@ object AppLogger {
         recentLogs.add(logLine)
         if (recentLogs.size > MAX_LOGS) {
             recentLogs.removeAt(0)
+        }
+        writeLogToFile(logLine)
+    }
+
+    private fun writeLogToFile(logLine: String) {
+        val file = logFile ?: return
+        synchronized(this) {
+            try {
+                if (file.exists() && file.length() > 500 * 1024) {
+                    rotateLogFiles(file)
+                }
+                file.appendText(logLine + "\n")
+            } catch (e: Throwable) {
+                // Running on JVM tests or permission issue. Fallback to stderr
+                System.err.println("AppLogger: Failed to write to file: ${e.message}")
+            }
+        }
+    }
+
+    private fun rotateLogFiles(file: java.io.File) {
+        try {
+            val oldFile = java.io.File(file.parent, "${file.name}.old")
+            if (oldFile.exists()) {
+                oldFile.delete()
+            }
+            if (file.exists()) {
+                file.renameTo(oldFile)
+            }
+        } catch (e: Throwable) {
+            System.err.println("AppLogger: Failed to rotate logs: ${e.message}")
         }
     }
 
@@ -58,10 +103,30 @@ object AppLogger {
     }
 
     fun getLogs(): String {
-        return recentLogs.joinToString("\n")
+        val file = logFile ?: return recentLogs.joinToString("\n")
+        return synchronized(this) {
+            try {
+                val oldFile = java.io.File(file.parent, "${file.name}.old")
+                val oldLogs = if (oldFile.exists()) oldFile.readText() else ""
+                val currentLogs = if (file.exists()) file.readText() else ""
+                (oldLogs + currentLogs).trim()
+            } catch (e: Throwable) {
+                recentLogs.joinToString("\n")
+            }
+        }
     }
 
     fun clearLogs() {
         recentLogs.clear()
+        val file = logFile ?: return
+        synchronized(this) {
+            try {
+                if (file.exists()) file.delete()
+                val oldFile = java.io.File(file.parent, "${file.name}.old")
+                if (oldFile.exists()) oldFile.delete()
+            } catch (e: Throwable) {
+                System.err.println("AppLogger: Failed to clear log files: ${e.message}")
+            }
+        }
     }
 }
