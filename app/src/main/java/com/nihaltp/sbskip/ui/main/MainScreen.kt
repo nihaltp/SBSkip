@@ -77,9 +77,11 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.nihaltp.sbskip.BuildConfig
 import com.nihaltp.sbskip.R
+import com.nihaltp.sbskip.model.DetectedFile
 import com.nihaltp.sbskip.model.DownloadQueueItem
 import com.nihaltp.sbskip.model.DownloadQueueStatus
 import com.nihaltp.sbskip.model.MainUiState
+import com.nihaltp.sbskip.model.PendingDownload
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -90,9 +92,10 @@ fun MainScreen(
     onFileSelected: (Uri) -> Unit,
     onClearSelectedFile: () -> Unit,
     onSubmit: () -> Unit,
-    onAutoDetect: () -> Unit,
-    onCancelPendingDownload: () -> Unit,
-    onConfirmDetectedFile: () -> Unit,
+    onAutoDetectPending: (PendingDownload) -> Unit,
+    onCancelPending: (PendingDownload) -> Unit,
+    onConfirmPending: (PendingDownload) -> Unit,
+    onStartManualPickForPending: (PendingDownload) -> Unit,
     onConvertVideoToAudioChange: (Boolean) -> Unit,
     onDeleteOriginalVideoChange: (Boolean) -> Unit,
     onOpenSettings: () -> Unit,
@@ -110,8 +113,9 @@ fun MainScreen(
 
     var errorDialogItem by remember { mutableStateOf<DownloadQueueItem?>(null) }
     var detailsDialogItem by remember { mutableStateOf<DownloadQueueItem?>(null) }
+    var detailsPendingDownloadItem by remember { mutableStateOf<PendingDownload?>(null) }
     val showLocalCleanButton = uiState.selectedFileUri != null && uiState.urlInput.isNotBlank()
-    val showDownloadAndCleanButton = uiState.selectedFileUri == null && uiState.pendingDownload == null && uiState.isNewPipeInstalled && uiState.urlInput.isNotBlank()
+    val showDownloadAndCleanButton = uiState.selectedFileUri == null && uiState.isNewPipeInstalled && uiState.urlInput.isNotBlank()
     val showConvertOnlyButton = uiState.selectedFileUri != null && uiState.urlInput.isBlank() && uiState.selectedFileMediaType == com.nihaltp.sbskip.model.MediaType.VIDEO
 
     // Document picker for MP4, M4A, and MP3
@@ -212,24 +216,6 @@ fun MainScreen(
                             }
                         }
                     }
-                }
-            }
-
-            if (uiState.pendingDownload != null) {
-                item {
-                    PendingDownloadCard(
-                        pendingDownloadTitle = uiState.pendingDownload.title,
-                        thumbnailUrl = uiState.pendingDownload.thumbnailUrl,
-                        detectedFileName = uiState.detectedFileName,
-                        detectedFile = uiState.detectedFile,
-                        isDetecting = uiState.isDetectingFile,
-                        onAutoDetect = onAutoDetect,
-                        onPickFileManually = {
-                            filePickerLauncher.launch(arrayOf("video/mp4", "audio/mpeg", "audio/mp3", "audio/x-m4a", "audio/mp4"))
-                        },
-                        onCancel = onCancelPendingDownload,
-                        onConfirmDetectedFile = onConfirmDetectedFile,
-                    )
                 }
             }
 
@@ -374,6 +360,29 @@ fun MainScreen(
                             }
                         }
                     }
+                }
+            }
+
+            if (uiState.pendingDownloads.isNotEmpty()) {
+                item {
+                    SectionHeader(title = stringResource(id = R.string.pending_downloads_title))
+                }
+                items(uiState.pendingDownloads, key = { it.videoId }) { pending ->
+                    PendingDownloadCard(
+                        pendingDownloadTitle = pending.title,
+                        thumbnailUrl = pending.thumbnailUrl,
+                        detectedFileName = pending.detectedFileName,
+                        detectedFile = pending.detectedFile,
+                        isDetecting = pending.isDetectingFile,
+                        onAutoDetect = { onAutoDetectPending(pending) },
+                        onPickFileManually = {
+                            onStartManualPickForPending(pending)
+                            filePickerLauncher.launch(arrayOf("video/mp4", "audio/mpeg", "audio/mp3", "audio/x-m4a", "audio/mp4"))
+                        },
+                        onCancel = { onCancelPending(pending) },
+                        onConfirmDetectedFile = { onConfirmPending(pending) },
+                        onCardClick = { detailsPendingDownloadItem = pending },
+                    )
                 }
             }
 
@@ -554,6 +563,94 @@ fun MainScreen(
         )
     }
 
+    // Full pending download details popup for card clicks
+    detailsPendingDownloadItem?.let { item ->
+        val context = LocalContext.current
+        AlertDialog(
+            onDismissRequest = { detailsPendingDownloadItem = null },
+            title = { Text(stringResource(id = R.string.waiting_for_download_title), fontWeight = FontWeight.Bold) },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    DetailRow(label = stringResource(id = R.string.label_title), value = item.title)
+                    DetailRow(label = stringResource(id = R.string.youtube_url_label), value = item.url)
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(stringResource(id = R.string.status_label), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                            val statusText = if (item.isDetectingFile) {
+                                stringResource(id = R.string.detecting_recent_download)
+                            } else if (item.detectedFile != null) {
+                                stringResource(id = R.string.found_matching_file, item.detectedFile.score)
+                            } else {
+                                stringResource(id = R.string.no_pending_download)
+                            }
+                            Text(statusText, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+
+                    if (item.detectedFile != null) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Column {
+                                Text(stringResource(id = R.string.imported_path_label), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                                SelectionContainer {
+                                    Text(
+                                        text = formatUriToPath(item.detectedFile.uri),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                    )
+                                }
+                            }
+                            if (!item.detectedFileName.isNullOrBlank()) {
+                                Column {
+                                    Text(stringResource(id = R.string.selected_file_label), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                                    SelectionContainer {
+                                        Text(
+                                            text = item.detectedFileName,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(
+                        onClick = {
+                            clipboardManager.setText(AnnotatedString(item.title))
+                            Toast.makeText(context, context.getString(R.string.title_copied_toast), Toast.LENGTH_SHORT).show()
+                        },
+                    ) {
+                        Text(stringResource(id = R.string.copy_title))
+                    }
+                    TextButton(
+                        onClick = {
+                            clipboardManager.setText(AnnotatedString(item.url))
+                            Toast.makeText(context, context.getString(R.string.url_copied_toast), Toast.LENGTH_SHORT).show()
+                        },
+                    ) {
+                        Text(stringResource(id = R.string.copy_url))
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { detailsPendingDownloadItem = null }) {
+                    Text(stringResource(id = R.string.close))
+                }
+            },
+        )
+    }
+
     if (uiState.showDurationMismatchDialog) {
         val fileDurationStr = uiState.mismatchFileDuration.let { seconds ->
             val minutes = seconds / 60
@@ -597,12 +694,15 @@ private fun PendingDownloadCard(
     onPickFileManually: () -> Unit,
     onCancel: () -> Unit,
     onConfirmDetectedFile: () -> Unit,
+    onCardClick: () -> Unit,
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onCardClick() },
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -668,6 +768,13 @@ private fun PendingDownloadCard(
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
                                 Text(stringResource(id = R.string.clean_this_file_button))
+                            }
+                            OutlinedButton(
+                                onClick = onAutoDetect,
+                                enabled = !isDetecting,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(stringResource(id = R.string.auto_detect_again_button))
                             }
                             OutlinedButton(
                                 onClick = onPickFileManually,

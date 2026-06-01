@@ -133,7 +133,9 @@
     <string name="paste_youtube_prompt">Paste YouTube URL or video ID</string>
     <string name="clean_media_button">Clean Media</string>
     <string name="download_and_clean_button">Download and Clean</string>
+    <string name="pending_downloads_title">Pending Downloads</string>
     <string name="waiting_for_download_title">Waiting for Download</string>
+    <string name="auto_detect_again_button">Auto-detect Again</string>
     <string name="auto_detect_recent_download">[ Auto-detect recent download ]</string>
     <string name="pick_file_manually_button">Pick File Manually</string>
     <string name="confirm_this_file_prompt">Is this the file you want to clean?</string>

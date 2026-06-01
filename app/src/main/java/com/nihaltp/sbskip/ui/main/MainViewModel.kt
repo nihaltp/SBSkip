@@ -75,6 +75,16 @@ class MainViewModel @Inject constructor(
 
     fun onFileSelected(uri: Uri) {
         viewModelScope.launch {
+            val state = uiState.value
+            val pendingPicker = state.pendingDownloadForFilePicker
+            if (pendingPicker != null) {
+                val metadata = downloadStorage.queryMetadata(uri.toString())
+                val name = metadata?.let { "${it.title}.${it.extension}" } ?: context.getString(R.string.imported_file_fallback)
+                _uiState.update { it.copy(pendingDownloadForFilePicker = null) }
+                enqueuePendingDownload(pendingPicker, uri.toString(), name)
+                return@launch
+            }
+
             val metadata = downloadStorage.queryMetadata(uri.toString())
             val name = metadata?.let { "${it.title}.${it.extension}" } ?: context.getString(R.string.imported_file_fallback)
             val mediaType = if (metadata?.extension == "mp3" || metadata?.extension == "m4a" || metadata?.extension == "aac") {
@@ -90,8 +100,6 @@ class MainViewModel @Inject constructor(
                     selectedFileMediaType = mediaType,
                     convertVideoToAudio = settings.defaultConvertVideoToAudio,
                     deleteOriginalVideo = settings.defaultDeleteOriginalVideo,
-                    detectedFile = null,
-                    detectedFileName = null,
                 )
             }
         }
@@ -105,8 +113,6 @@ class MainViewModel @Inject constructor(
                 selectedFileMediaType = null,
                 convertVideoToAudio = false,
                 deleteOriginalVideo = true,
-                detectedFile = null,
-                detectedFileName = null,
             )
         }
     }
@@ -131,48 +137,63 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun autoDetectAndClean() {
+    fun autoDetectAndClean(pendingDownload: PendingDownload) {
         viewModelScope.launch {
-            autoDetectAndCleanInternal()
+            autoDetectAndCleanInternal(pendingDownload)
         }
     }
 
-    fun confirmDetectedFile() {
+    fun confirmDetectedFile(pendingDownload: PendingDownload) {
         viewModelScope.launch {
-            val state = uiState.value
-            val detected = state.detectedFile ?: return@launch
-            val detectedName = state.detectedFileName
-            val metadata = downloadStorage.queryMetadata(detected.uri)
-            val mediaType = if (metadata?.extension == "mp3" || metadata?.extension == "m4a" || metadata?.extension == "aac") {
-                MediaType.AUDIO
-            } else {
-                MediaType.VIDEO
-            }
-            val settings = settingsRepository.settings.first()
-            _uiState.update {
-                it.copy(
-                    selectedFileUri = detected.uri,
-                    selectedFileName = detectedName ?: context.getString(R.string.detected_file_fallback),
-                    selectedFileMediaType = mediaType,
-                    convertVideoToAudio = settings.defaultConvertVideoToAudio,
-                    deleteOriginalVideo = settings.defaultDeleteOriginalVideo,
-                    detectedFile = null,
-                    detectedFileName = null,
-                )
-            }
-            queueCurrentItemInternal()
+            val detected = pendingDownload.detectedFile ?: return@launch
+            val detectedName = pendingDownload.detectedFileName ?: context.getString(R.string.detected_file_fallback)
+            enqueuePendingDownload(pendingDownload, detected.uri, detectedName)
         }
     }
 
-    fun cancelPendingDownload() {
-        _uiState.update {
-            it.copy(
-                pendingDownload = null,
-                detectedFile = null,
-                detectedFileName = null,
-                isFetchingMetadata = false,
-                isDetectingFile = false,
+    fun cancelPendingDownload(pendingDownload: PendingDownload) {
+        _uiState.update { state ->
+            state.copy(
+                pendingDownloads = state.pendingDownloads.filter { it.videoId != pendingDownload.videoId },
             )
+        }
+    }
+
+    fun startManualPickForPendingDownload(pendingDownload: PendingDownload) {
+        _uiState.update { it.copy(pendingDownloadForFilePicker = pendingDownload) }
+    }
+
+    private suspend fun enqueuePendingDownload(
+        pendingDownload: PendingDownload,
+        fileUri: String,
+        displayName: String,
+    ) {
+        val settings = settingsRepository.settings.first()
+        val metadata = downloadStorage.queryMetadata(fileUri)
+        val mediaType = if (settings.defaultConvertVideoToAudio || metadata?.extension == "mp3" || metadata?.extension == "m4a" || metadata?.extension == "aac") {
+            MediaType.AUDIO
+        } else {
+            MediaType.VIDEO
+        }
+
+        val result = queueRepository.enqueue(
+            localFileUri = fileUri,
+            title = displayName.ifBlank { pendingDownload.title },
+            youtubeUrl = pendingDownload.url,
+            mediaType = mediaType,
+            convertVideoToAudio = settings.defaultConvertVideoToAudio,
+            deleteOriginalVideo = settings.defaultDeleteOriginalVideo,
+        )
+
+        _uiState.update { state ->
+            if (result.success) {
+                state.copy(
+                    pendingDownloads = state.pendingDownloads.filter { it.videoId != pendingDownload.videoId },
+                    snackbarMessage = context.getString(R.string.snackbar_media_enqueued),
+                )
+            } else {
+                state.copy(snackbarMessage = result.message)
+            }
         }
     }
 
@@ -202,17 +223,16 @@ class MainViewModel @Inject constructor(
                 createdAtEpochMillis = System.currentTimeMillis(),
             )
 
-            _uiState.update {
-                it.copy(
-                    pendingDownload = pendingDownload,
-                    detectedFile = null,
-                    detectedFileName = null,
+            _uiState.update { state ->
+                state.copy(
+                    urlInput = "",
+                    pendingDownloads = state.pendingDownloads + pendingDownload,
                     isFetchingMetadata = false,
                     snackbarMessage = null,
                 )
             }
 
-            autoDetectAndCleanInternal()
+            autoDetectAndCleanInternal(pendingDownload)
         }
     }
 
@@ -269,7 +289,7 @@ class MainViewModel @Inject constructor(
     private suspend fun queueCurrentItemInternal(force: Boolean = false) {
         val state = uiState.value
         val fileUri = state.selectedFileUri
-        val youtubeUrl = state.pendingDownload?.url ?: state.urlInput.trim()
+        val youtubeUrl = state.urlInput.trim()
 
         if (fileUri.isNullOrBlank()) {
             if (youtubeUrl.isBlank()) {
@@ -314,7 +334,7 @@ class MainViewModel @Inject constructor(
                     } else {
                         MediaType.VIDEO
                     }
-                    val title = state.selectedFileName.ifBlank { state.pendingDownload?.title ?: metadata?.title ?: context.getString(R.string.imported_file_fallback) }
+                    val title = state.selectedFileName.ifBlank { metadata?.title ?: context.getString(R.string.imported_file_fallback) }
                     _uiState.update {
                         it.copy(
                             showDurationMismatchDialog = true,
@@ -340,7 +360,7 @@ class MainViewModel @Inject constructor(
             MediaType.VIDEO
         }
 
-        val title = state.selectedFileName.ifBlank { state.pendingDownload?.title ?: metadata?.title ?: context.getString(R.string.imported_file_fallback) }
+        val title = state.selectedFileName.ifBlank { metadata?.title ?: context.getString(R.string.imported_file_fallback) }
 
         val finalUrl = if (isConvertOnly) {
             ""
@@ -359,24 +379,22 @@ class MainViewModel @Inject constructor(
             deleteOriginalVideo = state.deleteOriginalVideo,
         )
 
-        _uiState.update {
+        _uiState.update { state ->
             if (result.success) {
-                it.copy(
+                state.copy(
                     urlInput = "",
                     selectedFileUri = null,
                     selectedFileName = "",
                     selectedFileMediaType = null,
                     convertVideoToAudio = false,
                     deleteOriginalVideo = true,
-                    pendingDownload = null,
-                    detectedFile = null,
-                    detectedFileName = null,
+                    pendingDownloads = state.pendingDownloads.filter { it.url != youtubeUrl },
                     showDurationMismatchDialog = false,
                     pendingEnqueueData = null,
                     snackbarMessage = context.getString(R.string.snackbar_media_enqueued),
                 )
             } else {
-                it.copy(snackbarMessage = result.message)
+                state.copy(snackbarMessage = result.message)
             }
         }
     }
@@ -411,30 +429,28 @@ class MainViewModel @Inject constructor(
             createdAtEpochMillis = System.currentTimeMillis(),
         )
 
-        _uiState.update {
-            it.copy(
-                pendingDownload = pendingDownload,
-                detectedFile = null,
-                detectedFileName = null,
+        _uiState.update { state ->
+            state.copy(
+                urlInput = "",
+                pendingDownloads = state.pendingDownloads + pendingDownload,
                 isFetchingMetadata = false,
                 snackbarMessage = null,
             )
         }
 
         launchNewPipe(normalizedUrl)
+        autoDetectAndCleanInternal(pendingDownload)
     }
 
-    private suspend fun autoDetectAndCleanInternal() {
-        val state = uiState.value
-        val pendingDownload = state.pendingDownload
-            ?: run {
-                AppLogger.metadata("AutoDetect: Aborted. No pending download in UI state.")
-                _uiState.update { it.copy(snackbarMessage = context.getString(R.string.no_pending_download)) }
-                return
-            }
-
+    private suspend fun autoDetectAndCleanInternal(pendingDownload: PendingDownload) {
         AppLogger.metadata("AutoDetect: Started for videoId=${pendingDownload.videoId} title='${pendingDownload.title}' url=${pendingDownload.url} createdTime=${pendingDownload.createdAtEpochMillis}")
-        _uiState.update { it.copy(isDetectingFile = true, detectedFile = null, detectedFileName = null) }
+        _uiState.update { state ->
+            state.copy(
+                pendingDownloads = state.pendingDownloads.map {
+                    if (it.videoId == pendingDownload.videoId) it.copy(isDetectingFile = true, detectedFile = null, detectedFileName = null) else it
+                },
+            )
+        }
 
         val settings = settingsRepository.settings.first()
         val candidates = withContext(Dispatchers.IO) {
@@ -443,10 +459,12 @@ class MainViewModel @Inject constructor(
         val bestCandidate = candidates.maxByOrNull { it.score }
 
         if (bestCandidate == null || bestCandidate.score < MIN_CONFIDENCE_SCORE) {
-            AppLogger.metadata("AutoDetect: Finished. No matching candidate found above threshold of $MIN_CONFIDENCE_SCORE (best candidate: ${bestCandidate?.let { "score=${it.score} uri=${it.uri}" } ?: "none"})")
-            _uiState.update {
-                it.copy(
-                    isDetectingFile = false,
+            AppLogger.metadata("AutoDetect: Finished. No matching candidate found above threshold of $MIN_CONFIDENCE_SCORE (best candidate: ${bestCandidate?.let { "score=${it.score} uri=${it.uri}" } ?: "none"}) for videoId=${pendingDownload.videoId}")
+            _uiState.update { state ->
+                state.copy(
+                    pendingDownloads = state.pendingDownloads.map {
+                        if (it.videoId == pendingDownload.videoId) it.copy(isDetectingFile = false) else it
+                    },
                     snackbarMessage = context.getString(R.string.no_matching_download_found),
                 )
             }
@@ -457,12 +475,20 @@ class MainViewModel @Inject constructor(
             readDisplayName(bestCandidate.uri) ?: bestCandidate.fallbackName
         }
 
-        AppLogger.metadata("AutoDetect: Finished. Winner detected: score=${bestCandidate.score} name='$detectedName' uri=${bestCandidate.uri}")
-        _uiState.update {
-            it.copy(
-                isDetectingFile = false,
-                detectedFile = DetectedFile(uri = bestCandidate.uri, score = bestCandidate.score),
-                detectedFileName = detectedName,
+        AppLogger.metadata("AutoDetect: Finished. Winner detected: score=${bestCandidate.score} name='$detectedName' uri=${bestCandidate.uri} for videoId=${pendingDownload.videoId}")
+        _uiState.update { state ->
+            state.copy(
+                pendingDownloads = state.pendingDownloads.map {
+                    if (it.videoId == pendingDownload.videoId) {
+                        it.copy(
+                            isDetectingFile = false,
+                            detectedFile = DetectedFile(uri = bestCandidate.uri, score = bestCandidate.score),
+                            detectedFileName = detectedName,
+                        )
+                    } else {
+                        it
+                    }
+                },
                 snackbarMessage = context.getString(R.string.found_matching_file, bestCandidate.score),
             )
         }

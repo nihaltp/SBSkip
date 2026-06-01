@@ -46,6 +46,9 @@ data class PendingDownload(
     val title: String,
     val thumbnailUrl: String?,
     val createdAtEpochMillis: Long,
+    val detectedFile: DetectedFile? = null,
+    val detectedFileName: String? = null,
+    val isDetectingFile: Boolean = false,
 )
 
 data class DetectedFile(
@@ -75,9 +78,8 @@ data class MainUiState(
     val mismatchFileDuration: Long = 0L,
     val mismatchYoutubeDuration: Long = 0L,
     val pendingEnqueueData: PendingEnqueueData? = null,
-    val pendingDownload: PendingDownload? = null,
-    val detectedFile: DetectedFile? = null,
-    val detectedFileName: String? = null,
+    val pendingDownloads: List<PendingDownload> = emptyList(),
+    val pendingDownloadForFilePicker: PendingDownload? = null,
     val queueItems: List<DownloadQueueItem> = emptyList(),
     val snackbarMessage: String? = null,
 )
