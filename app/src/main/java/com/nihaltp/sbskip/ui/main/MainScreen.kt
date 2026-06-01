@@ -515,7 +515,7 @@ fun MainScreen(
                             Text(stringResource(id = R.string.imported_path_label), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
                             SelectionContainer {
                                 Text(
-                                    text = formatUriToPath(item.localFileUri),
+                                    text = formatUriToPath(context, item.localFileUri),
                                     style = MaterialTheme.typography.bodyMedium,
                                 )
                             }
@@ -526,7 +526,7 @@ fun MainScreen(
                                 Text(stringResource(id = R.string.saved_location_label), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
                                 SelectionContainer {
                                     Text(
-                                        text = formatUriToPath(item.outputPath),
+                                        text = formatUriToPath(context, item.outputPath),
                                         style = MaterialTheme.typography.bodyMedium,
                                     )
                                 }
@@ -603,7 +603,7 @@ fun MainScreen(
                                 Text(stringResource(id = R.string.imported_path_label), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
                                 SelectionContainer {
                                     Text(
-                                        text = formatUriToPath(item.detectedFile.uri),
+                                        text = formatUriToPath(context, item.detectedFile.uri),
                                         style = MaterialTheme.typography.bodyMedium,
                                     )
                                 }
@@ -967,40 +967,123 @@ private fun DetailRow(label: String, value: String) {
     }
 }
 
-private fun formatUriToPath(uriString: String?): String {
+private fun formatUriToPath(context: android.content.Context, uriString: String?): String {
     if (uriString.isNullOrBlank()) return "N/A"
+    val decoded = try { android.net.Uri.decode(uriString) } catch (e: Exception) { uriString }
+
     try {
-        val decoded = android.net.Uri.decode(uriString)
-
-        if (decoded.contains("primary:")) {
-            return decoded.substringAfterLast("primary:")
-        }
-
-        if (decoded.contains("raw:")) {
-            return decoded.substringAfterLast("raw:")
-        }
-
-        if (decoded.contains("/document/")) {
-            val docPart = decoded.substringAfterLast("/document/")
-            if (docPart.isNotBlank()) {
-                return docPart
-            }
-        }
-
-        if (decoded.contains("/tree/")) {
-            val treePart = decoded.substringAfterLast("/tree/")
-            if (treePart.isNotBlank()) {
-                return treePart
-            }
-        }
-
         val uri = android.net.Uri.parse(uriString)
-        if (uri.scheme == "file") {
-            return uri.path ?: decoded
+        val resolver = context.contentResolver
+
+        if (uri.scheme == "content") {
+            var docId: String? = null
+            try {
+                if (android.provider.DocumentsContract.isDocumentUri(context, uri)) {
+                    docId = android.provider.DocumentsContract.getDocumentId(uri)
+                }
+            } catch (e: Exception) {
+                // Not a document Uri
+            }
+
+            var targetUri = uri
+            if (docId != null && docId.startsWith("msf:")) {
+                val mediaId = docId.substringAfter("msf:").toLongOrNull()
+                if (mediaId != null) {
+                    targetUri = android.content.ContentUris.withAppendedId(android.provider.MediaStore.Files.getContentUri("external"), mediaId)
+                }
+            }
+
+            try {
+                resolver.query(targetUri, arrayOf(android.provider.MediaStore.MediaColumns.DATA), null, null, null)?.use { cursor ->
+                    if (cursor.moveToFirst()) {
+                        val dataIndex = cursor.getColumnIndex(android.provider.MediaStore.MediaColumns.DATA)
+                        if (dataIndex != -1) {
+                            val path = cursor.getString(dataIndex)
+                            if (!path.isNullOrBlank()) {
+                                return formatPrettyAbsolutePath(path)
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                // Fallback
+            }
+
+            try {
+                resolver.query(targetUri, arrayOf(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.provider.MediaStore.MediaColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                    if (cursor.moveToFirst()) {
+                        val relativePathIndex = cursor.getColumnIndex(android.provider.MediaStore.MediaColumns.RELATIVE_PATH)
+                        val displayNameIndex = cursor.getColumnIndex(android.provider.MediaStore.MediaColumns.DISPLAY_NAME)
+                        val relPath = if (relativePathIndex != -1) cursor.getString(relativePathIndex) else null
+                        val dispName = if (displayNameIndex != -1) cursor.getString(displayNameIndex) else null
+                        if (!relPath.isNullOrBlank() || !dispName.isNullOrBlank()) {
+                            val folder = relPath?.trim('/')?.takeIf { it.isNotBlank() }
+                            return if (folder != null && dispName != null) "$folder/$dispName" else dispName ?: "$folder/"
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                // Fallback
+            }
+
+            try {
+                resolver.query(uri, arrayOf(android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME), null, null, null)?.use { cursor ->
+                    if (cursor.moveToFirst()) {
+                        val dispIndex = cursor.getColumnIndex(android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME)
+                        if (dispIndex != -1) {
+                            val dispName = cursor.getString(dispIndex)
+                            if (!dispName.isNullOrBlank()) {
+                                return dispName
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                // Fallback
+            }
         }
 
-        return decoded
+        if (uri.scheme == "file") {
+            val path = uri.path
+            if (!path.isNullOrBlank()) {
+                return formatPrettyAbsolutePath(path)
+            }
+        }
     } catch (e: Exception) {
-        return uriString
+        // Fallback
     }
+
+    if (decoded.contains("primary:")) {
+        val path = decoded.substringAfterLast("primary:").trim('/')
+        return if (path.isEmpty()) "SB Skip/" else "$path/"
+    }
+    if (decoded.contains("raw:")) {
+        return formatPrettyAbsolutePath(decoded.substringAfterLast("raw:"))
+    }
+    if (decoded.contains("/document/")) {
+        val docPart = decoded.substringAfterLast("/document/")
+        if (docPart.isNotBlank()) {
+            return docPart
+        }
+    }
+    if (decoded.contains("/tree/")) {
+        val treePart = decoded.substringAfterLast("/tree/")
+        if (treePart.isNotBlank()) {
+            return treePart
+        }
+    }
+
+    return decoded
+}
+
+private fun formatPrettyAbsolutePath(path: String): String {
+    val prefixes = listOf("/storage/emulated/0/", "storage/emulated/0/", "/sdcard/", "sdcard/")
+    var pretty = path
+    for (prefix in prefixes) {
+        if (pretty.startsWith(prefix, ignoreCase = true)) {
+            pretty = pretty.substring(prefix.length)
+            break
+        }
+    }
+    return pretty.trim('/')
 }

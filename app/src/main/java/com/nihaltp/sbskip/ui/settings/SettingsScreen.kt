@@ -88,7 +88,7 @@ fun SettingsScreen(
             } catch (e: Exception) {
                 com.nihaltp.sbskip.util.AppLogger.error("Settings", e, "Failed to take persistable URI permission")
             }
-            val resolvedPath = resolveRelativePathFromUri(it)
+            val resolvedPath = resolveRelativePathFromUri(context, it)
             viewModel.updateVideoFolder(resolvedPath, it.toString())
         }
     }
@@ -105,7 +105,7 @@ fun SettingsScreen(
             } catch (e: Exception) {
                 com.nihaltp.sbskip.util.AppLogger.error("Settings", e, "Failed to take persistable URI permission")
             }
-            val resolvedPath = resolveRelativePathFromUri(it)
+            val resolvedPath = resolveRelativePathFromUri(context, it)
             viewModel.updateAudioFolder(resolvedPath, it.toString())
         }
     }
@@ -122,7 +122,7 @@ fun SettingsScreen(
             } catch (e: Exception) {
                 com.nihaltp.sbskip.util.AppLogger.error("Settings", e, "Failed to take persistable URI permission")
             }
-            val resolvedPath = resolveRelativePathFromUri(it)
+            val resolvedPath = resolveRelativePathFromUri(context, it)
             viewModel.updateNewPipeVideoFolder(resolvedPath, it.toString())
         }
     }
@@ -139,7 +139,7 @@ fun SettingsScreen(
             } catch (e: Exception) {
                 com.nihaltp.sbskip.util.AppLogger.error("Settings", e, "Failed to take persistable URI permission")
             }
-            val resolvedPath = resolveRelativePathFromUri(it)
+            val resolvedPath = resolveRelativePathFromUri(context, it)
             viewModel.updateNewPipeAudioFolder(resolvedPath, it.toString())
         }
     }
@@ -792,14 +792,33 @@ private enum class SettingsDialogType {
     SB_CATEGORIES,
 }
 
-private fun resolveRelativePathFromUri(uri: Uri): String {
-    val docId = try {
-        android.provider.DocumentsContract.getTreeDocumentId(uri)
+private fun resolveRelativePathFromUri(context: android.content.Context, uri: Uri): String {
+    try {
+        val docId = android.provider.DocumentsContract.getTreeDocumentId(uri)
+
+        try {
+            val docUri = android.provider.DocumentsContract.buildDocumentUriUsingTree(uri, docId)
+            context.contentResolver.query(docUri, arrayOf(android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME), null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val index = cursor.getColumnIndex(android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME)
+                    if (index != -1) {
+                        val dispName = cursor.getString(index)
+                        if (!dispName.isNullOrBlank()) {
+                            return "$dispName/"
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            // Fallback
+        }
+
+        val split = docId.split(":")
+        val rawPath = if (split.size > 1) split[1] else docId
+        val trimmedPath = rawPath.trim('/')
+        return if (trimmedPath.isEmpty()) "SB Skip/" else "$trimmedPath/"
     } catch (e: Exception) {
-        uri.path
-    } ?: ""
-    val split = docId.split(":")
-    val rawPath = if (split.size > 1) split[1] else docId
-    val trimmedPath = rawPath.trim('/')
-    return if (trimmedPath.isEmpty()) "SB Skip/" else "$trimmedPath/"
+        val path = uri.path ?: ""
+        return if (path.isEmpty()) "SB Skip/" else "${path.trim('/')}/"
+    }
 }
