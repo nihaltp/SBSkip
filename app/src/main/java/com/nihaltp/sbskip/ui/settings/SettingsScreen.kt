@@ -123,7 +123,7 @@ fun SettingsScreen(
                 com.nihaltp.sbskip.util.AppLogger.error("Settings", e, "Failed to take persistable URI permission")
             }
             val resolvedPath = resolveRelativePathFromUri(it)
-            viewModel.updateNewPipeVideoFolder(resolvedPath)
+            viewModel.updateNewPipeVideoFolder(resolvedPath, it.toString())
         }
     }
 
@@ -140,7 +140,7 @@ fun SettingsScreen(
                 com.nihaltp.sbskip.util.AppLogger.error("Settings", e, "Failed to take persistable URI permission")
             }
             val resolvedPath = resolveRelativePathFromUri(it)
-            viewModel.updateNewPipeAudioFolder(resolvedPath)
+            viewModel.updateNewPipeAudioFolder(resolvedPath, it.toString())
         }
     }
 

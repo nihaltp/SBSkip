@@ -109,15 +109,15 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun updateNewPipeVideoFolder(folder: String) {
+    fun updateNewPipeVideoFolder(folder: String, uriString: String) {
         viewModelScope.launch {
-            settingsRepository.update { it.copy(newPipeVideoFolder = folder) }
+            settingsRepository.update { it.copy(newPipeVideoFolder = folder, newPipeVideoFolderUri = uriString) }
         }
     }
 
-    fun updateNewPipeAudioFolder(folder: String) {
+    fun updateNewPipeAudioFolder(folder: String, uriString: String) {
         viewModelScope.launch {
-            settingsRepository.update { it.copy(newPipeAudioFolder = folder) }
+            settingsRepository.update { it.copy(newPipeAudioFolder = folder, newPipeAudioFolderUri = uriString) }
         }
     }
 

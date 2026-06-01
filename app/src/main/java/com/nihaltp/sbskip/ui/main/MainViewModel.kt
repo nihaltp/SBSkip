@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.MediaStore
+import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nihaltp.sbskip.R
@@ -17,6 +18,7 @@ import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.model.PendingDownload
 import com.nihaltp.sbskip.navigation.ShareIntentEvent
 import com.nihaltp.sbskip.storage.DownloadStorage
+import com.nihaltp.sbskip.util.AppLogger
 import com.nihaltp.sbskip.util.YouTubeUrlParser
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -426,10 +428,12 @@ class MainViewModel @Inject constructor(
         val state = uiState.value
         val pendingDownload = state.pendingDownload
             ?: run {
+                AppLogger.metadata("AutoDetect: Aborted. No pending download in UI state.")
                 _uiState.update { it.copy(snackbarMessage = context.getString(R.string.no_pending_download)) }
                 return
             }
 
+        AppLogger.metadata("AutoDetect: Started for videoId=${pendingDownload.videoId} title='${pendingDownload.title}' url=${pendingDownload.url} createdTime=${pendingDownload.createdAtEpochMillis}")
         _uiState.update { it.copy(isDetectingFile = true, detectedFile = null, detectedFileName = null) }
 
         val settings = settingsRepository.settings.first()
@@ -439,6 +443,7 @@ class MainViewModel @Inject constructor(
         val bestCandidate = candidates.maxByOrNull { it.score }
 
         if (bestCandidate == null || bestCandidate.score < MIN_CONFIDENCE_SCORE) {
+            AppLogger.metadata("AutoDetect: Finished. No matching candidate found above threshold of $MIN_CONFIDENCE_SCORE (best candidate: ${bestCandidate?.let { "score=${it.score} uri=${it.uri}" } ?: "none"})")
             _uiState.update {
                 it.copy(
                     isDetectingFile = false,
@@ -452,6 +457,7 @@ class MainViewModel @Inject constructor(
             readDisplayName(bestCandidate.uri) ?: bestCandidate.fallbackName
         }
 
+        AppLogger.metadata("AutoDetect: Finished. Winner detected: score=${bestCandidate.score} name='$detectedName' uri=${bestCandidate.uri}")
         _uiState.update {
             it.copy(
                 isDetectingFile = false,
@@ -506,10 +512,12 @@ class MainViewModel @Inject constructor(
         settings: com.nihaltp.sbskip.model.AppSettings,
     ): List<DetectedCandidate> = withContext(Dispatchers.IO) {
         val now = System.currentTimeMillis()
-        val cutoffMillis = now - RECENT_WINDOW_MILLIS
         val resolver = context.contentResolver
         val candidates = mutableListOf<DetectedCandidate>()
 
+        AppLogger.metadata("AutoDetect: Scanning MediaStore collections for files...")
+
+        // 1. Query MediaStore collections
         listOf(
             MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
             MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
@@ -520,9 +528,54 @@ class MainViewModel @Inject constructor(
                 collectionUri = collectionUri,
                 pendingDownload = pendingDownload,
                 settings = settings,
-                cutoffMillis = cutoffMillis,
                 output = candidates,
             )
+        }
+
+        // 2. Query direct SAF custom folders (highly robust fallback/override)
+        listOf(
+            settings.newPipeVideoFolderUri to settings.newPipeVideoFolder,
+            settings.newPipeAudioFolderUri to settings.newPipeAudioFolder,
+        ).forEach { (folderUriStr, relativePathHint) ->
+            if (folderUriStr.isNotEmpty() && folderUriStr.startsWith("content://")) {
+                try {
+                    AppLogger.metadata("AutoDetect: Direct SAF scanning directory URI: $folderUriStr")
+                    val folderUri = Uri.parse(folderUriStr)
+                    val dirFile = DocumentFile.fromTreeUri(context, folderUri)
+                    if (dirFile != null && dirFile.exists() && dirFile.isDirectory) {
+                        val files = dirFile.listFiles()
+                        AppLogger.metadata("AutoDetect: SAF directory contains ${files.size} files.")
+                        files.forEach filesLoop@{ file ->
+                            if (file.isFile && file.name != null) {
+                                val displayName = file.name!!
+                                val timestampMillis = file.lastModified()
+
+                                val score = scoreCandidate(
+                                    pendingDownload = pendingDownload,
+                                    displayName = displayName,
+                                    relativePath = relativePathHint, // Ensures exact relative path match score is awarded
+                                    durationSeconds = null,
+                                    timestampMillis = if (timestampMillis > 0) timestampMillis else now,
+                                    settings = settings,
+                                )
+
+                                AppLogger.metadata("AutoDetect: Scored SAF file displayName='$displayName' uri=${file.uri} score=$score")
+                                candidates.add(
+                                    DetectedCandidate(
+                                        uri = file.uri.toString(),
+                                        score = score,
+                                        fallbackName = displayName,
+                                    ),
+                                )
+                            }
+                        }
+                    } else {
+                        AppLogger.metadata("AutoDetect: Direct SAF directory not found/resolved for URI: $folderUriStr")
+                    }
+                } catch (e: Exception) {
+                    AppLogger.error("MainViewModel", e, "AutoDetect: Failed to scan SAF directory: $folderUriStr")
+                }
+            }
         }
 
         candidates.sortedByDescending { it.score }
@@ -533,7 +586,6 @@ class MainViewModel @Inject constructor(
         collectionUri: Uri,
         pendingDownload: PendingDownload,
         settings: com.nihaltp.sbskip.model.AppSettings,
-        cutoffMillis: Long,
         output: MutableList<DetectedCandidate>,
     ) {
         val projection = arrayOf(
@@ -570,10 +622,6 @@ class MainViewModel @Inject constructor(
                     else -> 0L
                 }
 
-                if (timestampMillis in 1 until cutoffMillis) {
-                    continue
-                }
-
                 val uri = ContentUris.withAppendedId(collectionUri, id).toString()
                 val score = scoreCandidate(
                     pendingDownload = pendingDownload,
@@ -605,33 +653,45 @@ class MainViewModel @Inject constructor(
         val normalizedCandidate = normalizeText(stripExtension(displayName))
         var score = 0
 
-        score += titleSimilarityScore(normalizedTitle, normalizedCandidate)
+        val titleSim = titleSimilarityScore(normalizedTitle, normalizedCandidate)
+        score += titleSim
 
+        var hasVideoId = false
         if (pendingDownload.videoId.isNotBlank() && displayName.contains(pendingDownload.videoId, ignoreCase = true)) {
             score += 20
+            hasVideoId = true
         }
 
+        var folderMatched = false
         if (folderHintMatches(relativePath, settings.newPipeVideoFolder) || folderHintMatches(relativePath, settings.newPipeAudioFolder)) {
             score += 18
+            folderMatched = true
         }
 
         val ageMillis = kotlin.math.abs(timestampMillis - pendingDownload.createdAtEpochMillis)
-        score += when {
+        val ageBonus = when {
             ageMillis <= 2 * 60 * 1000L -> 22
             ageMillis <= 5 * 60 * 1000L -> 18
             ageMillis <= 10 * 60 * 1000L -> 12
             ageMillis <= 15 * 60 * 1000L -> 8
             else -> 0
         }
+        score += ageBonus
 
+        var durationBonus = 0
         if (durationSeconds != null && pendingDownload.title.isNotBlank()) {
             // We do not have the exact expected duration from oEmbed, but very short files are unlikely to match long YouTube titles.
             if (durationSeconds >= 30L) {
                 score += 4
+                durationBonus = 4
             }
         }
 
-        return score.coerceIn(0, 100)
+        val finalScore = score.coerceIn(0, 100)
+
+        AppLogger.metadata("AutoDetect: Scored candidate displayName='$displayName' path='$relativePath' finalScore=$finalScore [Breakdown: titleSim=$titleSim videoIdBonus=${if (hasVideoId) 20 else 0} folderBonus=${if (folderMatched) 18 else 0} ageBonus=$ageBonus durationBonus=$durationBonus]")
+
+        return finalScore
     }
 
     private fun titleSimilarityScore(expectedTitle: String, candidateTitle: String): Int {
