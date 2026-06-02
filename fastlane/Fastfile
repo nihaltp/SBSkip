@@ -42,6 +42,30 @@ def update_version_code(version_code:)
   File.write(gradle_file, updated_content)
 end
 
+def resolve_abi_apk(device_id)
+  device_abis = `adb -s #{device_id} shell getprop ro.product.cpu.abilist`.strip
+  device_abis = `adb -s #{device_id} shell getprop ro.product.cpu.abi`.strip if device_abis.empty?
+
+  primary_abi = device_abis.split(",").first.to_s.strip
+  apk_name = case primary_abi
+             when "arm64-v8a"
+               "app-arm64-v8a-debug.apk"
+             when "armeabi-v7a"
+               "app-armeabi-v7a-debug.apk"
+             when "x86_64"
+               "app-x86_64-debug.apk"
+             when "x86"
+               "app-x86-debug.apk"
+             else
+               "app-universal-debug.apk"
+             end
+
+  split_apk = File.expand_path("../app/build/outputs/apk/debug/#{apk_name}", __dir__)
+  universal_apk = File.expand_path("../app/build/outputs/apk/debug/app-universal-debug.apk", __dir__)
+
+  File.exist?(split_apk) ? split_apk : universal_apk
+end
+
 default_platform(:android)
 
 platform :android do
@@ -153,7 +177,6 @@ platform :android do
     puts "Using target device ID: #{device_id}"
 
     # Build the APKs
-    gradle(task: "clean")
     gradle(task: "assembleDebug")
     gradle(task: "assembleDebugAndroidTest")
 
@@ -164,8 +187,10 @@ platform :android do
 
     # Install both debug and test APKs
     puts "Installing debug and test APKs..."
-    sh("adb -s #{device_id} install -r -t ../app/build/outputs/apk/debug/app-debug.apk")
-    sh("adb -s #{device_id} install -r -t ../app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk")
+    debug_apk = resolve_abi_apk(device_id)
+    android_test_apk = File.expand_path("../app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk", __dir__)
+    sh("adb -s #{device_id} install -r -t -g #{debug_apk}")
+    sh("adb -s #{device_id} install -r -t -g #{android_test_apk}")
 
     # Clean previous screenshots on the device
     puts "Clearing previous screenshots on device..."
