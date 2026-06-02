@@ -103,7 +103,7 @@ fun MainScreen(
     onDeleteOriginalVideoChange: (Boolean) -> Unit,
     onOpenSettings: () -> Unit,
     onRemoveQueueItem: (Long) -> Unit,
-    onRetryQueueItem: (Long) -> Unit,
+    onRetryQueueItem: (Long, Boolean) -> Unit,
     onSnackbarShown: () -> Unit,
     onProceedAnyway: () -> Unit,
     onCancelMismatchDialog: () -> Unit,
@@ -479,7 +479,7 @@ fun MainScreen(
                 items(uiState.queueItems, key = { it.id }) { queueItem ->
                     QueueItemCard(
                         item = queueItem,
-                        onRetry = onRetryQueueItem,
+                        onRetry = { id -> onRetryQueueItem(id, false) },
                         onRemove = onRemoveQueueItem,
                         onErrorClick = { errorDialogItem = it },
                         onCardClick = { detailsDialogItem = it },
@@ -491,63 +491,103 @@ fun MainScreen(
 
     // Full error details popup with formatted GitHub bug report integration
     errorDialogItem?.let { item ->
-        val context = LocalContext.current
-        AlertDialog(
-            onDismissRequest = { errorDialogItem = null },
-            title = { Text(stringResource(id = R.string.error_details_title)) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(stringResource(id = R.string.error_details_intro), fontWeight = FontWeight.Medium)
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color.Black.copy(alpha = 0.05f),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(
-                            text = item.errorMessage.orEmpty(),
-                            modifier = Modifier.padding(12.dp),
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                    }
-                    Text(stringResource(id = R.string.error_report_explanation), style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        val titleParam = Uri.encode("[Bug] Pipeline clean failed: ${item.errorMessage?.take(45)}")
-                        val bodyTemplate = """
-                            |### SB Skip Pipeline Error Report
-                            |
-                            |* **App Version**: ${BuildConfig.VERSION_NAME}
-                            |* **Video Title**: ${item.title}
-                            |* **Video URL**: ${item.cleanUrl}
-                            |* **Media Type**: ${item.mediaType.name}
-                            |
-                            |#### Exception Stack Trace
-                            |```text
-                            |${item.errorMessage}
-                            |```
-                        """.trimMargin()
-                        val bodyParam = Uri.encode(bodyTemplate)
-                        val githubUrl = "https://github.com/nihaltp/SBSkip/issues/new?title=$titleParam&body=$bodyParam"
+        val errorMessage = item.errorMessage.orEmpty()
+        val isDurationMismatch = errorMessage.startsWith("Picked file duration")
 
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(githubUrl))
-                        context.startActivity(intent)
-                        errorDialogItem = null
-                    },
-                ) {
-                    Icon(Icons.Filled.BugReport, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(id = R.string.report_to_github))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { errorDialogItem = null }) {
-                    Text(stringResource(id = R.string.dismiss))
-                }
-            },
-        )
+        if (isDurationMismatch) {
+            val regex = """Picked file duration \((\d+)\s*s\) does not match YouTube video duration \((\d+)\s*s\)""".toRegex()
+            val matchResult = regex.find(errorMessage)
+            val fileDurationStr = matchResult?.groupValues?.getOrNull(1)?.toLongOrNull()?.let { seconds ->
+                val minutes = seconds / 60
+                val remaining = seconds % 60
+                "%d:%02d".format(minutes, remaining)
+            } ?: "--:--"
+            val youtubeDurationStr = matchResult?.groupValues?.getOrNull(2)?.toLongOrNull()?.let { seconds ->
+                val minutes = seconds / 60
+                val remaining = seconds % 60
+                "%d:%02d".format(minutes, remaining)
+            } ?: "--:--"
+
+            AlertDialog(
+                onDismissRequest = { errorDialogItem = null },
+                title = { Text(stringResource(id = R.string.dialog_duration_mismatch_title)) },
+                text = {
+                    Text(stringResource(id = R.string.dialog_duration_mismatch_message, fileDurationStr, youtubeDurationStr))
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            onRetryQueueItem(item.id, true)
+                            errorDialogItem = null
+                        },
+                    ) {
+                        Text(stringResource(id = R.string.dialog_duration_mismatch_proceed))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { errorDialogItem = null }) {
+                        Text(stringResource(id = R.string.cancel))
+                    }
+                },
+            )
+        } else {
+            AlertDialog(
+                onDismissRequest = { errorDialogItem = null },
+                title = { Text(stringResource(id = R.string.error_details_title)) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(stringResource(id = R.string.error_details_intro), fontWeight = FontWeight.Medium)
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color.Black.copy(alpha = 0.05f),
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(
+                                text = item.errorMessage.orEmpty(),
+                                modifier = Modifier.padding(12.dp),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                        Text(stringResource(id = R.string.error_report_explanation), style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            val titleParam = Uri.encode("[Bug] Pipeline clean failed: ${item.errorMessage?.take(45)}")
+                            val bodyTemplate = """
+                                |### SB Skip Pipeline Error Report
+                                |
+                                |* **App Version**: ${BuildConfig.VERSION_NAME}
+                                |* **Video Title**: ${item.title}
+                                |* **Video URL**: ${item.cleanUrl}
+                                |* **Media Type**: ${item.mediaType.name}
+                                |
+                                |#### Exception Stack Trace
+                                |```text
+                                |${item.errorMessage}
+                                |```
+                            """.trimMargin()
+                            val bodyParam = Uri.encode(bodyTemplate)
+                            val githubUrl = "https://github.com/nihaltp/SBSkip/issues/new?title=$titleParam&body=$bodyParam"
+
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(githubUrl))
+                            context.startActivity(intent)
+                            errorDialogItem = null
+                        },
+                    ) {
+                        Icon(Icons.Filled.BugReport, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(id = R.string.report_to_github))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { errorDialogItem = null }) {
+                        Text(stringResource(id = R.string.dismiss))
+                    }
+                },
+            )
+        }
     }
 
     // Full media details popup for card clicks

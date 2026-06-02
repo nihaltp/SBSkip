@@ -16,7 +16,7 @@ interface QueueRepository {
         deleteOriginalVideo: Boolean = true,
         audioOutputDirUri: String? = null,
     ): QueueActionResult
-    suspend fun retry(itemId: Long): QueueActionResult
+    suspend fun retry(itemId: Long, bypassDurationCheck: Boolean = false): QueueActionResult
     suspend fun remove(itemId: Long)
     suspend fun findItemById(itemId: Long): DownloadQueueItem?
     suspend fun markFetchingSegments(itemId: Long)

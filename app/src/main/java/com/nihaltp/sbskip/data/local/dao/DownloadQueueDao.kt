@@ -42,6 +42,24 @@ interface DownloadQueueDao {
     @Query(
         """
         UPDATE download_queue
+        SET url = :url,
+            status = :status,
+            errorMessage = :errorMessage,
+            updatedAtEpochMillis = :updatedAtEpochMillis
+        WHERE id = :id
+        """,
+    )
+    suspend fun updateUrlAndStatus(
+        id: Long,
+        url: String,
+        status: DownloadQueueStatus,
+        errorMessage: String?,
+        updatedAtEpochMillis: Long,
+    )
+
+    @Query(
+        """
+        UPDATE download_queue
         SET title = :title,
             thumbnailUrl = :thumbnailUrl,
             durationSeconds = :durationSeconds,

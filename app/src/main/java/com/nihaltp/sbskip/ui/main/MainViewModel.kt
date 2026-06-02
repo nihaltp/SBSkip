@@ -335,9 +335,9 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun retryQueueItem(id: Long) {
+    fun retryQueueItem(id: Long, bypassDurationCheck: Boolean = false) {
         viewModelScope.launch {
-            val result = queueRepository.retry(id)
+            val result = queueRepository.retry(id, bypassDurationCheck)
             _uiState.update { it.copy(snackbarMessage = result.message) }
         }
     }

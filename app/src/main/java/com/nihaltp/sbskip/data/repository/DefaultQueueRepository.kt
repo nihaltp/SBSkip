@@ -73,17 +73,31 @@ class DefaultQueueRepository @Inject constructor(
         return QueueActionResult(success = true, message = context.getString(R.string.download_started))
     }
 
-    override suspend fun retry(itemId: Long): QueueActionResult {
+    override suspend fun retry(itemId: Long, bypassDurationCheck: Boolean): QueueActionResult {
         val item = dao.findById(itemId)
             ?: return QueueActionResult(success = false, message = context.getString(R.string.error_item_not_found))
 
-        dao.updateStatus(
+        val updatedUrl = if (bypassDurationCheck) {
+            val url = item.url
+            if (!url.startsWith("sbskip://") && !url.contains("bypassDurationCheck=true")) {
+                val hasParams = url.contains("?")
+                val separator = if (hasParams) "&" else "?"
+                "$url${separator}bypassDurationCheck=true"
+            } else {
+                url
+            }
+        } else {
+            item.url
+        }
+
+        dao.updateUrlAndStatus(
             id = itemId,
+            url = updatedUrl,
             status = DownloadQueueStatus.QUEUED,
             errorMessage = null,
             updatedAtEpochMillis = System.currentTimeMillis(),
         )
-        AppLogger.queue("retry item id=$itemId")
+        AppLogger.queue("retry item id=$itemId bypassDurationCheck=$bypassDurationCheck url=$updatedUrl")
         workScheduler.schedule(itemId)
         return QueueActionResult(success = true, message = context.getString(R.string.retry_started))
     }
