@@ -65,8 +65,8 @@ class DataStoreSettingsRepository @Inject constructor(
         }.getOrDefault(DownloaderType.NEWPIPE)
 
         val audioSaveMode = runCatching {
-            AudioSaveMode.valueOf(preferences[PreferencesKeys.AUDIO_SAVE_MODE] ?: AudioSaveMode.PRESET_FOLDER.name)
-        }.getOrDefault(AudioSaveMode.PRESET_FOLDER)
+            AudioSaveMode.valueOf(preferences[PreferencesKeys.AUDIO_SAVE_MODE] ?: AudioSaveMode.RUNTIME_PICKER.name)
+        }.getOrDefault(AudioSaveMode.RUNTIME_PICKER)
 
         val categories = preferences[PreferencesKeys.SB_CATEGORIES]?.mapNotNull { name ->
             runCatching { SponsorBlockCategory.valueOf(name) }.getOrNull()
@@ -139,8 +139,8 @@ class DataStoreSettingsRepository @Inject constructor(
                 defaultConvertVideoToAudio = preferences[PreferencesKeys.DEFAULT_CONVERT_VIDEO_TO_AUDIO] ?: false,
                 defaultDeleteOriginalVideo = preferences[PreferencesKeys.DEFAULT_DELETE_ORIGINAL_VIDEO] ?: true,
                 audioSaveMode = runCatching {
-                    AudioSaveMode.valueOf(preferences[PreferencesKeys.AUDIO_SAVE_MODE] ?: AudioSaveMode.PRESET_FOLDER.name)
-                }.getOrDefault(AudioSaveMode.PRESET_FOLDER),
+                    AudioSaveMode.valueOf(preferences[PreferencesKeys.AUDIO_SAVE_MODE] ?: AudioSaveMode.RUNTIME_PICKER.name)
+                }.getOrDefault(AudioSaveMode.RUNTIME_PICKER),
             )
             val updated = transform(current)
 

@@ -8,15 +8,15 @@ class SettingsTest {
     @Test
     fun testAppSettingsDefaultAudioSaveMode() {
         val settings = AppSettings()
-        assertEquals(AudioSaveMode.PRESET_FOLDER, settings.audioSaveMode)
+        assertEquals(AudioSaveMode.RUNTIME_PICKER, settings.audioSaveMode)
     }
 
     @Test
     fun testAppSettingsCustomAudioSaveMode() {
         val settings = AppSettings(
-            audioSaveMode = AudioSaveMode.RUNTIME_PICKER,
+            audioSaveMode = AudioSaveMode.PRESET_FOLDER,
         )
-        assertEquals(AudioSaveMode.RUNTIME_PICKER, settings.audioSaveMode)
+        assertEquals(AudioSaveMode.PRESET_FOLDER, settings.audioSaveMode)
     }
 
     @Test

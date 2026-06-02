@@ -24,5 +24,5 @@ data class AppSettings(
     val autoCleanSuffix: String = "",
     val defaultConvertVideoToAudio: Boolean = false,
     val defaultDeleteOriginalVideo: Boolean = true,
-    val audioSaveMode: AudioSaveMode = AudioSaveMode.PRESET_FOLDER,
+    val audioSaveMode: AudioSaveMode = AudioSaveMode.RUNTIME_PICKER,
 )
