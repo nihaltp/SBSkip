@@ -54,6 +54,9 @@ fun AppNavGraph(
                 onProceedAnyway = viewModel::proceedWithMismatch,
                 onCancelMismatchDialog = viewModel::dismissDurationMismatchDialog,
                 onFindFile = viewModel::findFileForUrl,
+                onCancelConflictDialog = viewModel::cancelConflictDialog,
+                onReplaceConflict = viewModel::proceedConflictReplace,
+                onRenameConflict = viewModel::proceedConflictRename,
             )
         }
 

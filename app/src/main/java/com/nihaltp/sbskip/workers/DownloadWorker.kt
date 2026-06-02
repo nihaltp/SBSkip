@@ -167,13 +167,20 @@ class DownloadWorker @AssistedInject constructor(
             notificationManager.showActive(notificationId, taskTitle, 95, applicationContext.getString(R.string.notification_saving_media))
             val savedUriString = if (item.convertVideoToAudio) {
                 // Save to public storage as audio
-                val outputSuffix = settings.autoCleanSuffix
+                val outputSuffix = if (item.url.contains("noSuffix=true")) "" else settings.autoCleanSuffix
+                val baseTitle = if (taskTitle.endsWith(".${localMetadata.extension}", ignoreCase = true)) {
+                    taskTitle.substring(0, taskTitle.length - localMetadata.extension.length - 1)
+                } else {
+                    taskTitle
+                }
+                val forceOverwrite = settings.overwriteBehavior || item.url.contains("overwrite=true")
                 val savedUri = downloadStorage.saveToPublicStorage(
                     tempFile = tempOutputFile,
-                    title = "$taskTitle$outputSuffix",
+                    title = "$baseTitle$outputSuffix",
                     extension = outputExtension,
                     mediaType = com.nihaltp.sbskip.model.MediaType.AUDIO,
                     customFolderUri = item.audioOutputDirUri,
+                    overwrite = forceOverwrite,
                 )
 
                 // If deleteOriginalVideo is true, delete the original video file
@@ -183,7 +190,7 @@ class DownloadWorker @AssistedInject constructor(
                 }
 
                 savedUri
-            } else if (settings.overwriteBehavior) {
+            } else if (settings.overwriteBehavior || item.url.contains("overwrite=true")) {
                 val resolver = applicationContext.contentResolver
                 val targetUri = android.net.Uri.parse(item.localFileUri)
                 resolver.openOutputStream(targetUri, "w")?.use { output ->
@@ -194,13 +201,19 @@ class DownloadWorker @AssistedInject constructor(
                 AppLogger.worker("Successfully overwrote the original file where it was picked from: ${item.localFileUri}")
                 item.localFileUri
             } else {
-                val outputSuffix = settings.autoCleanSuffix
+                val outputSuffix = if (item.url.contains("noSuffix=true")) "" else settings.autoCleanSuffix
+                val baseTitle = if (taskTitle.endsWith(".${localMetadata.extension}", ignoreCase = true)) {
+                    taskTitle.substring(0, taskTitle.length - localMetadata.extension.length - 1)
+                } else {
+                    taskTitle
+                }
                 downloadStorage.saveToPublicStorage(
                     tempFile = tempOutputFile,
-                    title = "$taskTitle$outputSuffix",
+                    title = "$baseTitle$outputSuffix",
                     extension = localMetadata.extension,
                     mediaType = item.mediaType,
                     customFolderUri = if (item.mediaType == com.nihaltp.sbskip.model.MediaType.AUDIO) item.audioOutputDirUri else null,
+                    overwrite = false,
                 )
             }
 

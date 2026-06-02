@@ -96,7 +96,7 @@ class DataStoreSettingsRepository @Inject constructor(
             sponsorBlockUrl = preferences[PreferencesKeys.SPONSORBLOCK_URL] ?: "https://sponsor.ajay.app",
             sponsorBlockStatusUrl = preferences[PreferencesKeys.SPONSORBLOCK_STATUS_URL] ?: "https://status.sponsor.ajay.app",
             overwriteBehavior = preferences[PreferencesKeys.OVERWRITE_BEHAVIOR] ?: true,
-            autoCleanSuffix = preferences[PreferencesKeys.AUTO_CLEAN_SUFFIX] ?: "_cleaned",
+            autoCleanSuffix = preferences[PreferencesKeys.AUTO_CLEAN_SUFFIX] ?: "",
             defaultConvertVideoToAudio = preferences[PreferencesKeys.DEFAULT_CONVERT_VIDEO_TO_AUDIO] ?: false,
             defaultDeleteOriginalVideo = preferences[PreferencesKeys.DEFAULT_DELETE_ORIGINAL_VIDEO] ?: true,
             audioSaveMode = audioSaveMode,
@@ -135,7 +135,7 @@ class DataStoreSettingsRepository @Inject constructor(
                 sponsorBlockUrl = preferences[PreferencesKeys.SPONSORBLOCK_URL] ?: "https://sponsor.ajay.app",
                 sponsorBlockStatusUrl = preferences[PreferencesKeys.SPONSORBLOCK_STATUS_URL] ?: "https://status.sponsor.ajay.app",
                 overwriteBehavior = preferences[PreferencesKeys.OVERWRITE_BEHAVIOR] ?: true,
-                autoCleanSuffix = preferences[PreferencesKeys.AUTO_CLEAN_SUFFIX] ?: "_cleaned",
+                autoCleanSuffix = preferences[PreferencesKeys.AUTO_CLEAN_SUFFIX] ?: "",
                 defaultConvertVideoToAudio = preferences[PreferencesKeys.DEFAULT_CONVERT_VIDEO_TO_AUDIO] ?: false,
                 defaultDeleteOriginalVideo = preferences[PreferencesKeys.DEFAULT_DELETE_ORIGINAL_VIDEO] ?: true,
                 audioSaveMode = runCatching {

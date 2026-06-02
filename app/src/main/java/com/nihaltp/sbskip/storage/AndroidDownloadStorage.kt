@@ -56,6 +56,7 @@ class AndroidDownloadStorage @Inject constructor(
         extension: String,
         mediaType: MediaType,
         customFolderUri: String?,
+        overwrite: Boolean,
     ): String = withContext(Dispatchers.IO) {
         val filename = "$title.$extension"
         val mimeType = if (mediaType == MediaType.VIDEO) "video/$extension" else "audio/$extension"
@@ -82,7 +83,7 @@ class AndroidDownloadStorage @Inject constructor(
                 val dirFile = DocumentFile.fromTreeUri(context, folderUri)
                 if (dirFile != null && dirFile.exists() && dirFile.isDirectory) {
                     val existingFile = dirFile.findFile(filename)
-                    if (existingFile != null && settings.overwriteBehavior) {
+                    if (existingFile != null && (overwrite || settings.overwriteBehavior)) {
                         existingFile.delete()
                     }
                     val newFile = dirFile.createFile(mimeType, filename)
@@ -157,6 +158,17 @@ class AndroidDownloadStorage @Inject constructor(
         }
 
         val resolver = context.contentResolver
+        if (overwrite || settings.overwriteBehavior) {
+            val selection = "${MediaStore.MediaColumns.DISPLAY_NAME} = ?"
+            val selectionArgs = arrayOf(filename)
+            try {
+                val deletedCount = resolver.delete(contentUri, selection, selectionArgs)
+                AppLogger.worker("Deleted existing MediaStore entry for overwrite: $filename count=$deletedCount")
+            } catch (e: Exception) {
+                AppLogger.error("Storage", e, "Failed to delete existing MediaStore entry for overwrite")
+            }
+        }
+
         val uri = resolver.insert(contentUri, contentValues)
             ?: throw IOException("Failed to insert media entry into MediaStore")
 
@@ -243,6 +255,68 @@ class AndroidDownloadStorage @Inject constructor(
             AppLogger.error("Storage", e, "Failed to delete URI: $uriString")
             false
         }
+    }
+
+    override suspend fun checkFileExists(
+        title: String,
+        extension: String,
+        mediaType: MediaType,
+        customFolderUri: String?,
+    ): Boolean = withContext(Dispatchers.IO) {
+        val filename = "$title.$extension"
+        val settings = settingsRepository.settings.first()
+        val folderUriStr = if (!customFolderUri.isNullOrEmpty()) {
+            customFolderUri
+        } else if (mediaType == MediaType.VIDEO) {
+            settings.videoFolderUri
+        } else {
+            settings.audioFolderUri
+        }
+        if (folderUriStr.isNotEmpty() && folderUriStr.startsWith("content://")) {
+            try {
+                val folderUri = Uri.parse(folderUriStr)
+                val dirFile = DocumentFile.fromTreeUri(context, folderUri)
+                if (dirFile != null && dirFile.exists() && dirFile.isDirectory) {
+                    return@withContext dirFile.findFile(filename) != null
+                }
+            } catch (e: Exception) {
+                AppLogger.error("Storage", e, "Failed to check file existence in SAF folder")
+            }
+        }
+
+        // Fallback to MediaStore
+        val contentUri = if (mediaType == MediaType.VIDEO) {
+            MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+        } else {
+            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+        }
+        val projection = arrayOf(MediaStore.MediaColumns._ID)
+        val selection = "${MediaStore.MediaColumns.DISPLAY_NAME} = ?"
+        val selectionArgs = arrayOf(filename)
+        try {
+            context.contentResolver.query(contentUri, projection, selection, selectionArgs, null)?.use { cursor ->
+                return@withContext cursor.count > 0
+            }
+        } catch (e: Exception) {
+            AppLogger.error("Storage", e, "Failed to check file existence in MediaStore")
+        }
+
+        return@withContext false
+    }
+
+    override suspend fun getUniqueTitle(
+        baseTitle: String,
+        extension: String,
+        mediaType: MediaType,
+        customFolderUri: String?,
+    ): String = withContext(Dispatchers.IO) {
+        var suffixNum = 1
+        var candidateTitle = "${baseTitle}_$suffixNum"
+        while (checkFileExists(candidateTitle, extension, mediaType, customFolderUri)) {
+            suffixNum++
+            candidateTitle = "${baseTitle}_$suffixNum"
+        }
+        return@withContext candidateTitle
     }
 }
 

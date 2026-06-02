@@ -19,6 +19,7 @@ import com.nihaltp.sbskip.model.MainUiState
 import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.model.PendingAudioFolderPick
 import com.nihaltp.sbskip.model.PendingDownload
+import com.nihaltp.sbskip.model.PendingEnqueueData
 import com.nihaltp.sbskip.navigation.ShareIntentEvent
 import com.nihaltp.sbskip.storage.DownloadStorage
 import com.nihaltp.sbskip.util.AppLogger
@@ -231,9 +232,42 @@ class MainViewModel @Inject constructor(
             return
         }
 
+        // Conflict check!
+        val sourceExtension = metadata?.extension ?: "mp4"
+        val title = displayName.ifBlank { pendingDownload.title }
+        val baseTitle = if (title.endsWith(".$sourceExtension", ignoreCase = true)) {
+            title.substring(0, title.length - sourceExtension.length - 1)
+        } else {
+            title
+        }
+
+        val targetTitle = baseTitle + settings.autoCleanSuffix
+        val targetExtension = if (settings.defaultConvertVideoToAudio || mediaType == MediaType.AUDIO) "m4a" else sourceExtension
+
+        val exists = downloadStorage.checkFileExists(targetTitle, targetExtension, mediaType, customFolderUri)
+        if (exists) {
+            _uiState.update {
+                it.copy(
+                    showConflictDialog = true,
+                    conflictFileName = "$targetTitle.$targetExtension",
+                    pendingEnqueueData = PendingEnqueueData(
+                        fileUri = fileUri,
+                        title = title,
+                        youtubeUrl = pendingDownload.url,
+                        mediaType = mediaType,
+                        convertVideoToAudio = settings.defaultConvertVideoToAudio,
+                        deleteOriginalVideo = settings.defaultDeleteOriginalVideo,
+                        customFolderUri = customFolderUri,
+                        pendingDownload = pendingDownload,
+                    ),
+                )
+            }
+            return
+        }
+
         val result = queueRepository.enqueue(
             localFileUri = fileUri,
-            title = displayName.ifBlank { pendingDownload.title },
+            title = title,
             youtubeUrl = pendingDownload.url,
             mediaType = mediaType,
             convertVideoToAudio = settings.defaultConvertVideoToAudio,
@@ -342,6 +376,124 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    fun cancelConflictDialog() {
+        _uiState.update {
+            it.copy(
+                showConflictDialog = false,
+                pendingEnqueueData = null,
+            )
+        }
+    }
+
+    fun proceedConflictReplace() {
+        val pending = uiState.value.pendingEnqueueData ?: return
+        _uiState.update { it.copy(showConflictDialog = false, pendingEnqueueData = null) }
+        viewModelScope.launch {
+            val hasParams = pending.youtubeUrl.contains("?")
+            val separator = if (hasParams) "&" else "?"
+            val finalUrl = if (pending.youtubeUrl.isBlank()) {
+                "sbskip://local?overwrite=true"
+            } else {
+                pending.youtubeUrl + separator + "overwrite=true"
+            }
+
+            val result = queueRepository.enqueue(
+                localFileUri = pending.fileUri,
+                title = pending.title,
+                youtubeUrl = finalUrl,
+                mediaType = pending.mediaType,
+                convertVideoToAudio = pending.convertVideoToAudio,
+                deleteOriginalVideo = pending.deleteOriginalVideo,
+                audioOutputDirUri = pending.customFolderUri,
+            )
+
+            _uiState.update { state ->
+                val filteredPending = if (pending.pendingDownload != null) {
+                    state.pendingDownloads.filter { it.videoId != pending.pendingDownload.videoId }
+                } else {
+                    state.pendingDownloads.filter { it.url != pending.youtubeUrl }
+                }
+                if (result.success) {
+                    state.copy(
+                        urlInput = "",
+                        selectedFileUri = null,
+                        selectedFileName = "",
+                        selectedFileMediaType = null,
+                        convertVideoToAudio = false,
+                        deleteOriginalVideo = true,
+                        pendingDownloads = filteredPending,
+                        showDurationMismatchDialog = false,
+                        snackbarMessage = context.getString(R.string.snackbar_media_enqueued),
+                    )
+                } else {
+                    state.copy(snackbarMessage = result.message)
+                }
+            }
+        }
+    }
+
+    fun proceedConflictRename() {
+        val pending = uiState.value.pendingEnqueueData ?: return
+        _uiState.update { it.copy(showConflictDialog = false, pendingEnqueueData = null) }
+        viewModelScope.launch {
+            val settings = settingsRepository.settings.first()
+            val metadata = downloadStorage.queryMetadata(pending.fileUri)
+            val sourceExtension = metadata?.extension ?: "mp4"
+
+            val baseTitle = if (pending.title.endsWith(".$sourceExtension", ignoreCase = true)) {
+                pending.title.substring(0, pending.title.length - sourceExtension.length - 1)
+            } else {
+                pending.title
+            }
+
+            val targetTitle = baseTitle + settings.autoCleanSuffix
+            val targetExtension = if (pending.convertVideoToAudio || pending.mediaType == MediaType.AUDIO) "m4a" else sourceExtension
+
+            val uniqueTitle = downloadStorage.getUniqueTitle(targetTitle, targetExtension, pending.mediaType, pending.customFolderUri)
+
+            val hasParams = pending.youtubeUrl.contains("?")
+            val separator = if (hasParams) "&" else "?"
+            val finalUrl = if (pending.youtubeUrl.isBlank()) {
+                "sbskip://local?noSuffix=true"
+            } else {
+                pending.youtubeUrl + separator + "noSuffix=true"
+            }
+
+            val result = queueRepository.enqueue(
+                localFileUri = pending.fileUri,
+                title = uniqueTitle,
+                youtubeUrl = finalUrl,
+                mediaType = pending.mediaType,
+                convertVideoToAudio = pending.convertVideoToAudio,
+                deleteOriginalVideo = pending.deleteOriginalVideo,
+                audioOutputDirUri = pending.customFolderUri,
+            )
+
+            _uiState.update { state ->
+                val filteredPending = if (pending.pendingDownload != null) {
+                    state.pendingDownloads.filter { it.videoId != pending.pendingDownload.videoId }
+                } else {
+                    state.pendingDownloads.filter { it.url != pending.youtubeUrl }
+                }
+                if (result.success) {
+                    state.copy(
+                        urlInput = "",
+                        selectedFileUri = null,
+                        selectedFileName = "",
+                        selectedFileMediaType = null,
+                        convertVideoToAudio = false,
+                        deleteOriginalVideo = true,
+                        pendingDownloads = filteredPending,
+                        showDurationMismatchDialog = false,
+                        snackbarMessage = context.getString(R.string.snackbar_media_enqueued),
+                    )
+                } else {
+                    state.copy(snackbarMessage = result.message)
+                }
+            }
+        }
+    }
+
     private suspend fun queueCurrentItemInternal(force: Boolean = false, customFolderUri: String? = null) {
         val state = uiState.value
         val fileUri = state.selectedFileUri
@@ -424,6 +576,37 @@ class MainViewModel @Inject constructor(
         }
 
         val title = state.selectedFileName.ifBlank { metadata?.title ?: context.getString(R.string.imported_file_fallback) }
+
+        // Conflict check!
+        val sourceExtension = metadata?.extension ?: "mp4"
+        val baseTitle = if (title.endsWith(".$sourceExtension", ignoreCase = true)) {
+            title.substring(0, title.length - sourceExtension.length - 1)
+        } else {
+            title
+        }
+
+        val targetTitle = baseTitle + settings.autoCleanSuffix
+        val targetExtension = if (isConvertOnly || state.convertVideoToAudio || mediaType == MediaType.AUDIO) "m4a" else sourceExtension
+
+        val exists = downloadStorage.checkFileExists(targetTitle, targetExtension, mediaType, customFolderUri)
+        if (exists) {
+            _uiState.update {
+                it.copy(
+                    showConflictDialog = true,
+                    conflictFileName = "$targetTitle.$targetExtension",
+                    pendingEnqueueData = PendingEnqueueData(
+                        fileUri = fileUri,
+                        title = title,
+                        youtubeUrl = youtubeUrl,
+                        mediaType = mediaType,
+                        convertVideoToAudio = if (isConvertOnly) true else state.convertVideoToAudio,
+                        deleteOriginalVideo = state.deleteOriginalVideo,
+                        customFolderUri = customFolderUri,
+                    ),
+                )
+            }
+            return
+        }
 
         val finalUrl = if (isConvertOnly) {
             ""

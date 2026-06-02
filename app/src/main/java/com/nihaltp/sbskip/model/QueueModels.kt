@@ -62,6 +62,10 @@ data class PendingEnqueueData(
     val title: String,
     val youtubeUrl: String,
     val mediaType: MediaType,
+    val convertVideoToAudio: Boolean = false,
+    val deleteOriginalVideo: Boolean = true,
+    val customFolderUri: String? = null,
+    val pendingDownload: PendingDownload? = null,
 )
 
 enum class AudioFolderPickTarget {
@@ -90,6 +94,8 @@ data class MainUiState(
     val isDetectingFile: Boolean = false,
     val isVerifyingDuration: Boolean = false,
     val showDurationMismatchDialog: Boolean = false,
+    val showConflictDialog: Boolean = false,
+    val conflictFileName: String = "",
     val mismatchFileDuration: Long = 0L,
     val mismatchYoutubeDuration: Long = 0L,
     val pendingEnqueueData: PendingEnqueueData? = null,

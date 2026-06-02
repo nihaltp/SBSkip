@@ -21,7 +21,7 @@ data class AppSettings(
     val sponsorBlockUrl: String = "https://sponsor.ajay.app",
     val sponsorBlockStatusUrl: String = "https://status.sponsor.ajay.app",
     val overwriteBehavior: Boolean = true,
-    val autoCleanSuffix: String = "_cleaned",
+    val autoCleanSuffix: String = "",
     val defaultConvertVideoToAudio: Boolean = false,
     val defaultDeleteOriginalVideo: Boolean = true,
     val audioSaveMode: AudioSaveMode = AudioSaveMode.PRESET_FOLDER,

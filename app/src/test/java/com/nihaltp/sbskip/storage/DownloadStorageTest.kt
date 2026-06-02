@@ -21,6 +21,7 @@ class DownloadStorageTest {
             extension: String,
             mediaType: MediaType,
             customFolderUri: String?,
+            overwrite: Boolean,
         ): String {
             return ""
         }
@@ -32,6 +33,24 @@ class DownloadStorageTest {
         override suspend fun deleteUri(uriString: String): Boolean {
             deletedUris.add(uriString)
             return true
+        }
+
+        override suspend fun checkFileExists(
+            title: String,
+            extension: String,
+            mediaType: MediaType,
+            customFolderUri: String?,
+        ): Boolean {
+            return false
+        }
+
+        override suspend fun getUniqueTitle(
+            baseTitle: String,
+            extension: String,
+            mediaType: MediaType,
+            customFolderUri: String?,
+        ): String {
+            return "${baseTitle}_1"
         }
     }
 

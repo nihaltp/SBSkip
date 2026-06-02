@@ -108,6 +108,9 @@ fun MainScreen(
     onProceedAnyway: () -> Unit,
     onCancelMismatchDialog: () -> Unit,
     onFindFile: () -> Unit,
+    onCancelConflictDialog: () -> Unit,
+    onReplaceConflict: () -> Unit,
+    onRenameConflict: () -> Unit,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val clipboardManager = LocalClipboardManager.current
@@ -751,6 +754,32 @@ fun MainScreen(
             dismissButton = {
                 TextButton(onClick = onCancelMismatchDialog) {
                     Text(stringResource(id = R.string.cancel))
+                }
+            },
+        )
+    }
+
+    if (uiState.showConflictDialog) {
+        AlertDialog(
+            onDismissRequest = onCancelConflictDialog,
+            title = { Text(stringResource(id = R.string.dialog_conflict_title)) },
+            text = {
+                Text(stringResource(id = R.string.dialog_conflict_message, uiState.conflictFileName))
+            },
+            confirmButton = {
+                Button(onClick = onReplaceConflict) {
+                    Text(stringResource(id = R.string.dialog_conflict_replace))
+                }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(onClick = onCancelConflictDialog) {
+                        Text(stringResource(id = R.string.cancel))
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    TextButton(onClick = onRenameConflict) {
+                        Text(stringResource(id = R.string.dialog_conflict_rename))
+                    }
                 }
             },
         )

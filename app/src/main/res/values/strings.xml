@@ -252,4 +252,10 @@
     <string name="settings_audio_save_mode_preset">Preset folder</string>
     <string name="settings_audio_save_mode_picker">Runtime folder picker</string>
     <string name="settings_audio_save_mode_desc">Controls where converted audio files are saved</string>
+
+    <!-- Conflict Dialog -->
+    <string name="dialog_conflict_title">File Already Exists</string>
+    <string name="dialog_conflict_message">A file named \"%1$s\" already exists in the destination folder. Do you want to replace it or save it as a new file?</string>
+    <string name="dialog_conflict_replace">Replace</string>
+    <string name="dialog_conflict_rename">Save New File</string>
 </resources>
