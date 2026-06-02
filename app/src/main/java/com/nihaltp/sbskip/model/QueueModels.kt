@@ -38,7 +38,7 @@ data class DownloadQueueItem(
         } ?: "--:--"
 
     val cleanUrl: String
-        get() = url.substringBefore("?bypassDurationCheck").substringBefore("&bypassDurationCheck")
+        get() = if (url.startsWith("sbskip://")) "" else url.substringBefore("?bypassDurationCheck").substringBefore("&bypassDurationCheck")
 }
 
 data class PendingDownload(

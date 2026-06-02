@@ -185,4 +185,27 @@ class QueueModelsTest {
         val stateCleared = stateWithPick.copy(pendingAudioFolderPick = null)
         assertNull(stateCleared.pendingAudioFolderPick)
     }
+
+    @Test
+    fun testCleanUrlWithSbskipScheme() {
+        val item = DownloadQueueItem(
+            id = 1L,
+            url = "sbskip://local?overwrite=true",
+            title = "Test Clean",
+            localFileUri = "content://media/external/video/1",
+            mediaType = MediaType.AUDIO,
+            thumbnailUrl = null,
+            durationSeconds = 120L,
+            status = DownloadQueueStatus.QUEUED,
+            createdAtEpochMillis = 1000L,
+            updatedAtEpochMillis = 1000L,
+            errorMessage = null,
+            outputPath = null,
+            convertVideoToAudio = true,
+            deleteOriginalVideo = true,
+            audioOutputDirUri = null,
+        )
+
+        assertEquals("", item.cleanUrl)
+    }
 }

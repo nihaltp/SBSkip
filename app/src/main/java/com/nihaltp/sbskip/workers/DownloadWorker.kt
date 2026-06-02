@@ -85,7 +85,7 @@ class DownloadWorker @AssistedInject constructor(
             val fileDuration = localMetadata.durationSeconds ?: 0L
             val keepRanges = mutableListOf<Pair<Double, Double>>()
 
-            if (item.url.isNotBlank()) {
+            if (item.url.isNotBlank() && !item.url.startsWith("sbskip://")) {
                 // Parse Video ID from YouTube URL
                 val videoId = YouTubeUrlParser.extractVideoId(item.url)
                     ?: throw IllegalArgumentException(applicationContext.getString(R.string.enter_valid_url))
