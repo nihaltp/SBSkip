@@ -225,6 +225,25 @@ class AndroidDownloadStorage @Inject constructor(
             durationSeconds = durationSeconds,
         )
     }
+
+    override suspend fun deleteUri(uriString: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val uri = Uri.parse(uriString)
+            val documentFile = DocumentFile.fromSingleUri(context, uri)
+            if (documentFile != null && documentFile.exists()) {
+                val deleted = documentFile.delete()
+                AppLogger.worker("Deleted URI via SAF: $uriString status=$deleted")
+                if (deleted) return@withContext true
+            }
+            // Fallback to ContentResolver
+            val deletedCount = context.contentResolver.delete(uri, null, null)
+            AppLogger.worker("Deleted URI via ContentResolver: $uriString count=$deletedCount")
+            deletedCount > 0
+        } catch (e: Exception) {
+            AppLogger.error("Storage", e, "Failed to delete URI: $uriString")
+            false
+        }
+    }
 }
 
 private fun resolveRelativePathFromUri(context: android.content.Context, uri: Uri): String {

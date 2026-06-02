@@ -178,14 +178,8 @@ class DownloadWorker @AssistedInject constructor(
 
                 // If deleteOriginalVideo is true, delete the original video file
                 if (item.deleteOriginalVideo) {
-                    try {
-                        val resolver = applicationContext.contentResolver
-                        val originalUri = android.net.Uri.parse(item.localFileUri)
-                        val deletedCount = resolver.delete(originalUri, null, null)
-                        AppLogger.worker("Deleted original video file: $originalUri (count: $deletedCount)")
-                    } catch (e: Exception) {
-                        AppLogger.error("Worker", e, "Failed to delete original video file: ${item.localFileUri}")
-                    }
+                    val deleted = downloadStorage.deleteUri(item.localFileUri)
+                    AppLogger.worker("Deleted original video file: ${item.localFileUri} status=$deleted")
                 }
 
                 savedUri
