@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [1.2.0] - 2026-06-02
+
+Commits included in this release:
+- cdee80b  feat: silence app notifications during fastlane screenshot
+- b882a68  feat: install specific apk files
+- 4172f18  feat: enhance URL handling to support sbskip scheme in DownloadQueueItem and DownloadWorker
+- 21ae290  feat: refactor suffix setting display logic in SettingsScreen
+- 0078c50  feat: implement file conflict handling with options to replace or rename existing files
+- 3472a8f  feat: implement deleteUri method in DownloadStorage interface and its usage in DownloadWorker
+- b3575dc  feat: add audio save mode settings and implement folder picker for audio output
+- 4eef473  feat: implement file permissions handling and UI updates for media access
+- ac7e90f  feat: update URI path resolution to include context for better handling
+- e2d3a09  feat: implement pending downloads management and UI updates
+- 58a1402  feat: add support for newPipe video and audio folder URIs in settings
+- e28b15e  feat: implement file log rotation and add tests
+- 98249b2  feat: add ABI splits and version code mapping for multiple architectures
+- d2707eb  feat: enhance screenshot test with error handling and logging
+
 ## [1.1.0] - 2026-05-31
 
 ### Added
