@@ -61,6 +61,8 @@ import com.nihaltp.sbskip.R
 import com.nihaltp.sbskip.model.DownloaderType
 import com.nihaltp.sbskip.model.SponsorBlockCategory
 import com.nihaltp.sbskip.model.ThemeMode
+import com.nihaltp.sbskip.util.AppLogger
+import com.nihaltp.sbskip.util.PermissionHelper
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,6 +75,47 @@ fun SettingsScreen(
 
     val context = LocalContext.current
     var showLicensesDialog by remember { mutableStateOf(false) }
+    var filesPermissionGranted by remember {
+        mutableStateOf(PermissionHelper.hasFilesPermission(context))
+    }
+    var notificationPermissionGranted by remember {
+        mutableStateOf(PermissionHelper.hasNotificationPermission(context))
+    }
+
+    val openAppSettings = {
+        try {
+            AppLogger.metadata("Permissions: Redirecting user to system App Settings...")
+            val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = Uri.fromParts("package", context.packageName, null)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            AppLogger.error("Settings", e, "Failed to open application details settings")
+        }
+    }
+
+    val filesPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions(),
+    ) { results ->
+        filesPermissionGranted = PermissionHelper.hasFilesPermission(context)
+        AppLogger.metadata("Permissions: Files permission result: $results, hasPermission=$filesPermissionGranted")
+        if (!filesPermissionGranted) {
+            Toast.makeText(context, "Permission denied. Opening app settings to grant it manually...", Toast.LENGTH_LONG).show()
+            openAppSettings()
+        }
+    }
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions(),
+    ) { results ->
+        notificationPermissionGranted = PermissionHelper.hasNotificationPermission(context)
+        AppLogger.metadata("Permissions: Notification permission result: $results, hasPermission=$notificationPermissionGranted")
+        viewModel.updateNotificationsEnabled(notificationPermissionGranted)
+        if (!notificationPermissionGranted) {
+            Toast.makeText(context, "Permission denied. Opening app settings to grant it manually...", Toast.LENGTH_LONG).show()
+            openAppSettings()
+        }
+    }
     var showLogsDialog by remember { mutableStateOf(false) }
     var logRefreshKey by remember { mutableStateOf(0) }
 
@@ -195,7 +238,17 @@ fun SettingsScreen(
                             title = stringResource(id = R.string.settings_notifications_title),
                             description = stringResource(id = R.string.settings_notifications_desc),
                             checked = settings.notificationsEnabled,
-                            onCheckedChange = viewModel::updateNotificationsEnabled,
+                            onCheckedChange = { checked ->
+                                if (checked) {
+                                    if (PermissionHelper.hasNotificationPermission(context)) {
+                                        viewModel.updateNotificationsEnabled(true)
+                                    } else {
+                                        notificationPermissionLauncher.launch(PermissionHelper.getRequiredNotificationPermissions())
+                                    }
+                                } else {
+                                    viewModel.updateNotificationsEnabled(false)
+                                }
+                            },
                         )
                         val themeModeLabel = when (settings.themeMode) {
                             ThemeMode.LIGHT -> stringResource(id = R.string.theme_mode_light)
@@ -207,6 +260,39 @@ fun SettingsScreen(
                             value = themeModeLabel,
                             onClick = { activeDialogType = SettingsDialogType.THEME },
                         )
+                    }
+                }
+
+                val showFilesRow = !filesPermissionGranted
+                val showNotificationRow = !notificationPermissionGranted
+                if (showFilesRow || showNotificationRow) {
+                    item {
+                        SettingsSection(title = stringResource(id = R.string.settings_permissions_needed_title)) {
+                            if (showFilesRow) {
+                                SettingValueRow(
+                                    title = stringResource(id = R.string.settings_permission_files_title),
+                                    value = stringResource(id = R.string.permission_status_denied),
+                                    onClick = {
+                                        AppLogger.metadata("Permissions: 'Tap to grant' clicked for Files & Media permission.")
+                                        filesPermissionLauncher.launch(
+                                            PermissionHelper.getRequiredFilesPermissions(),
+                                        )
+                                    },
+                                )
+                            }
+                            if (showNotificationRow) {
+                                SettingValueRow(
+                                    title = stringResource(id = R.string.settings_permission_notifications_title),
+                                    value = stringResource(id = R.string.permission_status_denied),
+                                    onClick = {
+                                        AppLogger.metadata("Permissions: 'Tap to grant' clicked for Notification permission.")
+                                        notificationPermissionLauncher.launch(
+                                            PermissionHelper.getRequiredNotificationPermissions(),
+                                        )
+                                    },
+                                )
+                            }
+                        }
                     }
                 }
 

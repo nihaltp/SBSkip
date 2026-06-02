@@ -238,4 +238,13 @@
     <!-- Direct Video to Audio Option -->
     <string name="convert_to_audio_button">Convert to Audio</string>
     <string name="convert_to_audio_only_notice">No YouTube link provided. Convert this video file directly to audio.</string>
+
+    <!-- Files Access Permissions -->
+    <string name="settings_permission_files_title">Files &amp; Media Permission</string>
+    <string name="settings_permission_files_desc">Allow SBSkip to search for media downloads on your device.</string>
+    <string name="permission_status_granted">Granted</string>
+    <string name="permission_status_denied">Denied (Tap to grant)</string>
+    <string name="permission_files_rationale">SBSkip needs permission to access files to automatically find and select your media downloads.</string>
+    <string name="settings_permissions_needed_title">Permissions Needed</string>
+    <string name="settings_permission_notifications_title">Notification Permission</string>
 </resources>

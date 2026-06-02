@@ -82,6 +82,8 @@ import com.nihaltp.sbskip.model.DownloadQueueItem
 import com.nihaltp.sbskip.model.DownloadQueueStatus
 import com.nihaltp.sbskip.model.MainUiState
 import com.nihaltp.sbskip.model.PendingDownload
+import com.nihaltp.sbskip.util.AppLogger
+import com.nihaltp.sbskip.util.PermissionHelper
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -108,6 +110,27 @@ fun MainScreen(
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val clipboardManager = LocalClipboardManager.current
+    val context = LocalContext.current
+    var filesPermissionGranted by remember {
+        mutableStateOf(PermissionHelper.hasFilesPermission(context))
+    }
+    val filesPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions(),
+    ) { results ->
+        filesPermissionGranted = PermissionHelper.hasFilesPermission(context)
+        AppLogger.metadata("Permissions: Files permission result from MainScreen: $results, hasPermission=$filesPermissionGranted")
+    }
+    val allPermissionsLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions(),
+    ) { results ->
+        filesPermissionGranted = PermissionHelper.hasFilesPermission(context)
+        AppLogger.metadata("Permissions: All permissions result from MainScreen startup: $results, hasFilesPermission=$filesPermissionGranted")
+    }
+    val requestFilesPermissionWithRationale = {
+        AppLogger.metadata("Permissions: Showing files permission rationale Toast and launching picker request...")
+        Toast.makeText(context, context.getString(R.string.permission_files_rationale), Toast.LENGTH_LONG).show()
+        filesPermissionLauncher.launch(PermissionHelper.getRequiredFilesPermissions())
+    }
     val coroutineScope = rememberCoroutineScope()
     val clipboardEmptyText = stringResource(id = R.string.clipboard_empty)
 
@@ -125,6 +148,15 @@ fun MainScreen(
             uri?.let(onFileSelected)
         },
     )
+
+    LaunchedEffect(Unit) {
+        if (!PermissionHelper.hasAllRequiredPermissions(context)) {
+            AppLogger.metadata("Permissions: App launched. Requesting files and notifications permissions...")
+            allPermissionsLauncher.launch(PermissionHelper.getAllRequiredPermissions())
+        } else {
+            AppLogger.metadata("Permissions: App launched. All required permissions are already granted.")
+        }
+    }
 
     LaunchedEffect(uiState.snackbarMessage) {
         uiState.snackbarMessage?.let {
@@ -258,7 +290,11 @@ fun MainScreen(
                                     ) {
                                         ElevatedButton(
                                             onClick = {
-                                                filePickerLauncher.launch(arrayOf("video/mp4", "audio/mpeg", "audio/mp3", "audio/x-m4a", "audio/mp4"))
+                                                if (PermissionHelper.hasFilesPermission(context)) {
+                                                    filePickerLauncher.launch(arrayOf("video/mp4", "audio/mpeg", "audio/mp3", "audio/x-m4a", "audio/mp4"))
+                                                } else {
+                                                    requestFilesPermissionWithRationale()
+                                                }
                                             },
                                             modifier = Modifier.fillMaxWidth(),
                                         ) {
@@ -270,7 +306,13 @@ fun MainScreen(
                                         if (uiState.urlInput.isNotBlank()) {
                                             val isLoading = uiState.isFetchingMetadata || uiState.isDetectingFile
                                             OutlinedButton(
-                                                onClick = onFindFile,
+                                                onClick = {
+                                                    if (PermissionHelper.hasFilesPermission(context)) {
+                                                        onFindFile()
+                                                    } else {
+                                                        requestFilesPermissionWithRationale()
+                                                    }
+                                                },
                                                 enabled = !isLoading,
                                                 modifier = Modifier.fillMaxWidth(),
                                             ) {
@@ -374,10 +416,20 @@ fun MainScreen(
                         detectedFileName = pending.detectedFileName,
                         detectedFile = pending.detectedFile,
                         isDetecting = pending.isDetectingFile,
-                        onAutoDetect = { onAutoDetectPending(pending) },
+                        onAutoDetect = {
+                            if (PermissionHelper.hasFilesPermission(context)) {
+                                onAutoDetectPending(pending)
+                            } else {
+                                requestFilesPermissionWithRationale()
+                            }
+                        },
                         onPickFileManually = {
-                            onStartManualPickForPending(pending)
-                            filePickerLauncher.launch(arrayOf("video/mp4", "audio/mpeg", "audio/mp3", "audio/x-m4a", "audio/mp4"))
+                            if (PermissionHelper.hasFilesPermission(context)) {
+                                onStartManualPickForPending(pending)
+                                filePickerLauncher.launch(arrayOf("video/mp4", "audio/mpeg", "audio/mp3", "audio/x-m4a", "audio/mp4"))
+                            } else {
+                                requestFilesPermissionWithRationale()
+                            }
                         },
                         onCancel = { onCancelPending(pending) },
                         onConfirmDetectedFile = { onConfirmPending(pending) },
