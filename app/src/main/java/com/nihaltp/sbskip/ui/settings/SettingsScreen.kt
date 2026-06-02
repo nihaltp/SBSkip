@@ -348,15 +348,15 @@ fun SettingsScreen(
                             value = audioSaveModeLabel,
                             onClick = { activeDialogType = SettingsDialogType.AUDIO_SAVE_MODE },
                         )
+                        SettingValueRow(
+                            title = stringResource(id = R.string.settings_suffix_title),
+                            value = settings.autoCleanSuffix,
+                            onClick = {
+                                activeDialogType = SettingsDialogType.SUFFIX
+                                textInputState = settings.autoCleanSuffix
+                            },
+                        )
                         if (!settings.overwriteBehavior) {
-                            SettingValueRow(
-                                title = stringResource(id = R.string.settings_suffix_title),
-                                value = settings.autoCleanSuffix,
-                                onClick = {
-                                    activeDialogType = SettingsDialogType.SUFFIX
-                                    textInputState = settings.autoCleanSuffix
-                                },
-                            )
                             SettingValueRow(
                                 title = stringResource(id = R.string.settings_video_folder),
                                 value = settings.videoFolder,
