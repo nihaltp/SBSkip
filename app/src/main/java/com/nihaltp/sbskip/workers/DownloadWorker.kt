@@ -173,6 +173,7 @@ class DownloadWorker @AssistedInject constructor(
                     title = "$taskTitle$outputSuffix",
                     extension = outputExtension,
                     mediaType = com.nihaltp.sbskip.model.MediaType.AUDIO,
+                    customFolderUri = item.audioOutputDirUri,
                 )
 
                 // If deleteOriginalVideo is true, delete the original video file
@@ -205,6 +206,7 @@ class DownloadWorker @AssistedInject constructor(
                     title = "$taskTitle$outputSuffix",
                     extension = localMetadata.extension,
                     mediaType = item.mediaType,
+                    customFolderUri = if (item.mediaType == com.nihaltp.sbskip.model.MediaType.AUDIO) item.audioOutputDirUri else null,
                 )
             }
 

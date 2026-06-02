@@ -12,9 +12,12 @@ import androidx.lifecycle.viewModelScope
 import com.nihaltp.sbskip.R
 import com.nihaltp.sbskip.data.repository.QueueRepository
 import com.nihaltp.sbskip.data.repository.SettingsRepository
+import com.nihaltp.sbskip.model.AudioFolderPickTarget
+import com.nihaltp.sbskip.model.AudioSaveMode
 import com.nihaltp.sbskip.model.DetectedFile
 import com.nihaltp.sbskip.model.MainUiState
 import com.nihaltp.sbskip.model.MediaType
+import com.nihaltp.sbskip.model.PendingAudioFolderPick
 import com.nihaltp.sbskip.model.PendingDownload
 import com.nihaltp.sbskip.navigation.ShareIntentEvent
 import com.nihaltp.sbskip.storage.DownloadStorage
@@ -125,6 +128,43 @@ class MainViewModel @Inject constructor(
         _uiState.update { it.copy(deleteOriginalVideo = value) }
     }
 
+    fun onAudioFolderPicked(uri: Uri?) {
+        val state = uiState.value
+        val pendingPick = state.pendingAudioFolderPick ?: return
+        _uiState.update { it.copy(pendingAudioFolderPick = null) }
+
+        if (uri == null) {
+            if (pendingPick.target == AudioFolderPickTarget.SUBMIT) {
+                _uiState.update { it.copy(pendingEnqueueData = null, showDurationMismatchDialog = false) }
+            }
+            return
+        }
+
+        viewModelScope.launch {
+            when (pendingPick.target) {
+                AudioFolderPickTarget.SUBMIT -> {
+                    queueCurrentItemInternal(force = pendingPick.force, customFolderUri = uri.toString())
+                }
+                AudioFolderPickTarget.CONFIRM_PENDING -> {
+                    val pendingDownload = pendingPick.pendingDownload ?: return@launch
+                    val fileUri = pendingPick.fileUri ?: return@launch
+                    val displayName = pendingPick.displayName ?: return@launch
+                    enqueuePendingDownload(pendingDownload, fileUri, displayName, customFolderUri = uri.toString())
+                }
+                AudioFolderPickTarget.PROCEED_MISMATCH -> {
+                    val pending = state.pendingEnqueueData ?: return@launch
+                    _uiState.update {
+                        it.copy(
+                            selectedFileUri = pending.fileUri,
+                            selectedFileName = pending.title,
+                        )
+                    }
+                    queueCurrentItemInternal(force = true, customFolderUri = uri.toString())
+                }
+            }
+        }
+    }
+
     fun queueCurrentItem() {
         viewModelScope.launch {
             queueCurrentItemInternal()
@@ -167,6 +207,7 @@ class MainViewModel @Inject constructor(
         pendingDownload: PendingDownload,
         fileUri: String,
         displayName: String,
+        customFolderUri: String? = null,
     ) {
         val settings = settingsRepository.settings.first()
         val metadata = downloadStorage.queryMetadata(fileUri)
@@ -176,6 +217,20 @@ class MainViewModel @Inject constructor(
             MediaType.VIDEO
         }
 
+        if (mediaType == MediaType.AUDIO && settings.audioSaveMode == AudioSaveMode.RUNTIME_PICKER && customFolderUri == null) {
+            _uiState.update {
+                it.copy(
+                    pendingAudioFolderPick = PendingAudioFolderPick(
+                        target = AudioFolderPickTarget.CONFIRM_PENDING,
+                        pendingDownload = pendingDownload,
+                        fileUri = fileUri,
+                        displayName = displayName,
+                    ),
+                )
+            }
+            return
+        }
+
         val result = queueRepository.enqueue(
             localFileUri = fileUri,
             title = displayName.ifBlank { pendingDownload.title },
@@ -183,6 +238,7 @@ class MainViewModel @Inject constructor(
             mediaType = mediaType,
             convertVideoToAudio = settings.defaultConvertVideoToAudio,
             deleteOriginalVideo = settings.defaultDeleteOriginalVideo,
+            audioOutputDirUri = customFolderUri,
         )
 
         _uiState.update { state ->
@@ -286,7 +342,7 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    private suspend fun queueCurrentItemInternal(force: Boolean = false) {
+    private suspend fun queueCurrentItemInternal(force: Boolean = false, customFolderUri: String? = null) {
         val state = uiState.value
         val fileUri = state.selectedFileUri
         val youtubeUrl = state.urlInput.trim()
@@ -308,6 +364,26 @@ class MainViewModel @Inject constructor(
 
         val isConvertOnly = youtubeUrl.isBlank() && state.selectedFileMediaType == MediaType.VIDEO
 
+        val settings = settingsRepository.settings.first()
+        val metadata = downloadStorage.queryMetadata(fileUri)
+        val mediaType = if (isConvertOnly || state.convertVideoToAudio || metadata?.extension == "mp3" || metadata?.extension == "m4a" || metadata?.extension == "aac") {
+            MediaType.AUDIO
+        } else {
+            MediaType.VIDEO
+        }
+
+        if (mediaType == MediaType.AUDIO && settings.audioSaveMode == AudioSaveMode.RUNTIME_PICKER && customFolderUri == null) {
+            _uiState.update {
+                it.copy(
+                    pendingAudioFolderPick = PendingAudioFolderPick(
+                        target = AudioFolderPickTarget.SUBMIT,
+                        force = force,
+                    ),
+                )
+            }
+            return
+        }
+
         if (!isConvertOnly) {
             if (youtubeUrl.isBlank()) {
                 _uiState.update { it.copy(snackbarMessage = context.getString(R.string.snackbar_paste_first)) }
@@ -320,7 +396,6 @@ class MainViewModel @Inject constructor(
                 return
             }
 
-            val metadata = downloadStorage.queryMetadata(fileUri)
             val fileDuration = metadata?.durationSeconds ?: 0L
 
             if (!force) {
@@ -329,11 +404,6 @@ class MainViewModel @Inject constructor(
                 _uiState.update { it.copy(isVerifyingDuration = false) }
 
                 if (youtubeDuration != null && fileDuration != youtubeDuration) {
-                    val mediaType = if (state.convertVideoToAudio || metadata?.extension == "mp3" || metadata?.extension == "m4a" || metadata?.extension == "aac") {
-                        MediaType.AUDIO
-                    } else {
-                        MediaType.VIDEO
-                    }
                     val title = state.selectedFileName.ifBlank { metadata?.title ?: context.getString(R.string.imported_file_fallback) }
                     _uiState.update {
                         it.copy(
@@ -353,13 +423,6 @@ class MainViewModel @Inject constructor(
             }
         }
 
-        val metadata = downloadStorage.queryMetadata(fileUri)
-        val mediaType = if (isConvertOnly || state.convertVideoToAudio || metadata?.extension == "mp3" || metadata?.extension == "m4a" || metadata?.extension == "aac") {
-            MediaType.AUDIO
-        } else {
-            MediaType.VIDEO
-        }
-
         val title = state.selectedFileName.ifBlank { metadata?.title ?: context.getString(R.string.imported_file_fallback) }
 
         val finalUrl = if (isConvertOnly) {
@@ -377,6 +440,7 @@ class MainViewModel @Inject constructor(
             mediaType = mediaType,
             convertVideoToAudio = if (isConvertOnly) true else state.convertVideoToAudio,
             deleteOriginalVideo = state.deleteOriginalVideo,
+            audioOutputDirUri = customFolderUri,
         )
 
         _uiState.update { state ->

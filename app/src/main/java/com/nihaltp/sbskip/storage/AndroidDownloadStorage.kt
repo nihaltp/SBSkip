@@ -55,19 +55,27 @@ class AndroidDownloadStorage @Inject constructor(
         title: String,
         extension: String,
         mediaType: MediaType,
+        customFolderUri: String?,
     ): String = withContext(Dispatchers.IO) {
         val filename = "$title.$extension"
         val mimeType = if (mediaType == MediaType.VIDEO) "video/$extension" else "audio/$extension"
 
         val settings = settingsRepository.settings.first()
-        val customFolder = if (mediaType == MediaType.VIDEO) {
+        val folderUriStr = if (!customFolderUri.isNullOrEmpty()) {
+            customFolderUri
+        } else if (mediaType == MediaType.VIDEO) {
+            settings.videoFolderUri
+        } else {
+            settings.audioFolderUri
+        }
+
+        val customFolder = if (!customFolderUri.isNullOrEmpty()) {
+            resolveRelativePathFromUri(context, Uri.parse(customFolderUri)).trimEnd('/')
+        } else if (mediaType == MediaType.VIDEO) {
             settings.videoFolder.trimEnd('/')
         } else {
             settings.audioFolder.trimEnd('/')
         }
-
-        // 1. Direct SAF Custom Folder Tree URI Write (supports ALL custom folders, external directories, SD cards, etc.)
-        val folderUriStr = if (mediaType == MediaType.VIDEO) settings.videoFolderUri else settings.audioFolderUri
         if (folderUriStr.isNotEmpty() && folderUriStr.startsWith("content://")) {
             try {
                 val folderUri = Uri.parse(folderUriStr)
@@ -216,5 +224,36 @@ class AndroidDownloadStorage @Inject constructor(
             extension = extension,
             durationSeconds = durationSeconds,
         )
+    }
+}
+
+private fun resolveRelativePathFromUri(context: android.content.Context, uri: Uri): String {
+    try {
+        val docId = android.provider.DocumentsContract.getTreeDocumentId(uri)
+
+        try {
+            val docUri = android.provider.DocumentsContract.buildDocumentUriUsingTree(uri, docId)
+            context.contentResolver.query(docUri, arrayOf(android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME), null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val index = cursor.getColumnIndex(android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME)
+                    if (index != -1) {
+                        val dispName = cursor.getString(index)
+                        if (!dispName.isNullOrBlank()) {
+                            return "$dispName/"
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            // Fallback
+        }
+
+        val split = docId.split(":")
+        val rawPath = if (split.size > 1) split[1] else docId
+        val trimmedPath = rawPath.trim('/')
+        return if (trimmedPath.isEmpty()) "SB Skip/" else "$trimmedPath/"
+    } catch (e: Exception) {
+        val path = uri.path ?: ""
+        return if (path.isEmpty()) "SB Skip/" else "${path.trim('/')}/"
     }
 }

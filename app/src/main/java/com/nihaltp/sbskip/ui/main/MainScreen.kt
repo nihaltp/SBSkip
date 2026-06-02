@@ -93,6 +93,7 @@ fun MainScreen(
     onUrlChange: (String) -> Unit,
     onFileSelected: (Uri) -> Unit,
     onClearSelectedFile: () -> Unit,
+    onAudioFolderPicked: (Uri?) -> Unit,
     onSubmit: () -> Unit,
     onAutoDetectPending: (PendingDownload) -> Unit,
     onCancelPending: (PendingDownload) -> Unit,
@@ -148,6 +149,28 @@ fun MainScreen(
             uri?.let(onFileSelected)
         },
     )
+
+    val runtimeAudioFolderLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree(),
+    ) { uri ->
+        uri?.let {
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    it,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+                )
+            } catch (e: Exception) {
+                com.nihaltp.sbskip.util.AppLogger.error("MainScreen", e, "Failed to take persistable URI permission")
+            }
+        }
+        onAudioFolderPicked(uri)
+    }
+
+    LaunchedEffect(uiState.pendingAudioFolderPick) {
+        if (uiState.pendingAudioFolderPick != null) {
+            runtimeAudioFolderLauncher.launch(null)
+        }
+    }
 
     LaunchedEffect(Unit) {
         if (!PermissionHelper.hasAllRequiredPermissions(context)) {

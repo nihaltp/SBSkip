@@ -37,6 +37,11 @@ enum class ThemeMode {
     DARK,
 }
 
+enum class AudioSaveMode {
+    PRESET_FOLDER,
+    RUNTIME_PICKER,
+}
+
 data class SponsorBlockSettings(
     val enabled: Boolean = true,
     val categories: Set<SponsorBlockCategory> = SponsorBlockCategory.entries.toSet(),

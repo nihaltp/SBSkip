@@ -23,6 +23,7 @@ data class DownloadQueueItem(
     val outputPath: String? = null,
     val convertVideoToAudio: Boolean = false,
     val deleteOriginalVideo: Boolean = true,
+    val audioOutputDirUri: String? = null,
 ) {
     val displayDuration: String
         get() = durationSeconds?.let { seconds ->
@@ -63,6 +64,20 @@ data class PendingEnqueueData(
     val mediaType: MediaType,
 )
 
+enum class AudioFolderPickTarget {
+    SUBMIT,
+    CONFIRM_PENDING,
+    PROCEED_MISMATCH,
+}
+
+data class PendingAudioFolderPick(
+    val target: AudioFolderPickTarget,
+    val pendingDownload: PendingDownload? = null,
+    val force: Boolean = false,
+    val fileUri: String? = null,
+    val displayName: String? = null,
+)
+
 data class MainUiState(
     val urlInput: String = "",
     val selectedFileUri: String? = null,
@@ -78,6 +93,7 @@ data class MainUiState(
     val mismatchFileDuration: Long = 0L,
     val mismatchYoutubeDuration: Long = 0L,
     val pendingEnqueueData: PendingEnqueueData? = null,
+    val pendingAudioFolderPick: PendingAudioFolderPick? = null,
     val pendingDownloads: List<PendingDownload> = emptyList(),
     val pendingDownloadForFilePicker: PendingDownload? = null,
     val queueItems: List<DownloadQueueItem> = emptyList(),

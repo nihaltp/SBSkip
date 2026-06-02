@@ -136,4 +136,53 @@ class QueueModelsTest {
 
         assertNull(stateCleared.pendingDownloadForFilePicker)
     }
+
+    @Test
+    fun testDownloadQueueItemAudioOutputDirUri() {
+        val item = DownloadQueueItem(
+            id = 1L,
+            url = "https://youtube.com/watch?v=123",
+            title = "Test Clean",
+            localFileUri = "content://media/external/video/1",
+            mediaType = MediaType.AUDIO,
+            thumbnailUrl = null,
+            durationSeconds = 120L,
+            status = DownloadQueueStatus.QUEUED,
+            createdAtEpochMillis = 1000L,
+            updatedAtEpochMillis = 1000L,
+            errorMessage = null,
+            outputPath = null,
+            convertVideoToAudio = true,
+            deleteOriginalVideo = true,
+            audioOutputDirUri = "content://com.android.externalstorage.documents/tree/primary%3AMusic",
+        )
+
+        assertEquals("content://com.android.externalstorage.documents/tree/primary%3AMusic", item.audioOutputDirUri)
+        assertTrue(item.convertVideoToAudio)
+    }
+
+    @Test
+    fun testMainUiStatePendingAudioFolderPick() {
+        val initialState = MainUiState()
+        assertNull(initialState.pendingAudioFolderPick)
+
+        val pendingPick = PendingAudioFolderPick(
+            target = AudioFolderPickTarget.SUBMIT,
+            force = true,
+            fileUri = "content://media/external/video/1",
+            displayName = "Custom Title.mp4",
+        )
+
+        val stateWithPick = initialState.copy(
+            pendingAudioFolderPick = pendingPick,
+        )
+
+        assertEquals(AudioFolderPickTarget.SUBMIT, stateWithPick.pendingAudioFolderPick?.target)
+        assertTrue(stateWithPick.pendingAudioFolderPick?.force ?: false)
+        assertEquals("content://media/external/video/1", stateWithPick.pendingAudioFolderPick?.fileUri)
+        assertEquals("Custom Title.mp4", stateWithPick.pendingAudioFolderPick?.displayName)
+
+        val stateCleared = stateWithPick.copy(pendingAudioFolderPick = null)
+        assertNull(stateCleared.pendingAudioFolderPick)
+    }
 }

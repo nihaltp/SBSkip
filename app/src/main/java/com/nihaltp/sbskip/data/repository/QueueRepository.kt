@@ -14,6 +14,7 @@ interface QueueRepository {
         mediaType: MediaType,
         convertVideoToAudio: Boolean = false,
         deleteOriginalVideo: Boolean = true,
+        audioOutputDirUri: String? = null,
     ): QueueActionResult
     suspend fun retry(itemId: Long): QueueActionResult
     suspend fun remove(itemId: Long)

@@ -8,7 +8,7 @@ import com.nihaltp.sbskip.data.local.entity.DownloadQueueEntity
 
 @Database(
     entities = [DownloadQueueEntity::class],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)

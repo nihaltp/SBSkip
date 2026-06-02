@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.nihaltp.sbskip.model.AppSettings
+import com.nihaltp.sbskip.model.AudioSaveMode
 import com.nihaltp.sbskip.model.DownloaderType
 import com.nihaltp.sbskip.model.SponsorBlockCategory
 import com.nihaltp.sbskip.model.SponsorBlockSettings
@@ -51,6 +52,7 @@ class DataStoreSettingsRepository @Inject constructor(
         val SPONSORBLOCK_STATUS_URL = stringPreferencesKey("sponsorblock_status_url")
         val DEFAULT_CONVERT_VIDEO_TO_AUDIO = booleanPreferencesKey("default_convert_video_to_audio")
         val DEFAULT_DELETE_ORIGINAL_VIDEO = booleanPreferencesKey("default_delete_original_video")
+        val AUDIO_SAVE_MODE = stringPreferencesKey("audio_save_mode")
     }
 
     override val settings: Flow<AppSettings> = context.dataStore.data.map { preferences ->
@@ -61,6 +63,10 @@ class DataStoreSettingsRepository @Inject constructor(
         val downloader = runCatching {
             DownloaderType.valueOf(preferences[PreferencesKeys.DOWNLOADER] ?: DownloaderType.NEWPIPE.name)
         }.getOrDefault(DownloaderType.NEWPIPE)
+
+        val audioSaveMode = runCatching {
+            AudioSaveMode.valueOf(preferences[PreferencesKeys.AUDIO_SAVE_MODE] ?: AudioSaveMode.PRESET_FOLDER.name)
+        }.getOrDefault(AudioSaveMode.PRESET_FOLDER)
 
         val categories = preferences[PreferencesKeys.SB_CATEGORIES]?.mapNotNull { name ->
             runCatching { SponsorBlockCategory.valueOf(name) }.getOrNull()
@@ -93,6 +99,7 @@ class DataStoreSettingsRepository @Inject constructor(
             autoCleanSuffix = preferences[PreferencesKeys.AUTO_CLEAN_SUFFIX] ?: "_cleaned",
             defaultConvertVideoToAudio = preferences[PreferencesKeys.DEFAULT_CONVERT_VIDEO_TO_AUDIO] ?: false,
             defaultDeleteOriginalVideo = preferences[PreferencesKeys.DEFAULT_DELETE_ORIGINAL_VIDEO] ?: true,
+            audioSaveMode = audioSaveMode,
         )
     }
 
@@ -131,6 +138,9 @@ class DataStoreSettingsRepository @Inject constructor(
                 autoCleanSuffix = preferences[PreferencesKeys.AUTO_CLEAN_SUFFIX] ?: "_cleaned",
                 defaultConvertVideoToAudio = preferences[PreferencesKeys.DEFAULT_CONVERT_VIDEO_TO_AUDIO] ?: false,
                 defaultDeleteOriginalVideo = preferences[PreferencesKeys.DEFAULT_DELETE_ORIGINAL_VIDEO] ?: true,
+                audioSaveMode = runCatching {
+                    AudioSaveMode.valueOf(preferences[PreferencesKeys.AUDIO_SAVE_MODE] ?: AudioSaveMode.PRESET_FOLDER.name)
+                }.getOrDefault(AudioSaveMode.PRESET_FOLDER),
             )
             val updated = transform(current)
 
@@ -158,6 +168,7 @@ class DataStoreSettingsRepository @Inject constructor(
             preferences[PreferencesKeys.AUTO_CLEAN_SUFFIX] = updated.autoCleanSuffix
             preferences[PreferencesKeys.DEFAULT_CONVERT_VIDEO_TO_AUDIO] = updated.defaultConvertVideoToAudio
             preferences[PreferencesKeys.DEFAULT_DELETE_ORIGINAL_VIDEO] = updated.defaultDeleteOriginalVideo
+            preferences[PreferencesKeys.AUDIO_SAVE_MODE] = updated.audioSaveMode.name
         }
     }
 }

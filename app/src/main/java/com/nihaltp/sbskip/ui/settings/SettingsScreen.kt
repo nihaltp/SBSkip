@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nihaltp.sbskip.BuildConfig
 import com.nihaltp.sbskip.R
+import com.nihaltp.sbskip.model.AudioSaveMode
 import com.nihaltp.sbskip.model.DownloaderType
 import com.nihaltp.sbskip.model.SponsorBlockCategory
 import com.nihaltp.sbskip.model.ThemeMode
@@ -338,6 +339,15 @@ fun SettingsScreen(
                                 onCheckedChange = viewModel::updateDefaultDeleteOriginalVideo,
                             )
                         }
+                        val audioSaveModeLabel = when (settings.audioSaveMode) {
+                            AudioSaveMode.PRESET_FOLDER -> stringResource(id = R.string.settings_audio_save_mode_preset)
+                            AudioSaveMode.RUNTIME_PICKER -> stringResource(id = R.string.settings_audio_save_mode_picker)
+                        }
+                        SettingValueRow(
+                            title = stringResource(id = R.string.settings_audio_save_mode_title),
+                            value = audioSaveModeLabel,
+                            onClick = { activeDialogType = SettingsDialogType.AUDIO_SAVE_MODE },
+                        )
                         if (!settings.overwriteBehavior) {
                             SettingValueRow(
                                 title = stringResource(id = R.string.settings_suffix_title),
@@ -354,13 +364,15 @@ fun SettingsScreen(
                                     videoFolderLauncher.launch(null)
                                 },
                             )
-                            SettingValueRow(
-                                title = stringResource(id = R.string.settings_audio_folder),
-                                value = settings.audioFolder,
-                                onClick = {
-                                    audioFolderLauncher.launch(null)
-                                },
-                            )
+                            if (settings.audioSaveMode != AudioSaveMode.RUNTIME_PICKER) {
+                                SettingValueRow(
+                                    title = stringResource(id = R.string.settings_audio_folder),
+                                    value = settings.audioFolder,
+                                    onClick = {
+                                        audioFolderLauncher.launch(null)
+                                    },
+                                )
+                            }
                         }
                     }
                 }
@@ -505,6 +517,48 @@ fun SettingsScreen(
                                             selected = nonNullSettings.themeMode == mode,
                                             onClick = {
                                                 viewModel.updateThemeMode(mode)
+                                                activeDialogType = null
+                                            },
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(label)
+                                    }
+                                }
+                            }
+                        },
+                        confirmButton = {},
+                        dismissButton = {
+                            TextButton(onClick = { activeDialogType = null }) {
+                                Text(stringResource(id = R.string.cancel))
+                            }
+                        },
+                    )
+                }
+                SettingsDialogType.AUDIO_SAVE_MODE -> {
+                    AlertDialog(
+                        onDismissRequest = { activeDialogType = null },
+                        title = { Text(stringResource(id = R.string.settings_audio_save_mode_title)) },
+                        text = {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                AudioSaveMode.entries.forEach { mode ->
+                                    val label = when (mode) {
+                                        AudioSaveMode.PRESET_FOLDER -> stringResource(id = R.string.settings_audio_save_mode_preset)
+                                        AudioSaveMode.RUNTIME_PICKER -> stringResource(id = R.string.settings_audio_save_mode_picker)
+                                    }
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                viewModel.updateAudioSaveMode(mode)
+                                                activeDialogType = null
+                                            }
+                                            .padding(vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        RadioButton(
+                                            selected = nonNullSettings.audioSaveMode == mode,
+                                            onClick = {
+                                                viewModel.updateAudioSaveMode(mode)
                                                 activeDialogType = null
                                             },
                                         )
@@ -876,6 +930,7 @@ private enum class SettingsDialogType {
     SB_URL,
     SB_STATUS_URL,
     SB_CATEGORIES,
+    AUDIO_SAVE_MODE,
 }
 
 private fun resolveRelativePathFromUri(context: android.content.Context, uri: Uri): String {

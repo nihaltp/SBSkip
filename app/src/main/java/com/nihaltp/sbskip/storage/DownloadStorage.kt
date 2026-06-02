@@ -6,7 +6,7 @@ import java.io.File
 interface DownloadStorage {
     suspend fun deleteTemporaryFile(path: String)
     suspend fun copyUriToTempFile(uriString: String, tempFile: File)
-    suspend fun saveToPublicStorage(tempFile: File, title: String, extension: String, mediaType: MediaType): String
+    suspend fun saveToPublicStorage(tempFile: File, title: String, extension: String, mediaType: MediaType, customFolderUri: String? = null): String
     suspend fun queryMetadata(uriString: String): MediaFileMetadata?
 }
 
