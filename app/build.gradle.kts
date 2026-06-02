@@ -187,6 +187,8 @@ android.applicationVariants.all {
         if (abi != null) {
             val baseAbiVersionCode = abiCodes[abi] ?: 0
             output.versionCodeOverride = variant.versionCode * 1000 + baseAbiVersionCode
+        } else {
+            output?.versionCodeOverride = variant.versionCode * 1000
         }
     }
 }
