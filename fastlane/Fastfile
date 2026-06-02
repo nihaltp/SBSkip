@@ -192,6 +192,11 @@ platform :android do
     sh("adb -s #{device_id} install -r -t -g #{debug_apk}")
     sh("adb -s #{device_id} install -r -t -g #{android_test_apk}")
 
+    # Silence app notifications while capturing screenshots so heads-up banners do not appear.
+    puts "Temporarily muting app notifications for screenshots..."
+    sh("adb -s #{device_id} shell appops set com.nihaltp.sbskip.debug POST_NOTIFICATION ignore") rescue nil
+    sh("adb -s #{device_id} shell appops set com.nihaltp.sbskip.debug.test POST_NOTIFICATION ignore") rescue nil
+
     # Clean previous screenshots on the device
     puts "Clearing previous screenshots on device..."
     sh("adb -s #{device_id} shell rm -rf /sdcard/Android/data/com.nihaltp.sbskip.debug/files/app_screengrab") rescue nil
@@ -230,6 +235,8 @@ platform :android do
       puts "Successfully pulled all screenshots manually to #{output_dir}!"
     ensure
       # Restore original DND setting precisely
+      sh("adb -s #{device_id} shell appops set com.nihaltp.sbskip.debug POST_NOTIFICATION allow") rescue nil
+      sh("adb -s #{device_id} shell appops set com.nihaltp.sbskip.debug.test POST_NOTIFICATION allow") rescue nil
       puts "Restoring original DND zen_mode state to: #{original_zen_mode}..."
       sh("adb -s #{device_id} shell settings put global zen_mode #{original_zen_mode}") rescue nil
     end
