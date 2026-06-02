@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [1.2.1] - 2026-06-02
+
+Commits included in this release:
+- 5c87642  fix: set audio save mode default to runtime picker
+- 0bc8446  feat: implement duration mismatch handling
+
 ## [1.2.0] - 2026-06-02
 
 Commits included in this release:
