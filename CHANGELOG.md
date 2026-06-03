@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [1.2.2] - 2026-06-03
+
+Commits included in this release:
+- 5bfe48a  feat: bypass duration mismatches for small differences
+- 3fc9c6c  fix: universal APK versionCode generation
+
 ## [1.2.1] - 2026-06-02
 
 Commits included in this release:
