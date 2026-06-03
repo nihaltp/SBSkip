@@ -163,6 +163,18 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun updateBypassSmallDurationDifference(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.update { it.copy(bypassSmallDurationDifference = enabled) }
+        }
+    }
+
+    fun updateMaxDurationDifferenceSeconds(seconds: Int) {
+        viewModelScope.launch {
+            settingsRepository.update { it.copy(maxDurationDifferenceSeconds = seconds) }
+        }
+    }
+
     fun getLogs(): String {
         return com.nihaltp.sbskip.util.AppLogger.getLogs()
     }

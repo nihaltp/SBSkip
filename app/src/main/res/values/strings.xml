@@ -258,4 +258,11 @@
     <string name="dialog_conflict_message">A file named \"%1$s\" already exists in the destination folder. Do you want to replace it or save it as a new file?</string>
     <string name="dialog_conflict_replace">Replace</string>
     <string name="dialog_conflict_rename">Save New File</string>
+
+    <!-- Duration Difference Tolerances -->
+    <string name="settings_allow_small_difference_title">Allow Small Duration Difference</string>
+    <string name="settings_allow_small_difference_desc">Bypass warning and continue automatically if duration difference is within the limit.</string>
+    <string name="settings_max_difference_title">Maximum Duration Difference</string>
+    <string name="settings_max_difference_seconds_format">%1$d seconds</string>
+    <string name="settings_max_difference_field_label">Limit in seconds</string>
 </resources>

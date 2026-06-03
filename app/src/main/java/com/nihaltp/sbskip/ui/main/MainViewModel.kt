@@ -555,22 +555,30 @@ class MainViewModel @Inject constructor(
                 val youtubeDuration = com.nihaltp.sbskip.util.YouTubeDurationFetcher.fetchDuration(videoId)
                 _uiState.update { it.copy(isVerifyingDuration = false) }
 
-                if (youtubeDuration != null && fileDuration != youtubeDuration) {
-                    val title = state.selectedFileName.ifBlank { metadata?.title ?: context.getString(R.string.imported_file_fallback) }
-                    _uiState.update {
-                        it.copy(
-                            showDurationMismatchDialog = true,
-                            mismatchFileDuration = fileDuration,
-                            mismatchYoutubeDuration = youtubeDuration,
-                            pendingEnqueueData = com.nihaltp.sbskip.model.PendingEnqueueData(
-                                fileUri = fileUri,
-                                title = title,
-                                youtubeUrl = youtubeUrl,
-                                mediaType = mediaType,
-                            ),
-                        )
+                if (youtubeDuration != null) {
+                    val difference = kotlin.math.abs(fileDuration - youtubeDuration)
+                    val hasMismatch = if (settings.bypassSmallDurationDifference) {
+                        difference > settings.maxDurationDifferenceSeconds
+                    } else {
+                        difference > 0
                     }
-                    return
+                    if (hasMismatch) {
+                        val title = state.selectedFileName.ifBlank { metadata?.title ?: context.getString(R.string.imported_file_fallback) }
+                        _uiState.update {
+                            it.copy(
+                                showDurationMismatchDialog = true,
+                                mismatchFileDuration = fileDuration,
+                                mismatchYoutubeDuration = youtubeDuration,
+                                pendingEnqueueData = com.nihaltp.sbskip.model.PendingEnqueueData(
+                                    fileUri = fileUri,
+                                    title = title,
+                                    youtubeUrl = youtubeUrl,
+                                    mediaType = mediaType,
+                                ),
+                            )
+                        }
+                        return
+                    }
                 }
             }
         }

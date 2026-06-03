@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -53,6 +54,8 @@ class DataStoreSettingsRepository @Inject constructor(
         val DEFAULT_CONVERT_VIDEO_TO_AUDIO = booleanPreferencesKey("default_convert_video_to_audio")
         val DEFAULT_DELETE_ORIGINAL_VIDEO = booleanPreferencesKey("default_delete_original_video")
         val AUDIO_SAVE_MODE = stringPreferencesKey("audio_save_mode")
+        val BYPASS_SMALL_DURATION_DIFFERENCE = booleanPreferencesKey("bypass_small_duration_difference")
+        val MAX_DURATION_DIFFERENCE_SECONDS = intPreferencesKey("max_duration_difference_seconds")
     }
 
     override val settings: Flow<AppSettings> = context.dataStore.data.map { preferences ->
@@ -100,6 +103,8 @@ class DataStoreSettingsRepository @Inject constructor(
             defaultConvertVideoToAudio = preferences[PreferencesKeys.DEFAULT_CONVERT_VIDEO_TO_AUDIO] ?: false,
             defaultDeleteOriginalVideo = preferences[PreferencesKeys.DEFAULT_DELETE_ORIGINAL_VIDEO] ?: true,
             audioSaveMode = audioSaveMode,
+            bypassSmallDurationDifference = preferences[PreferencesKeys.BYPASS_SMALL_DURATION_DIFFERENCE] ?: false,
+            maxDurationDifferenceSeconds = preferences[PreferencesKeys.MAX_DURATION_DIFFERENCE_SECONDS] ?: 1,
         )
     }
 
@@ -141,6 +146,8 @@ class DataStoreSettingsRepository @Inject constructor(
                 audioSaveMode = runCatching {
                     AudioSaveMode.valueOf(preferences[PreferencesKeys.AUDIO_SAVE_MODE] ?: AudioSaveMode.RUNTIME_PICKER.name)
                 }.getOrDefault(AudioSaveMode.RUNTIME_PICKER),
+                bypassSmallDurationDifference = preferences[PreferencesKeys.BYPASS_SMALL_DURATION_DIFFERENCE] ?: false,
+                maxDurationDifferenceSeconds = preferences[PreferencesKeys.MAX_DURATION_DIFFERENCE_SECONDS] ?: 1,
             )
             val updated = transform(current)
 
@@ -169,6 +176,8 @@ class DataStoreSettingsRepository @Inject constructor(
             preferences[PreferencesKeys.DEFAULT_CONVERT_VIDEO_TO_AUDIO] = updated.defaultConvertVideoToAudio
             preferences[PreferencesKeys.DEFAULT_DELETE_ORIGINAL_VIDEO] = updated.defaultDeleteOriginalVideo
             preferences[PreferencesKeys.AUDIO_SAVE_MODE] = updated.audioSaveMode.name
+            preferences[PreferencesKeys.BYPASS_SMALL_DURATION_DIFFERENCE] = updated.bypassSmallDurationDifference
+            preferences[PreferencesKeys.MAX_DURATION_DIFFERENCE_SECONDS] = updated.maxDurationDifferenceSeconds
         }
     }
 }

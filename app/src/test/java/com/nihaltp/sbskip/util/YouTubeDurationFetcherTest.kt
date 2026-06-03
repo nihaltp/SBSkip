@@ -1,5 +1,6 @@
 package com.nihaltp.sbskip.util
 
+import com.nihaltp.sbskip.model.AppSettings
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.fail
@@ -107,6 +108,72 @@ class YouTubeDurationFetcherTest {
             if (difference > 0) {
                 fail("Should have been bypassed")
             }
+        }
+    }
+
+    @Test
+    fun testDurationValidationBypassSmallDifferenceEnabledWithinThreshold() {
+        val settings = AppSettings(
+            bypassSmallDurationDifference = true,
+            maxDurationDifferenceSeconds = 3,
+        )
+
+        val youtubeDuration = 180L
+        val fileDuration = 183L // 3 seconds difference (equal to threshold)
+        val difference = kotlin.math.abs(fileDuration - youtubeDuration)
+
+        val hasMismatch = if (settings.bypassSmallDurationDifference) {
+            difference > settings.maxDurationDifferenceSeconds
+        } else {
+            difference > 0
+        }
+
+        if (hasMismatch) {
+            fail("Should not have mismatch since difference is within threshold")
+        }
+    }
+
+    @Test
+    fun testDurationValidationBypassSmallDifferenceEnabledExceedsThreshold() {
+        val settings = AppSettings(
+            bypassSmallDurationDifference = true,
+            maxDurationDifferenceSeconds = 3,
+        )
+
+        val youtubeDuration = 180L
+        val fileDuration = 184L // 4 seconds difference (exceeds threshold)
+        val difference = kotlin.math.abs(fileDuration - youtubeDuration)
+
+        val hasMismatch = if (settings.bypassSmallDurationDifference) {
+            difference > settings.maxDurationDifferenceSeconds
+        } else {
+            difference > 0
+        }
+
+        if (!hasMismatch) {
+            fail("Should have mismatch since difference exceeds threshold")
+        }
+    }
+
+    @Test
+    fun testDurationValidationBypassSmallDifferenceDisabled() {
+        val settings = AppSettings(
+            bypassSmallDurationDifference = false,
+            maxDurationDifferenceSeconds = 3,
+        )
+
+        val youtubeDuration = 180L
+        val fileDuration = 181L // 1 second difference
+        val difference = kotlin.math.abs(fileDuration - youtubeDuration)
+
+        val hasMismatch = if (settings.bypassSmallDurationDifference) {
+            difference > settings.maxDurationDifferenceSeconds
+        } else {
+            difference > 0
+        }
+
+        if (!hasMismatch) {
+            fail("Should have mismatch since bypass setting is disabled")
         }
     }
 }

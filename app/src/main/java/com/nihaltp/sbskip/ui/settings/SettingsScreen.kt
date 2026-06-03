@@ -339,6 +339,22 @@ fun SettingsScreen(
                                 onCheckedChange = viewModel::updateDefaultDeleteOriginalVideo,
                             )
                         }
+                        SettingToggleRow(
+                            title = stringResource(id = R.string.settings_allow_small_difference_title),
+                            description = stringResource(id = R.string.settings_allow_small_difference_desc),
+                            checked = settings.bypassSmallDurationDifference,
+                            onCheckedChange = viewModel::updateBypassSmallDurationDifference,
+                        )
+                        if (settings.bypassSmallDurationDifference) {
+                            SettingValueRow(
+                                title = stringResource(id = R.string.settings_max_difference_title),
+                                value = stringResource(id = R.string.settings_max_difference_seconds_format, settings.maxDurationDifferenceSeconds),
+                                onClick = {
+                                    activeDialogType = SettingsDialogType.MAX_DIFFERENCE
+                                    textInputState = settings.maxDurationDifferenceSeconds.toString()
+                                },
+                            )
+                        }
                         val audioSaveModeLabel = when (settings.audioSaveMode) {
                             AudioSaveMode.PRESET_FOLDER -> stringResource(id = R.string.settings_audio_save_mode_preset)
                             AudioSaveMode.RUNTIME_PICKER -> stringResource(id = R.string.settings_audio_save_mode_picker)
@@ -674,12 +690,14 @@ fun SettingsScreen(
                         SettingsDialogType.SUFFIX -> stringResource(id = R.string.settings_suffix_title)
                         SettingsDialogType.SB_URL -> stringResource(id = R.string.settings_sb_url_title)
                         SettingsDialogType.SB_STATUS_URL -> stringResource(id = R.string.settings_sb_status_url_title)
+                        SettingsDialogType.MAX_DIFFERENCE -> stringResource(id = R.string.settings_max_difference_title)
                         else -> ""
                     }
                     val dialogLabel = when (dialogType) {
                         SettingsDialogType.SUFFIX -> stringResource(id = R.string.settings_suffix_field_label)
                         SettingsDialogType.SB_URL -> stringResource(id = R.string.settings_sb_url_field_label)
                         SettingsDialogType.SB_STATUS_URL -> stringResource(id = R.string.settings_sb_status_url_field_label)
+                        SettingsDialogType.MAX_DIFFERENCE -> stringResource(id = R.string.settings_max_difference_field_label)
                         else -> ""
                     }
                     AlertDialog(
@@ -703,6 +721,10 @@ fun SettingsScreen(
                                         SettingsDialogType.SUFFIX -> viewModel.updateAutoCleanSuffix(textInputState)
                                         SettingsDialogType.SB_URL -> viewModel.updateSponsorBlockUrl(textInputState)
                                         SettingsDialogType.SB_STATUS_URL -> viewModel.updateSponsorBlockStatusUrl(textInputState)
+                                        SettingsDialogType.MAX_DIFFERENCE -> {
+                                            val seconds = textInputState.toIntOrNull()?.coerceAtLeast(0) ?: 1
+                                            viewModel.updateMaxDurationDifferenceSeconds(seconds)
+                                        }
                                         else -> {}
                                     }
                                     activeDialogType = null
@@ -931,6 +953,7 @@ private enum class SettingsDialogType {
     SB_STATUS_URL,
     SB_CATEGORIES,
     AUDIO_SAVE_MODE,
+    MAX_DIFFERENCE,
 }
 
 private fun resolveRelativePathFromUri(context: android.content.Context, uri: Uri): String {

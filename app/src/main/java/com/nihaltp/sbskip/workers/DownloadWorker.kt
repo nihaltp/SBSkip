@@ -100,7 +100,12 @@ class DownloadWorker @AssistedInject constructor(
                     AppLogger.worker("Duration mismatch verification bypassed via explicit user request.")
                 } else if (youtubeDuration != null) {
                     val difference = kotlin.math.abs(fileDuration - youtubeDuration)
-                    if (difference > 0) {
+                    val hasMismatch = if (settings.bypassSmallDurationDifference) {
+                        difference > settings.maxDurationDifferenceSeconds
+                    } else {
+                        difference > 0
+                    }
+                    if (hasMismatch) {
                         throw IllegalStateException("Picked file duration ($fileDuration s) does not match YouTube video duration ($youtubeDuration s)")
                     }
                 } else {
