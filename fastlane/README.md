@@ -15,6 +15,14 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 
 ## Android
 
+### android tag
+
+```sh
+[bundle exec] fastlane android tag
+```
+
+Create a git tag using versionName from Gradle
+
 ### android increment_patch
 
 ```sh
@@ -85,7 +93,7 @@ Build the release APK
 [bundle exec] fastlane android github_release
 ```
 
-Build release artifacts for GitHub Releases
+Build release artifacts and create a GitHub Release
 
 ### android test
 
