@@ -105,11 +105,9 @@ configurations.all {
     )
 }
 ktlint {
-    // Keep ktlint version reasonably new and compatible with Kotlin 1.9.x
-    version.set("0.50.0")
+    // ktlint CLI tool version (separate from the Gradle plugin version)
+    version.set("1.2.1")
     android.set(true)
-    outputToConsole.set(true)
-    ignoreFailures.set(false)
     filter {
         // Avoid formatting Gradle Kotlin scripts and generated build files
         exclude("**/*.gradle.kts")
