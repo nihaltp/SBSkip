@@ -1,14 +1,44 @@
-*.apk
-*.aab
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ related
 *.iml
-*.keystore
+*.ipr
+*.iws
+.idea/
+
+# The .vscode folder contains launch configuration and tasks you configure
+.vscode/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# Gradle files
+.gradle/
+build/
+*/build/
+*/.gradle/
+*.properties
 *.jks
 
-local.properties
-keystore.properties
-
-.gradle
-.idea
-.kotlin
-build
-captures
+# fastlane
+fastlane/report.xml
