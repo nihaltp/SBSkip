@@ -190,6 +190,9 @@
     <string name="logs_empty">No logs captured yet.</string>
     <string name="logs_copied_toast">Logs copied to clipboard</string>
     <string name="logs_cleared_toast">Logs cleared</string>
+    <string name="logs_export_button">Export</string>
+    <string name="logs_exported_toast">Logs saved to file</string>
+    <string name="logs_export_failed_toast">Failed to save logs</string>
     <string name="copy">Copy</string>
     <string name="clear">Clear</string>
     <string name="cancel">Cancel</string>

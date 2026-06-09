@@ -22,6 +22,7 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.SaveAlt
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -119,6 +120,22 @@ fun SettingsScreen(
     }
     var showLogsDialog by remember { mutableStateOf(false) }
     var logRefreshKey by remember { mutableStateOf(0) }
+    var logsToExport by remember { mutableStateOf("") }
+    val exportLogsLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("text/plain"),
+    ) { uri ->
+        if (uri != null && logsToExport.isNotEmpty()) {
+            try {
+                context.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                    outputStream.write(logsToExport.toByteArray())
+                }
+                Toast.makeText(context, context.getString(R.string.logs_exported_toast), Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                AppLogger.error("Settings", e, "Failed to export logs")
+                Toast.makeText(context, context.getString(R.string.logs_export_failed_toast), Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     val videoFolderLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree(),
@@ -843,16 +860,36 @@ fun SettingsScreen(
                 }
             },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        if (logs.isNotEmpty()) {
-                            clipboardManager.setText(AnnotatedString(logs))
-                            Toast.makeText(context, context.getString(R.string.logs_copied_toast), Toast.LENGTH_SHORT).show()
-                        }
-                    },
-                    enabled = logs.isNotEmpty(),
-                ) {
-                    Text(stringResource(id = R.string.copy))
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    TextButton(
+                        onClick = {
+                            if (logs.isNotEmpty()) {
+                                clipboardManager.setText(AnnotatedString(logs))
+                                Toast.makeText(context, context.getString(R.string.logs_copied_toast), Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        enabled = logs.isNotEmpty(),
+                    ) {
+                        Text(stringResource(id = R.string.copy))
+                    }
+                    TextButton(
+                        onClick = {
+                            if (logs.isNotEmpty()) {
+                                val timestamp = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.US).format(java.util.Date())
+                                logsToExport = logs
+                                exportLogsLauncher.launch("sbskip_logs_$timestamp.txt")
+                            }
+                        },
+                        enabled = logs.isNotEmpty(),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.SaveAlt,
+                            contentDescription = null,
+                            modifier = Modifier.height(18.dp).width(18.dp),
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(stringResource(id = R.string.logs_export_button))
+                    }
                 }
             },
             dismissButton = {
