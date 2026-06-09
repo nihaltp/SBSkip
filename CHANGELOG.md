@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [1.2.3] - 2026-06-10
+
+### Added
+
+- 4ff3084  feat: add export for logs
+
+### Style
+
+- 57d3004  style: format files
+- 5dd96e8  style: add editorconfig
+
+### Maintenance
+
+- fa2ba27  chore: update fastlane file
+- 4802ea8  chore: update .gitignore
+- 4c107ac  chore: fix gradle properties for low memory devices
+- 54e83fc  chore: fix gradle compatability
+
 ## [1.2.2] - 2026-06-03
 
 Commits included in this release:

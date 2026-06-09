@@ -1,0 +1,10 @@
+SB Skip v1.2.3 (2026-06-10)
+
+Commits included in this release:
+- 4ff3084  feat: add export for logs
+- 57d3004  style: format files
+- 5dd96e8  style: add editorconfig
+- fa2ba27  chore: update fastlane file
+- 4802ea8  chore: update .gitignore
+- 4c107ac  chore: fix gradle properties for low memory devices
+- 54e83fc  chore: fix gradle compatability
