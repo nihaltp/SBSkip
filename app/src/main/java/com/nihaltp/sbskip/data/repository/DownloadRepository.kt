@@ -7,8 +7,15 @@ import kotlinx.coroutines.flow.Flow
 
 interface DownloadRepository {
     fun observeQueue(): Flow<List<QueueItem>>
+
     fun observeRecentDownloads(): Flow<List<RecentDownload>>
-    suspend fun queue(request: DownloadRequest, title: String): Long
+
+    suspend fun queue(
+        request: DownloadRequest,
+        title: String,
+    ): Long
+
     suspend fun cancel(id: Long)
+
     suspend fun remove(id: Long)
 }

@@ -3,12 +3,13 @@ package com.nihaltp.sbskip.util
 import android.net.Uri
 
 object UrlValidator {
-    private val supportedHosts = setOf(
-        "youtube.com",
-        "m.youtube.com",
-        "www.youtube.com",
-        "youtu.be",
-    )
+    private val supportedHosts =
+        setOf(
+            "youtube.com",
+            "m.youtube.com",
+            "www.youtube.com",
+            "youtu.be",
+        )
 
     fun normalize(input: String): String? {
         val candidate = input.trim()

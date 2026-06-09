@@ -4,7 +4,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class SettingsTest {
-
     @Test
     fun testAppSettingsDefaultAudioSaveMode() {
         val settings = AppSettings()
@@ -13,9 +12,10 @@ class SettingsTest {
 
     @Test
     fun testAppSettingsCustomAudioSaveMode() {
-        val settings = AppSettings(
-            audioSaveMode = AudioSaveMode.PRESET_FOLDER,
-        )
+        val settings =
+            AppSettings(
+                audioSaveMode = AudioSaveMode.PRESET_FOLDER,
+            )
         assertEquals(AudioSaveMode.PRESET_FOLDER, settings.audioSaveMode)
     }
 
@@ -28,10 +28,11 @@ class SettingsTest {
 
     @Test
     fun testAppSettingsCustomBypassSmallDurationDifference() {
-        val settings = AppSettings(
-            bypassSmallDurationDifference = true,
-            maxDurationDifferenceSeconds = 5,
-        )
+        val settings =
+            AppSettings(
+                bypassSmallDurationDifference = true,
+                maxDurationDifferenceSeconds = 5,
+            )
         assertEquals(true, settings.bypassSmallDurationDifference)
         assertEquals(5, settings.maxDurationDifferenceSeconds)
     }

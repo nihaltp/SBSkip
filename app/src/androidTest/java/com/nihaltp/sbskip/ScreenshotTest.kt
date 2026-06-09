@@ -25,7 +25,6 @@ import tools.fastlane.screengrab.locale.LocaleTestRule
 
 @RunWith(AndroidJUnit4::class)
 class ScreenshotTest {
-
     @get:Rule
     val composeTestRule = createAndroidComposeRule<MainActivity>()
 
@@ -48,21 +47,25 @@ class ScreenshotTest {
         runBlocking {
             database.clearAllTables()
 
+            val filePath = "content://com.android.externalstorage.documents/document/"
+            val video = "KULASTHREE%20(Official%20Video)%20-%20ThirumaLi%20x%20ThudWiser%20_%20Def%20Jam%20India.m4a"
+            val file = filePath + "primary%3ADownload%2FYT%2F" + video
             val now = System.currentTimeMillis()
-            val entity = DownloadQueueEntity(
-                id = 1,
-                url = "https://youtube.com/watch?v=SyluwH2ycDA&si=OaqUlygAss9wEXdq",
-                title = videoTitle,
-                localFileUri = "content://com.android.externalstorage.documents/document/primary%3ADownload%2FYT%2FKULASTHREE%20(Official%20Video)%20-%20ThirumaLi%20x%20ThudWiser%20_%20Def%20Jam%20India.m4a",
-                mediaType = "AUDIO",
-                thumbnailUrl = "https://img.youtube.com/vi/SyluwH2ycDA/mqdefault.jpg",
-                durationSeconds = 295,
-                status = DownloadQueueStatus.COMPLETED,
-                createdAtEpochMillis = now,
-                updatedAtEpochMillis = now,
-                errorMessage = null,
-                outputPath = "content://com.android.externalstorage.documents/document/primary%3ADownload%2FYT%2FKULASTHREE%20(Official%20Video)%20-%20ThirumaLi%20x%20ThudWiser%20_%20Def%20Jam%20India.m4a",
-            )
+            val entity =
+                DownloadQueueEntity(
+                    id = 1,
+                    url = "https://youtube.com/watch?v=SyluwH2ycDA&si=OaqUlygAss9wEXdq",
+                    title = videoTitle,
+                    localFileUri = file,
+                    mediaType = "AUDIO",
+                    thumbnailUrl = "https://img.youtube.com/vi/SyluwH2ycDA/mqdefault.jpg",
+                    durationSeconds = 295,
+                    status = DownloadQueueStatus.COMPLETED,
+                    createdAtEpochMillis = now,
+                    updatedAtEpochMillis = now,
+                    errorMessage = null,
+                    outputPath = file,
+                )
             database.downloadQueueDao().insert(entity)
         }
     }

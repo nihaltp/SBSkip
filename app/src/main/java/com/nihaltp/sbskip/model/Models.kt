@@ -63,6 +63,7 @@ data class MediaMetadata(
     val webpageUrl: String? = null,
     val extractor: String? = null,
 )
+
 data class VideoMetadata(
     val title: String,
     val thumbnailUrl: String?,

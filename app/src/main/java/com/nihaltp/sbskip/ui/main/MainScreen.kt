@@ -118,18 +118,22 @@ fun MainScreen(
     var filesPermissionGranted by remember {
         mutableStateOf(PermissionHelper.hasFilesPermission(context))
     }
-    val filesPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions(),
-    ) { results ->
-        filesPermissionGranted = PermissionHelper.hasFilesPermission(context)
-        AppLogger.metadata("Permissions: Files permission result from MainScreen: $results, hasPermission=$filesPermissionGranted")
-    }
-    val allPermissionsLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions(),
-    ) { results ->
-        filesPermissionGranted = PermissionHelper.hasFilesPermission(context)
-        AppLogger.metadata("Permissions: All permissions result from MainScreen startup: $results, hasFilesPermission=$filesPermissionGranted")
-    }
+    val filesPermissionLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.RequestMultiplePermissions(),
+        ) { results ->
+            filesPermissionGranted = PermissionHelper.hasFilesPermission(context)
+            AppLogger.metadata("Permissions: Files permission result from MainScreen: $results, hasPermission=$filesPermissionGranted")
+        }
+    val allPermissionsLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.RequestMultiplePermissions(),
+        ) { results ->
+            filesPermissionGranted = PermissionHelper.hasFilesPermission(context)
+            AppLogger.metadata(
+                "Permissions: All permissions result from MainScreen startup: $results, hasFilesPermission=$filesPermissionGranted",
+            )
+        }
     val requestFilesPermissionWithRationale = {
         AppLogger.metadata("Permissions: Showing files permission rationale Toast and launching picker request...")
         Toast.makeText(context, context.getString(R.string.permission_files_rationale), Toast.LENGTH_LONG).show()
@@ -143,31 +147,34 @@ fun MainScreen(
     var detailsPendingDownloadItem by remember { mutableStateOf<PendingDownload?>(null) }
     val showLocalCleanButton = uiState.selectedFileUri != null && uiState.urlInput.isNotBlank()
     val showDownloadAndCleanButton = uiState.selectedFileUri == null && uiState.isNewPipeInstalled && uiState.urlInput.isNotBlank()
-    val showConvertOnlyButton = uiState.selectedFileUri != null && uiState.urlInput.isBlank() && uiState.selectedFileMediaType == com.nihaltp.sbskip.model.MediaType.VIDEO
+    val isVideoFile = uiState.selectedFileMediaType == com.nihaltp.sbskip.model.MediaType.VIDEO
+    val showConvertOnlyButton = uiState.selectedFileUri != null && uiState.urlInput.isBlank() && isVideoFile
 
     // Document picker for MP4, M4A, and MP3
-    val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument(),
-        onResult = { uri ->
-            uri?.let(onFileSelected)
-        },
-    )
+    val filePickerLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.OpenDocument(),
+            onResult = { uri ->
+                uri?.let(onFileSelected)
+            },
+        )
 
-    val runtimeAudioFolderLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocumentTree(),
-    ) { uri ->
-        uri?.let {
-            try {
-                context.contentResolver.takePersistableUriPermission(
-                    it,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
-                )
-            } catch (e: Exception) {
-                com.nihaltp.sbskip.util.AppLogger.error("MainScreen", e, "Failed to take persistable URI permission")
+    val runtimeAudioFolderLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.OpenDocumentTree(),
+        ) { uri ->
+            uri?.let {
+                try {
+                    context.contentResolver.takePersistableUriPermission(
+                        it,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+                    )
+                } catch (e: Exception) {
+                    com.nihaltp.sbskip.util.AppLogger.error("MainScreen", e, "Failed to take persistable URI permission")
+                }
             }
+            onAudioFolderPicked(uri)
         }
-        onAudioFolderPicked(uri)
-    }
 
     LaunchedEffect(uiState.pendingAudioFolderPick) {
         if (uiState.pendingAudioFolderPick != null) {
@@ -211,9 +218,10 @@ fun MainScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { paddingValues ->
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
             contentPadding = PaddingValues(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
@@ -260,15 +268,16 @@ fun MainScreen(
                                         Spacer(modifier = Modifier.width(8.dp))
                                     }
                                     Text(
-                                        text = if (uiState.isVerifyingDuration) {
-                                            stringResource(id = R.string.dialog_verifying_duration)
-                                        } else if (showDownloadAndCleanButton) {
-                                            stringResource(id = R.string.download_and_clean_button)
-                                        } else if (showConvertOnlyButton) {
-                                            stringResource(id = R.string.convert_to_audio_button)
-                                        } else {
-                                            stringResource(id = R.string.clean_media_button)
-                                        },
+                                        text =
+                                            if (uiState.isVerifyingDuration) {
+                                                stringResource(id = R.string.dialog_verifying_duration)
+                                            } else if (showDownloadAndCleanButton) {
+                                                stringResource(id = R.string.download_and_clean_button)
+                                            } else if (showConvertOnlyButton) {
+                                                stringResource(id = R.string.convert_to_audio_button)
+                                            } else {
+                                                stringResource(id = R.string.clean_media_button)
+                                            },
                                     )
                                 }
                             }
@@ -291,14 +300,22 @@ fun MainScreen(
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(12.dp),
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
                                 verticalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
                                 Column(modifier = Modifier.fillMaxWidth()) {
                                     Text(
-                                        text = if (uiState.selectedFileUri != null) stringResource(id = R.string.selected_file_label) else stringResource(id = R.string.import_media_file_label),
+                                        text =
+                                            if (uiState.selectedFileUri != null) {
+                                                stringResource(
+                                                    id = R.string.selected_file_label,
+                                                )
+                                            } else {
+                                                stringResource(id = R.string.import_media_file_label)
+                                            },
                                         fontWeight = FontWeight.Medium,
                                         color = Color.Gray,
                                     )
@@ -317,7 +334,9 @@ fun MainScreen(
                                         ElevatedButton(
                                             onClick = {
                                                 if (PermissionHelper.hasFilesPermission(context)) {
-                                                    filePickerLauncher.launch(arrayOf("video/mp4", "audio/mpeg", "audio/mp3", "audio/x-m4a", "audio/mp4"))
+                                                    filePickerLauncher.launch(
+                                                        arrayOf("video/mp4", "audio/mpeg", "audio/mp3", "audio/x-m4a", "audio/mp4"),
+                                                    )
                                                 } else {
                                                     requestFilesPermissionWithRationale()
                                                 }
@@ -343,7 +362,10 @@ fun MainScreen(
                                                 modifier = Modifier.fillMaxWidth(),
                                             ) {
                                                 if (isLoading) {
-                                                    CircularProgressIndicator(modifier = Modifier.height(18.dp).width(18.dp), strokeWidth = 2.dp)
+                                                    CircularProgressIndicator(
+                                                        modifier = Modifier.height(18.dp).width(18.dp),
+                                                        strokeWidth = 2.dp,
+                                                    )
                                                 } else {
                                                     Icon(Icons.Filled.Search, contentDescription = null)
                                                 }
@@ -497,16 +519,18 @@ fun MainScreen(
         if (isDurationMismatch) {
             val regex = """Picked file duration \((\d+)\s*s\) does not match YouTube video duration \((\d+)\s*s\)""".toRegex()
             val matchResult = regex.find(errorMessage)
-            val fileDurationStr = matchResult?.groupValues?.getOrNull(1)?.toLongOrNull()?.let { seconds ->
-                val minutes = seconds / 60
-                val remaining = seconds % 60
-                "%d:%02d".format(minutes, remaining)
-            } ?: "--:--"
-            val youtubeDurationStr = matchResult?.groupValues?.getOrNull(2)?.toLongOrNull()?.let { seconds ->
-                val minutes = seconds / 60
-                val remaining = seconds % 60
-                "%d:%02d".format(minutes, remaining)
-            } ?: "--:--"
+            val fileDurationStr =
+                matchResult?.groupValues?.getOrNull(1)?.toLongOrNull()?.let { seconds ->
+                    val minutes = seconds / 60
+                    val remaining = seconds % 60
+                    "%d:%02d".format(minutes, remaining)
+                } ?: "--:--"
+            val youtubeDurationStr =
+                matchResult?.groupValues?.getOrNull(2)?.toLongOrNull()?.let { seconds ->
+                    val minutes = seconds / 60
+                    val remaining = seconds % 60
+                    "%d:%02d".format(minutes, remaining)
+                } ?: "--:--"
 
             AlertDialog(
                 onDismissRequest = { errorDialogItem = null },
@@ -548,14 +572,19 @@ fun MainScreen(
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                         }
-                        Text(stringResource(id = R.string.error_report_explanation), style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                        Text(
+                            stringResource(id = R.string.error_report_explanation),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray,
+                        )
                     }
                 },
                 confirmButton = {
                     Button(
                         onClick = {
                             val titleParam = Uri.encode("[Bug] Pipeline clean failed: ${item.errorMessage?.take(45)}")
-                            val bodyTemplate = """
+                            val bodyTemplate =
+                                """
                                 |### SB Skip Pipeline Error Report
                                 |
                                 |* **App Version**: ${BuildConfig.VERSION_NAME}
@@ -567,7 +596,7 @@ fun MainScreen(
                                 |```text
                                 |${item.errorMessage}
                                 |```
-                            """.trimMargin()
+                                """.trimMargin()
                             val bodyParam = Uri.encode(bodyTemplate)
                             val githubUrl = "https://github.com/nihaltp/SBSkip/issues/new?title=$titleParam&body=$bodyParam"
 
@@ -608,11 +637,21 @@ fun MainScreen(
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(stringResource(id = R.string.media_type), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                            Text(
+                                stringResource(id = R.string.media_type),
+                                fontWeight = FontWeight.SemiBold,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = Color.Gray,
+                            )
                             Text(item.mediaType.name, style = MaterialTheme.typography.bodyMedium)
                         }
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(stringResource(id = R.string.duration_label), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                            Text(
+                                stringResource(id = R.string.duration_label),
+                                fontWeight = FontWeight.SemiBold,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = Color.Gray,
+                            )
                             Text(item.displayDuration, style = MaterialTheme.typography.bodyMedium)
                         }
                     }
@@ -621,7 +660,12 @@ fun MainScreen(
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(stringResource(id = R.string.status_label), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                            Text(
+                                stringResource(id = R.string.status_label),
+                                fontWeight = FontWeight.SemiBold,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = Color.Gray,
+                            )
                             Text(item.status.name, style = MaterialTheme.typography.bodyMedium)
                         }
                     }
@@ -630,7 +674,12 @@ fun MainScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Column {
-                            Text(stringResource(id = R.string.imported_path_label), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                            Text(
+                                stringResource(id = R.string.imported_path_label),
+                                fontWeight = FontWeight.SemiBold,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = Color.Gray,
+                            )
                             SelectionContainer {
                                 Text(
                                     text = formatUriToPath(context, item.localFileUri),
@@ -641,7 +690,12 @@ fun MainScreen(
 
                         if (!item.outputPath.isNullOrBlank() && item.outputPath != item.localFileUri) {
                             Column {
-                                Text(stringResource(id = R.string.saved_location_label), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                                Text(
+                                    stringResource(id = R.string.saved_location_label),
+                                    fontWeight = FontWeight.SemiBold,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = Color.Gray,
+                                )
                                 SelectionContainer {
                                     Text(
                                         text = formatUriToPath(context, item.outputPath),
@@ -700,14 +754,20 @@ fun MainScreen(
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(stringResource(id = R.string.status_label), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
-                            val statusText = if (item.isDetectingFile) {
-                                stringResource(id = R.string.detecting_recent_download)
-                            } else if (item.detectedFile != null) {
-                                stringResource(id = R.string.found_matching_file, item.detectedFile.score)
-                            } else {
-                                stringResource(id = R.string.no_pending_download)
-                            }
+                            Text(
+                                stringResource(id = R.string.status_label),
+                                fontWeight = FontWeight.SemiBold,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = Color.Gray,
+                            )
+                            val statusText =
+                                if (item.isDetectingFile) {
+                                    stringResource(id = R.string.detecting_recent_download)
+                                } else if (item.detectedFile != null) {
+                                    stringResource(id = R.string.found_matching_file, item.detectedFile.score)
+                                } else {
+                                    stringResource(id = R.string.no_pending_download)
+                                }
                             Text(statusText, style = MaterialTheme.typography.bodyMedium)
                         }
                     }
@@ -718,7 +778,12 @@ fun MainScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             Column {
-                                Text(stringResource(id = R.string.imported_path_label), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                                Text(
+                                    stringResource(id = R.string.imported_path_label),
+                                    fontWeight = FontWeight.SemiBold,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = Color.Gray,
+                                )
                                 SelectionContainer {
                                     Text(
                                         text = formatUriToPath(context, item.detectedFile.uri),
@@ -728,7 +793,12 @@ fun MainScreen(
                             }
                             if (!item.detectedFileName.isNullOrBlank()) {
                                 Column {
-                                    Text(stringResource(id = R.string.selected_file_label), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                                    Text(
+                                        stringResource(id = R.string.selected_file_label),
+                                        fontWeight = FontWeight.SemiBold,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = Color.Gray,
+                                    )
                                     SelectionContainer {
                                         Text(
                                             text = item.detectedFileName,
@@ -770,16 +840,18 @@ fun MainScreen(
     }
 
     if (uiState.showDurationMismatchDialog) {
-        val fileDurationStr = uiState.mismatchFileDuration.let { seconds ->
-            val minutes = seconds / 60
-            val remaining = seconds % 60
-            "%d:%02d".format(minutes, remaining)
-        }
-        val youtubeDurationStr = uiState.mismatchYoutubeDuration.let { seconds ->
-            val minutes = seconds / 60
-            val remaining = seconds % 60
-            "%d:%02d".format(minutes, remaining)
-        }
+        val fileDurationStr =
+            uiState.mismatchFileDuration.let { seconds ->
+                val minutes = seconds / 60
+                val remaining = seconds % 60
+                "%d:%02d".format(minutes, remaining)
+            }
+        val youtubeDurationStr =
+            uiState.mismatchYoutubeDuration.let { seconds ->
+                val minutes = seconds / 60
+                val remaining = seconds % 60
+                "%d:%02d".format(minutes, remaining)
+            }
         AlertDialog(
             onDismissRequest = onCancelMismatchDialog,
             title = { Text(stringResource(id = R.string.dialog_duration_mismatch_title)) },
@@ -844,17 +916,19 @@ private fun PendingDownloadCard(
     val coroutineScope = rememberCoroutineScope()
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onCardClick() },
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable { onCardClick() },
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Surface(
-                    modifier = Modifier
-                        .width(88.dp)
-                        .height(88.dp)
-                        .clip(RoundedCornerShape(16.dp)),
+                    modifier =
+                        Modifier
+                            .width(88.dp)
+                            .height(88.dp)
+                            .clip(RoundedCornerShape(16.dp)),
                     color = Color.Black.copy(alpha = 0.08f),
                 ) {
                     if (thumbnailUrl.isNullOrBlank()) {
@@ -865,22 +939,31 @@ private fun PendingDownloadCard(
                         AsyncImage(
                             model = thumbnailUrl,
                             contentDescription = null,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .pointerInput(thumbnailUrl) {
-                                    detectTapGestures(
-                                        onLongPress = {
-                                            coroutineScope.launch {
-                                                val success = com.nihaltp.sbskip.util.ClipboardHelper.copyImageToClipboard(context, thumbnailUrl)
-                                                if (success) {
-                                                    Toast.makeText(context, context.getString(R.string.thumbnail_copied_toast), Toast.LENGTH_SHORT).show()
-                                                } else {
-                                                    Toast.makeText(context, "Failed to copy thumbnail image", Toast.LENGTH_SHORT).show()
+                            modifier =
+                                Modifier
+                                    .fillMaxSize()
+                                    .pointerInput(thumbnailUrl) {
+                                        detectTapGestures(
+                                            onLongPress = {
+                                                coroutineScope.launch {
+                                                    val success =
+                                                        com.nihaltp.sbskip.util.ClipboardHelper.copyImageToClipboard(
+                                                            context,
+                                                            thumbnailUrl,
+                                                        )
+                                                    if (success) {
+                                                        Toast.makeText(
+                                                            context,
+                                                            context.getString(R.string.thumbnail_copied_toast),
+                                                            Toast.LENGTH_SHORT,
+                                                        ).show()
+                                                    } else {
+                                                        Toast.makeText(context, "Failed to copy thumbnail image", Toast.LENGTH_SHORT).show()
+                                                    }
                                                 }
-                                            }
-                                        },
-                                    )
-                                },
+                                            },
+                                        )
+                                    },
                         )
                     }
                 }
@@ -901,7 +984,11 @@ private fun PendingDownloadCard(
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                     Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(stringResource(id = R.string.found_matching_file, detectedFile.score), fontWeight = FontWeight.Bold)
-                        Text(detectedFileName ?: stringResource(id = R.string.no_media_selected), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(
+                            detectedFileName ?: stringResource(id = R.string.no_media_selected),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                         Text(stringResource(id = R.string.confirm_this_file_prompt))
                         Column(
                             modifier = Modifier.fillMaxWidth(),
@@ -974,7 +1061,10 @@ private fun SectionHeader(title: String) {
 }
 
 @Composable
-private fun EmptyStateCard(title: String, body: String) {
+private fun EmptyStateCard(
+    title: String,
+    body: String,
+) {
     Card {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(title, fontWeight = FontWeight.SemiBold)
@@ -997,16 +1087,18 @@ private fun QueueItemCard(
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onCardClick(item) }
-                    .testTag("queue-item-card"),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { onCardClick(item) }
+                        .testTag("queue-item-card"),
             ) {
                 Surface(
-                    modifier = Modifier
-                        .width(104.dp)
-                        .height(72.dp)
-                        .clip(RoundedCornerShape(14.dp)),
+                    modifier =
+                        Modifier
+                            .width(104.dp)
+                            .height(72.dp)
+                            .clip(RoundedCornerShape(14.dp)),
                     color = Color(0xFF20242A),
                 ) {
                     if (item.thumbnailUrl == null) {
@@ -1017,23 +1109,28 @@ private fun QueueItemCard(
                         AsyncImage(
                             model = item.thumbnailUrl,
                             contentDescription = null,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .pointerInput(item.thumbnailUrl) {
-                                    detectTapGestures(
-                                        onLongPress = {
-                                            val url = item.thumbnailUrl
-                                            coroutineScope.launch {
-                                                val success = com.nihaltp.sbskip.util.ClipboardHelper.copyImageToClipboard(context, url)
-                                                if (success) {
-                                                    Toast.makeText(context, context.getString(R.string.thumbnail_copied_toast), Toast.LENGTH_SHORT).show()
-                                                } else {
-                                                    Toast.makeText(context, "Failed to copy thumbnail image", Toast.LENGTH_SHORT).show()
+                            modifier =
+                                Modifier
+                                    .fillMaxSize()
+                                    .pointerInput(item.thumbnailUrl) {
+                                        detectTapGestures(
+                                            onLongPress = {
+                                                val url = item.thumbnailUrl
+                                                coroutineScope.launch {
+                                                    val success = com.nihaltp.sbskip.util.ClipboardHelper.copyImageToClipboard(context, url)
+                                                    if (success) {
+                                                        Toast.makeText(
+                                                            context,
+                                                            context.getString(R.string.thumbnail_copied_toast),
+                                                            Toast.LENGTH_SHORT,
+                                                        ).show()
+                                                    } else {
+                                                        Toast.makeText(context, "Failed to copy thumbnail image", Toast.LENGTH_SHORT).show()
+                                                    }
                                                 }
-                                            }
-                                        },
-                                    )
-                                },
+                                            },
+                                        )
+                                    },
                         )
                     }
                 }
@@ -1102,7 +1199,10 @@ private fun StatusChip(status: DownloadQueueStatus) {
 }
 
 @Composable
-private fun DetailRow(label: String, value: String) {
+private fun DetailRow(
+    label: String,
+    value: String,
+) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(label, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
         SelectionContainer {
@@ -1111,9 +1211,17 @@ private fun DetailRow(label: String, value: String) {
     }
 }
 
-private fun formatUriToPath(context: android.content.Context, uriString: String?): String {
+private fun formatUriToPath(
+    context: android.content.Context,
+    uriString: String?,
+): String {
     if (uriString.isNullOrBlank()) return "N/A"
-    val decoded = try { android.net.Uri.decode(uriString) } catch (e: Exception) { uriString }
+    val decoded =
+        try {
+            android.net.Uri.decode(uriString)
+        } catch (e: Exception) {
+            uriString
+        }
 
     try {
         val uri = android.net.Uri.parse(uriString)
@@ -1133,7 +1241,11 @@ private fun formatUriToPath(context: android.content.Context, uriString: String?
             if (docId != null && docId.startsWith("msf:")) {
                 val mediaId = docId.substringAfter("msf:").toLongOrNull()
                 if (mediaId != null) {
-                    targetUri = android.content.ContentUris.withAppendedId(android.provider.MediaStore.Files.getContentUri("external"), mediaId)
+                    targetUri =
+                        android.content.ContentUris.withAppendedId(
+                            android.provider.MediaStore.Files.getContentUri("external"),
+                            mediaId,
+                        )
                 }
             }
 
@@ -1154,7 +1266,14 @@ private fun formatUriToPath(context: android.content.Context, uriString: String?
             }
 
             try {
-                resolver.query(targetUri, arrayOf(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.provider.MediaStore.MediaColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                resolver.query(
+                    targetUri,
+                    arrayOf(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.provider.MediaStore.MediaColumns.DISPLAY_NAME),
+                    null,
+                    null,
+                    null,
+                )?.use {
+                        cursor ->
                     if (cursor.moveToFirst()) {
                         val relativePathIndex = cursor.getColumnIndex(android.provider.MediaStore.MediaColumns.RELATIVE_PATH)
                         val displayNameIndex = cursor.getColumnIndex(android.provider.MediaStore.MediaColumns.DISPLAY_NAME)
@@ -1171,7 +1290,8 @@ private fun formatUriToPath(context: android.content.Context, uriString: String?
             }
 
             try {
-                resolver.query(uri, arrayOf(android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME), null, null, null)?.use { cursor ->
+                resolver.query(uri, arrayOf(android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME), null, null, null)?.use {
+                        cursor ->
                     if (cursor.moveToFirst()) {
                         val dispIndex = cursor.getColumnIndex(android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME)
                         if (dispIndex != -1) {

@@ -87,123 +87,131 @@ fun SettingsScreen(
     val openAppSettings = {
         try {
             AppLogger.metadata("Permissions: Redirecting user to system App Settings...")
-            val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                data = Uri.fromParts("package", context.packageName, null)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
+            val intent =
+                Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.fromParts("package", context.packageName, null)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
             context.startActivity(intent)
         } catch (e: Exception) {
             AppLogger.error("Settings", e, "Failed to open application details settings")
         }
     }
 
-    val filesPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions(),
-    ) { results ->
-        filesPermissionGranted = PermissionHelper.hasFilesPermission(context)
-        AppLogger.metadata("Permissions: Files permission result: $results, hasPermission=$filesPermissionGranted")
-        if (!filesPermissionGranted) {
-            Toast.makeText(context, "Permission denied. Opening app settings to grant it manually...", Toast.LENGTH_LONG).show()
-            openAppSettings()
+    val filesPermissionLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.RequestMultiplePermissions(),
+        ) { results ->
+            filesPermissionGranted = PermissionHelper.hasFilesPermission(context)
+            AppLogger.metadata("Permissions: Files permission result: $results, hasPermission=$filesPermissionGranted")
+            if (!filesPermissionGranted) {
+                Toast.makeText(context, "Permission denied. Opening app settings to grant it manually...", Toast.LENGTH_LONG).show()
+                openAppSettings()
+            }
         }
-    }
-    val notificationPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions(),
-    ) { results ->
-        notificationPermissionGranted = PermissionHelper.hasNotificationPermission(context)
-        AppLogger.metadata("Permissions: Notification permission result: $results, hasPermission=$notificationPermissionGranted")
-        viewModel.updateNotificationsEnabled(notificationPermissionGranted)
-        if (!notificationPermissionGranted) {
-            Toast.makeText(context, "Permission denied. Opening app settings to grant it manually...", Toast.LENGTH_LONG).show()
-            openAppSettings()
+    val notificationPermissionLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.RequestMultiplePermissions(),
+        ) { results ->
+            notificationPermissionGranted = PermissionHelper.hasNotificationPermission(context)
+            AppLogger.metadata("Permissions: Notification permission result: $results, hasPermission=$notificationPermissionGranted")
+            viewModel.updateNotificationsEnabled(notificationPermissionGranted)
+            if (!notificationPermissionGranted) {
+                Toast.makeText(context, "Permission denied. Opening app settings to grant it manually...", Toast.LENGTH_LONG).show()
+                openAppSettings()
+            }
         }
-    }
     var showLogsDialog by remember { mutableStateOf(false) }
     var logRefreshKey by remember { mutableStateOf(0) }
     var logsToExport by remember { mutableStateOf("") }
-    val exportLogsLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("text/plain"),
-    ) { uri ->
-        if (uri != null && logsToExport.isNotEmpty()) {
-            try {
-                context.contentResolver.openOutputStream(uri)?.use { outputStream ->
-                    outputStream.write(logsToExport.toByteArray())
+    val exportLogsLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.CreateDocument("text/plain"),
+        ) { uri ->
+            if (uri != null && logsToExport.isNotEmpty()) {
+                try {
+                    context.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                        outputStream.write(logsToExport.toByteArray())
+                    }
+                    Toast.makeText(context, context.getString(R.string.logs_exported_toast), Toast.LENGTH_SHORT).show()
+                } catch (e: Exception) {
+                    AppLogger.error("Settings", e, "Failed to export logs")
+                    Toast.makeText(context, context.getString(R.string.logs_export_failed_toast), Toast.LENGTH_SHORT).show()
                 }
-                Toast.makeText(context, context.getString(R.string.logs_exported_toast), Toast.LENGTH_SHORT).show()
-            } catch (e: Exception) {
-                AppLogger.error("Settings", e, "Failed to export logs")
-                Toast.makeText(context, context.getString(R.string.logs_export_failed_toast), Toast.LENGTH_SHORT).show()
             }
         }
-    }
 
-    val videoFolderLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocumentTree(),
-    ) { uri ->
-        uri?.let {
-            try {
-                context.contentResolver.takePersistableUriPermission(
-                    it,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
-                )
-            } catch (e: Exception) {
-                com.nihaltp.sbskip.util.AppLogger.error("Settings", e, "Failed to take persistable URI permission")
+    val videoFolderLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.OpenDocumentTree(),
+        ) { uri ->
+            uri?.let {
+                try {
+                    context.contentResolver.takePersistableUriPermission(
+                        it,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+                    )
+                } catch (e: Exception) {
+                    com.nihaltp.sbskip.util.AppLogger.error("Settings", e, "Failed to take persistable URI permission")
+                }
+                val resolvedPath = resolveRelativePathFromUri(context, it)
+                viewModel.updateVideoFolder(resolvedPath, it.toString())
             }
-            val resolvedPath = resolveRelativePathFromUri(context, it)
-            viewModel.updateVideoFolder(resolvedPath, it.toString())
         }
-    }
 
-    val audioFolderLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocumentTree(),
-    ) { uri ->
-        uri?.let {
-            try {
-                context.contentResolver.takePersistableUriPermission(
-                    it,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
-                )
-            } catch (e: Exception) {
-                com.nihaltp.sbskip.util.AppLogger.error("Settings", e, "Failed to take persistable URI permission")
+    val audioFolderLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.OpenDocumentTree(),
+        ) { uri ->
+            uri?.let {
+                try {
+                    context.contentResolver.takePersistableUriPermission(
+                        it,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+                    )
+                } catch (e: Exception) {
+                    com.nihaltp.sbskip.util.AppLogger.error("Settings", e, "Failed to take persistable URI permission")
+                }
+                val resolvedPath = resolveRelativePathFromUri(context, it)
+                viewModel.updateAudioFolder(resolvedPath, it.toString())
             }
-            val resolvedPath = resolveRelativePathFromUri(context, it)
-            viewModel.updateAudioFolder(resolvedPath, it.toString())
         }
-    }
 
-    val newPipeVideoFolderLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocumentTree(),
-    ) { uri ->
-        uri?.let {
-            try {
-                context.contentResolver.takePersistableUriPermission(
-                    it,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
-                )
-            } catch (e: Exception) {
-                com.nihaltp.sbskip.util.AppLogger.error("Settings", e, "Failed to take persistable URI permission")
+    val newPipeVideoFolderLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.OpenDocumentTree(),
+        ) { uri ->
+            uri?.let {
+                try {
+                    context.contentResolver.takePersistableUriPermission(
+                        it,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+                    )
+                } catch (e: Exception) {
+                    com.nihaltp.sbskip.util.AppLogger.error("Settings", e, "Failed to take persistable URI permission")
+                }
+                val resolvedPath = resolveRelativePathFromUri(context, it)
+                viewModel.updateNewPipeVideoFolder(resolvedPath, it.toString())
             }
-            val resolvedPath = resolveRelativePathFromUri(context, it)
-            viewModel.updateNewPipeVideoFolder(resolvedPath, it.toString())
         }
-    }
 
-    val newPipeAudioFolderLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocumentTree(),
-    ) { uri ->
-        uri?.let {
-            try {
-                context.contentResolver.takePersistableUriPermission(
-                    it,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
-                )
-            } catch (e: Exception) {
-                com.nihaltp.sbskip.util.AppLogger.error("Settings", e, "Failed to take persistable URI permission")
+    val newPipeAudioFolderLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.OpenDocumentTree(),
+        ) { uri ->
+            uri?.let {
+                try {
+                    context.contentResolver.takePersistableUriPermission(
+                        it,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+                    )
+                } catch (e: Exception) {
+                    com.nihaltp.sbskip.util.AppLogger.error("Settings", e, "Failed to take persistable URI permission")
+                }
+                val resolvedPath = resolveRelativePathFromUri(context, it)
+                viewModel.updateNewPipeAudioFolder(resolvedPath, it.toString())
             }
-            val resolvedPath = resolveRelativePathFromUri(context, it)
-            viewModel.updateNewPipeAudioFolder(resolvedPath, it.toString())
         }
-    }
 
     var activeDialogType by remember { mutableStateOf<SettingsDialogType?>(null) }
     var textInputState by remember { mutableStateOf("") }
@@ -228,9 +236,10 @@ fun SettingsScreen(
     ) { paddingValues ->
         if (settings == null) {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
@@ -238,9 +247,10 @@ fun SettingsScreen(
             }
         } else {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
                 contentPadding = PaddingValues(20.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
@@ -268,11 +278,12 @@ fun SettingsScreen(
                                 }
                             },
                         )
-                        val themeModeLabel = when (settings.themeMode) {
-                            ThemeMode.LIGHT -> stringResource(id = R.string.theme_mode_light)
-                            ThemeMode.DARK -> stringResource(id = R.string.theme_mode_dark)
-                            ThemeMode.SYSTEM -> stringResource(id = R.string.theme_mode_system)
-                        }
+                        val themeModeLabel =
+                            when (settings.themeMode) {
+                                ThemeMode.LIGHT -> stringResource(id = R.string.theme_mode_light)
+                                ThemeMode.DARK -> stringResource(id = R.string.theme_mode_dark)
+                                ThemeMode.SYSTEM -> stringResource(id = R.string.theme_mode_system)
+                            }
                         SettingValueRow(
                             title = stringResource(id = R.string.settings_theme_mode),
                             value = themeModeLabel,
@@ -365,17 +376,22 @@ fun SettingsScreen(
                         if (settings.bypassSmallDurationDifference) {
                             SettingValueRow(
                                 title = stringResource(id = R.string.settings_max_difference_title),
-                                value = stringResource(id = R.string.settings_max_difference_seconds_format, settings.maxDurationDifferenceSeconds),
+                                value =
+                                    stringResource(
+                                        id = R.string.settings_max_difference_seconds_format,
+                                        settings.maxDurationDifferenceSeconds,
+                                    ),
                                 onClick = {
                                     activeDialogType = SettingsDialogType.MAX_DIFFERENCE
                                     textInputState = settings.maxDurationDifferenceSeconds.toString()
                                 },
                             )
                         }
-                        val audioSaveModeLabel = when (settings.audioSaveMode) {
-                            AudioSaveMode.PRESET_FOLDER -> stringResource(id = R.string.settings_audio_save_mode_preset)
-                            AudioSaveMode.RUNTIME_PICKER -> stringResource(id = R.string.settings_audio_save_mode_picker)
-                        }
+                        val audioSaveModeLabel =
+                            when (settings.audioSaveMode) {
+                                AudioSaveMode.PRESET_FOLDER -> stringResource(id = R.string.settings_audio_save_mode_preset)
+                                AudioSaveMode.RUNTIME_PICKER -> stringResource(id = R.string.settings_audio_save_mode_picker)
+                            }
                         SettingValueRow(
                             title = stringResource(id = R.string.settings_audio_save_mode_title),
                             value = audioSaveModeLabel,
@@ -430,11 +446,12 @@ fun SettingsScreen(
                         )
                         SettingValueRow(
                             title = stringResource(id = R.string.settings_sb_categories_title),
-                            value = stringResource(
-                                id = R.string.settings_categories_selected_format,
-                                settings.sponsorBlockSettings.categories.size,
-                                sponsorBlockCategories.size,
-                            ),
+                            value =
+                                stringResource(
+                                    id = R.string.settings_categories_selected_format,
+                                    settings.sponsorBlockSettings.categories.size,
+                                    sponsorBlockCategories.size,
+                                ),
                             onClick = {
                                 activeDialogType = SettingsDialogType.SB_CATEGORIES
                             },
@@ -509,7 +526,11 @@ fun SettingsScreen(
                             title = stringResource(id = R.string.settings_request_translation),
                             value = stringResource(id = R.string.settings_request_translation_desc),
                             onClick = {
-                                val url = "https://github.com/nihaltp/SBSkip/issues/new?title=" + Uri.encode("Translation Request") + "&body=" + Uri.encode("I would like to help translate SBSkip into [LANGUAGE].")
+                                val url =
+                                    "https://github.com/nihaltp/SBSkip/issues/new?title=" +
+                                        Uri.encode(
+                                            "Translation Request",
+                                        ) + "&body=" + Uri.encode("I would like to help translate SBSkip into [LANGUAGE].")
                                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                                 context.startActivity(intent)
                             },
@@ -531,19 +552,21 @@ fun SettingsScreen(
                         text = {
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 ThemeMode.entries.forEach { mode ->
-                                    val label = when (mode) {
-                                        ThemeMode.LIGHT -> stringResource(id = R.string.theme_mode_light)
-                                        ThemeMode.DARK -> stringResource(id = R.string.theme_mode_dark)
-                                        ThemeMode.SYSTEM -> stringResource(id = R.string.theme_mode_system)
-                                    }
+                                    val label =
+                                        when (mode) {
+                                            ThemeMode.LIGHT -> stringResource(id = R.string.theme_mode_light)
+                                            ThemeMode.DARK -> stringResource(id = R.string.theme_mode_dark)
+                                            ThemeMode.SYSTEM -> stringResource(id = R.string.theme_mode_system)
+                                        }
                                     Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable {
-                                                viewModel.updateThemeMode(mode)
-                                                activeDialogType = null
-                                            }
-                                            .padding(vertical = 8.dp),
+                                        modifier =
+                                            Modifier
+                                                .fillMaxWidth()
+                                                .clickable {
+                                                    viewModel.updateThemeMode(mode)
+                                                    activeDialogType = null
+                                                }
+                                                .padding(vertical = 8.dp),
                                         verticalAlignment = Alignment.CenterVertically,
                                     ) {
                                         RadioButton(
@@ -574,18 +597,20 @@ fun SettingsScreen(
                         text = {
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 AudioSaveMode.entries.forEach { mode ->
-                                    val label = when (mode) {
-                                        AudioSaveMode.PRESET_FOLDER -> stringResource(id = R.string.settings_audio_save_mode_preset)
-                                        AudioSaveMode.RUNTIME_PICKER -> stringResource(id = R.string.settings_audio_save_mode_picker)
-                                    }
+                                    val label =
+                                        when (mode) {
+                                            AudioSaveMode.PRESET_FOLDER -> stringResource(id = R.string.settings_audio_save_mode_preset)
+                                            AudioSaveMode.RUNTIME_PICKER -> stringResource(id = R.string.settings_audio_save_mode_picker)
+                                        }
                                     Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable {
-                                                viewModel.updateAudioSaveMode(mode)
-                                                activeDialogType = null
-                                            }
-                                            .padding(vertical = 8.dp),
+                                        modifier =
+                                            Modifier
+                                                .fillMaxWidth()
+                                                .clickable {
+                                                    viewModel.updateAudioSaveMode(mode)
+                                                    activeDialogType = null
+                                                }
+                                                .padding(vertical = 8.dp),
                                         verticalAlignment = Alignment.CenterVertically,
                                     ) {
                                         RadioButton(
@@ -617,13 +642,14 @@ fun SettingsScreen(
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 val selected = nonNullSettings.downloader
                                 Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            viewModel.updateDownloaderType(DownloaderType.NEWPIPE)
-                                            activeDialogType = null
-                                        }
-                                        .padding(vertical = 8.dp),
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                viewModel.updateDownloaderType(DownloaderType.NEWPIPE)
+                                                activeDialogType = null
+                                            }
+                                            .padding(vertical = 8.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
                                     RadioButton(
@@ -658,10 +684,11 @@ fun SettingsScreen(
                                 val allSelected = nonNullSettings.sponsorBlockSettings.categories.size == sponsorBlockCategories.size
                                 item {
                                     Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable { viewModel.setAllSponsorBlockCategories(!allSelected) }
-                                            .padding(vertical = 8.dp),
+                                        modifier =
+                                            Modifier
+                                                .fillMaxWidth()
+                                                .clickable { viewModel.setAllSponsorBlockCategories(!allSelected) }
+                                                .padding(vertical = 8.dp),
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically,
                                     ) {
@@ -678,10 +705,11 @@ fun SettingsScreen(
                                     item {
                                         val isChecked = categoryRow.category in nonNullSettings.sponsorBlockSettings.categories
                                         Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .clickable { viewModel.toggleSponsorBlockCategory(categoryRow.category) }
-                                                .padding(vertical = 8.dp),
+                                            modifier =
+                                                Modifier
+                                                    .fillMaxWidth()
+                                                    .clickable { viewModel.toggleSponsorBlockCategory(categoryRow.category) }
+                                                    .padding(vertical = 8.dp),
                                             horizontalArrangement = Arrangement.SpaceBetween,
                                             verticalAlignment = Alignment.CenterVertically,
                                         ) {
@@ -703,20 +731,22 @@ fun SettingsScreen(
                     )
                 }
                 else -> {
-                    val dialogTitle = when (dialogType) {
-                        SettingsDialogType.SUFFIX -> stringResource(id = R.string.settings_suffix_title)
-                        SettingsDialogType.SB_URL -> stringResource(id = R.string.settings_sb_url_title)
-                        SettingsDialogType.SB_STATUS_URL -> stringResource(id = R.string.settings_sb_status_url_title)
-                        SettingsDialogType.MAX_DIFFERENCE -> stringResource(id = R.string.settings_max_difference_title)
-                        else -> ""
-                    }
-                    val dialogLabel = when (dialogType) {
-                        SettingsDialogType.SUFFIX -> stringResource(id = R.string.settings_suffix_field_label)
-                        SettingsDialogType.SB_URL -> stringResource(id = R.string.settings_sb_url_field_label)
-                        SettingsDialogType.SB_STATUS_URL -> stringResource(id = R.string.settings_sb_status_url_field_label)
-                        SettingsDialogType.MAX_DIFFERENCE -> stringResource(id = R.string.settings_max_difference_field_label)
-                        else -> ""
-                    }
+                    val dialogTitle =
+                        when (dialogType) {
+                            SettingsDialogType.SUFFIX -> stringResource(id = R.string.settings_suffix_title)
+                            SettingsDialogType.SB_URL -> stringResource(id = R.string.settings_sb_url_title)
+                            SettingsDialogType.SB_STATUS_URL -> stringResource(id = R.string.settings_sb_status_url_title)
+                            SettingsDialogType.MAX_DIFFERENCE -> stringResource(id = R.string.settings_max_difference_title)
+                            else -> ""
+                        }
+                    val dialogLabel =
+                        when (dialogType) {
+                            SettingsDialogType.SUFFIX -> stringResource(id = R.string.settings_suffix_field_label)
+                            SettingsDialogType.SB_URL -> stringResource(id = R.string.settings_sb_url_field_label)
+                            SettingsDialogType.SB_STATUS_URL -> stringResource(id = R.string.settings_sb_status_url_field_label)
+                            SettingsDialogType.MAX_DIFFERENCE -> stringResource(id = R.string.settings_max_difference_field_label)
+                            else -> ""
+                        }
                     AlertDialog(
                         onDismissRequest = { activeDialogType = null },
                         title = { Text(dialogTitle) },
@@ -781,14 +811,20 @@ fun SettingsScreen(
                         Column {
                             Text("Jetpack Compose & AndroidX Libraries", fontWeight = FontWeight.Bold)
                             Text("License: Apache License 2.0", style = MaterialTheme.typography.bodySmall)
-                            Text("Core UI frameworks, WorkManager orchestration, Room database, and Jetpack DataStore preferences.", style = MaterialTheme.typography.bodySmall)
+                            Text(
+                                "Core UI frameworks, WorkManager orchestration, Room database, and Jetpack DataStore preferences.",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
                         }
                     }
                     item {
                         Column {
                             Text("Kotlin & Kotlinx Serialization / Coroutines", fontWeight = FontWeight.Bold)
                             Text("License: Apache License 2.0", style = MaterialTheme.typography.bodySmall)
-                            Text("Modern, reactive language runtime, JSON serializers, and asynchronous flows.", style = MaterialTheme.typography.bodySmall)
+                            Text(
+                                "Modern, reactive language runtime, JSON serializers, and asynchronous flows.",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
                         }
                     }
                     item {
@@ -802,14 +838,20 @@ fun SettingsScreen(
                         Column {
                             Text("OkHttp & Retrofit", fontWeight = FontWeight.Bold)
                             Text("License: Apache License 2.0", style = MaterialTheme.typography.bodySmall)
-                            Text("Square's robust, fast http client engine and type-safe HTTP clients.", style = MaterialTheme.typography.bodySmall)
+                            Text(
+                                "Square's robust, fast http client engine and type-safe HTTP clients.",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
                         }
                     }
                     item {
                         Column {
                             Text("Coil Image Loader", fontWeight = FontWeight.Bold)
                             Text("License: Apache License 2.0", style = MaterialTheme.typography.bodySmall)
-                            Text("Kotlin-first, fast image loading library for Jetpack Compose.", style = MaterialTheme.typography.bodySmall)
+                            Text(
+                                "Kotlin-first, fast image loading library for Jetpack Compose.",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
                         }
                     }
                 }
@@ -834,19 +876,21 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     SelectionContainer(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth(),
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
                     ) {
                         LazyColumn(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(300.dp)
-                                .background(
-                                    color = MaterialTheme.colorScheme.surfaceVariant,
-                                    shape = MaterialTheme.shapes.small,
-                                )
-                                .padding(8.dp),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .height(300.dp)
+                                    .background(
+                                        color = MaterialTheme.colorScheme.surfaceVariant,
+                                        shape = MaterialTheme.shapes.small,
+                                    )
+                                    .padding(8.dp),
                         ) {
                             item {
                                 Text(
@@ -914,7 +958,10 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun SettingsSection(title: String, content: @Composable () -> Unit) {
+private fun SettingsSection(
+    title: String,
+    content: @Composable () -> Unit,
+) {
     Card(colors = CardDefaults.cardColors()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(title, fontWeight = FontWeight.SemiBold)
@@ -931,7 +978,11 @@ private fun SettingToggleRow(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
 ) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(title, fontWeight = FontWeight.Medium)
             Text(description)
@@ -946,16 +997,17 @@ private fun SettingValueRow(
     value: String,
     onClick: (() -> Unit)? = null,
 ) {
-    val modifier = if (onClick != null) {
-        Modifier
-            .fillMaxWidth()
-            .clickable { onClick() }
-            .padding(vertical = 8.dp)
-    } else {
-        Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
-    }
+    val modifier =
+        if (onClick != null) {
+            Modifier
+                .fillMaxWidth()
+                .clickable { onClick() }
+                .padding(vertical = 8.dp)
+        } else {
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
+        }
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -970,17 +1022,18 @@ private fun SettingValueRow(
 
 private data class CategoryRow(val category: SponsorBlockCategory, val labelResId: Int)
 
-private val sponsorBlockCategories = listOf(
-    CategoryRow(SponsorBlockCategory.SPONSOR, R.string.category_sponsor),
-    CategoryRow(SponsorBlockCategory.SELF_PROMOTION, R.string.category_self_promotion),
-    CategoryRow(SponsorBlockCategory.INTERACTION_REMINDER, R.string.category_interaction_reminder),
-    CategoryRow(SponsorBlockCategory.INTRO, R.string.category_intro),
-    CategoryRow(SponsorBlockCategory.OUTRO, R.string.category_outro),
-    CategoryRow(SponsorBlockCategory.PREVIEW_RECAP, R.string.category_preview_recap),
-    CategoryRow(SponsorBlockCategory.HOOK, R.string.category_hook_greetings),
-    CategoryRow(SponsorBlockCategory.FILLER_TANGENT, R.string.category_filler_tangent),
-    CategoryRow(SponsorBlockCategory.MUSIC_OFFTOPIC, R.string.category_music_non_music_section),
-)
+private val sponsorBlockCategories =
+    listOf(
+        CategoryRow(SponsorBlockCategory.SPONSOR, R.string.category_sponsor),
+        CategoryRow(SponsorBlockCategory.SELF_PROMOTION, R.string.category_self_promotion),
+        CategoryRow(SponsorBlockCategory.INTERACTION_REMINDER, R.string.category_interaction_reminder),
+        CategoryRow(SponsorBlockCategory.INTRO, R.string.category_intro),
+        CategoryRow(SponsorBlockCategory.OUTRO, R.string.category_outro),
+        CategoryRow(SponsorBlockCategory.PREVIEW_RECAP, R.string.category_preview_recap),
+        CategoryRow(SponsorBlockCategory.HOOK, R.string.category_hook_greetings),
+        CategoryRow(SponsorBlockCategory.FILLER_TANGENT, R.string.category_filler_tangent),
+        CategoryRow(SponsorBlockCategory.MUSIC_OFFTOPIC, R.string.category_music_non_music_section),
+    )
 
 private enum class SettingsDialogType {
     THEME,
@@ -993,13 +1046,23 @@ private enum class SettingsDialogType {
     MAX_DIFFERENCE,
 }
 
-private fun resolveRelativePathFromUri(context: android.content.Context, uri: Uri): String {
+private fun resolveRelativePathFromUri(
+    context: android.content.Context,
+    uri: Uri,
+): String {
     try {
         val docId = android.provider.DocumentsContract.getTreeDocumentId(uri)
 
         try {
             val docUri = android.provider.DocumentsContract.buildDocumentUriUsingTree(uri, docId)
-            context.contentResolver.query(docUri, arrayOf(android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME), null, null, null)?.use { cursor ->
+            context.contentResolver.query(
+                docUri,
+                arrayOf(android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME),
+                null,
+                null,
+                null,
+            )?.use {
+                    cursor ->
                 if (cursor.moveToFirst()) {
                     val index = cursor.getColumnIndex(android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME)
                     if (index != -1) {

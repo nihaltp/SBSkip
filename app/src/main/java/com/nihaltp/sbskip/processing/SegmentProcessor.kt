@@ -75,7 +75,11 @@ object SegmentProcessor {
         return keepRanges.filter { (start, end) -> (end - start) >= 0.1 }
     }
 
-    private fun clamp(value: Double, min: Double, max: Double): Double {
+    private fun clamp(
+        value: Double,
+        min: Double,
+        max: Double,
+    ): Double {
         return maxOf(min, minOf(value, max))
     }
 }

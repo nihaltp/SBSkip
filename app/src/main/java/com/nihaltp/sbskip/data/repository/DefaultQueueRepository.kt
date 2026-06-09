@@ -18,171 +18,188 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class DefaultQueueRepository @Inject constructor(
-    private val dao: DownloadQueueDao,
-    private val workScheduler: DownloadWorkScheduler,
-    @ApplicationContext private val context: Context,
-) : QueueRepository {
-    override fun observeQueue(): Flow<List<DownloadQueueItem>> = dao.observeQueue().map { entities ->
-        entities.map { it.toDomain() }
-    }
-
-    override suspend fun enqueue(
-        localFileUri: String,
-        title: String,
-        youtubeUrl: String,
-        mediaType: MediaType,
-        convertVideoToAudio: Boolean,
-        deleteOriginalVideo: Boolean,
-        audioOutputDirUri: String?,
-    ): QueueActionResult {
-        val videoId = if (youtubeUrl.isBlank() || youtubeUrl.startsWith("sbskip://")) {
-            null
-        } else {
-            YouTubeUrlParser.extractVideoId(youtubeUrl)
-                ?: return QueueActionResult(success = false, message = context.getString(R.string.enter_valid_url))
-        }
-
-        val normalizedUrl = if (videoId != null) {
-            val hasBypass = youtubeUrl.contains("bypassDurationCheck=true")
-            "https://www.youtube.com/watch?v=$videoId" + if (hasBypass) "&bypassDurationCheck=true" else ""
-        } else {
-            youtubeUrl
-        }
-        val now = System.currentTimeMillis()
-        val entity = DownloadQueueEntity(
-            url = normalizedUrl,
-            title = title,
-            localFileUri = localFileUri,
-            mediaType = mediaType.name,
-            thumbnailUrl = null,
-            durationSeconds = null,
-            status = DownloadQueueStatus.QUEUED,
-            createdAtEpochMillis = now,
-            updatedAtEpochMillis = now,
-            errorMessage = null,
-            outputPath = null,
-            convertVideoToAudio = convertVideoToAudio,
-            deleteOriginalVideo = deleteOriginalVideo,
-            audioOutputDirUri = audioOutputDirUri,
-        )
-
-        val id = dao.insert(entity)
-        AppLogger.queue("queued item id=$id url=$normalizedUrl file=$localFileUri")
-        workScheduler.schedule(id)
-        return QueueActionResult(success = true, message = context.getString(R.string.download_started))
-    }
-
-    override suspend fun retry(itemId: Long, bypassDurationCheck: Boolean): QueueActionResult {
-        val item = dao.findById(itemId)
-            ?: return QueueActionResult(success = false, message = context.getString(R.string.error_item_not_found))
-
-        val updatedUrl = if (bypassDurationCheck) {
-            val url = item.url
-            if (!url.startsWith("sbskip://") && !url.contains("bypassDurationCheck=true")) {
-                val hasParams = url.contains("?")
-                val separator = if (hasParams) "&" else "?"
-                "$url${separator}bypassDurationCheck=true"
-            } else {
-                url
+class DefaultQueueRepository
+    @Inject
+    constructor(
+        private val dao: DownloadQueueDao,
+        private val workScheduler: DownloadWorkScheduler,
+        @ApplicationContext private val context: Context,
+    ) : QueueRepository {
+        override fun observeQueue(): Flow<List<DownloadQueueItem>> =
+            dao.observeQueue().map { entities ->
+                entities.map { it.toDomain() }
             }
-        } else {
-            item.url
+
+        override suspend fun enqueue(
+            localFileUri: String,
+            title: String,
+            youtubeUrl: String,
+            mediaType: MediaType,
+            convertVideoToAudio: Boolean,
+            deleteOriginalVideo: Boolean,
+            audioOutputDirUri: String?,
+        ): QueueActionResult {
+            val videoId =
+                if (youtubeUrl.isBlank() || youtubeUrl.startsWith("sbskip://")) {
+                    null
+                } else {
+                    YouTubeUrlParser.extractVideoId(youtubeUrl)
+                        ?: return QueueActionResult(success = false, message = context.getString(R.string.enter_valid_url))
+                }
+
+            val normalizedUrl =
+                if (videoId != null) {
+                    val hasBypass = youtubeUrl.contains("bypassDurationCheck=true")
+                    "https://www.youtube.com/watch?v=$videoId" + if (hasBypass) "&bypassDurationCheck=true" else ""
+                } else {
+                    youtubeUrl
+                }
+            val now = System.currentTimeMillis()
+            val entity =
+                DownloadQueueEntity(
+                    url = normalizedUrl,
+                    title = title,
+                    localFileUri = localFileUri,
+                    mediaType = mediaType.name,
+                    thumbnailUrl = null,
+                    durationSeconds = null,
+                    status = DownloadQueueStatus.QUEUED,
+                    createdAtEpochMillis = now,
+                    updatedAtEpochMillis = now,
+                    errorMessage = null,
+                    outputPath = null,
+                    convertVideoToAudio = convertVideoToAudio,
+                    deleteOriginalVideo = deleteOriginalVideo,
+                    audioOutputDirUri = audioOutputDirUri,
+                )
+
+            val id = dao.insert(entity)
+            AppLogger.queue("queued item id=$id url=$normalizedUrl file=$localFileUri")
+            workScheduler.schedule(id)
+            return QueueActionResult(success = true, message = context.getString(R.string.download_started))
         }
 
-        dao.updateUrlAndStatus(
-            id = itemId,
-            url = updatedUrl,
-            status = DownloadQueueStatus.QUEUED,
-            errorMessage = null,
-            updatedAtEpochMillis = System.currentTimeMillis(),
-        )
-        AppLogger.queue("retry item id=$itemId bypassDurationCheck=$bypassDurationCheck url=$updatedUrl")
-        workScheduler.schedule(itemId)
-        return QueueActionResult(success = true, message = context.getString(R.string.retry_started))
-    }
+        override suspend fun retry(
+            itemId: Long,
+            bypassDurationCheck: Boolean,
+        ): QueueActionResult {
+            val item =
+                dao.findById(itemId)
+                    ?: return QueueActionResult(success = false, message = context.getString(R.string.error_item_not_found))
 
-    override suspend fun remove(itemId: Long) {
-        dao.deleteById(itemId)
-        AppLogger.queue("removed item id=$itemId")
-    }
+            val updatedUrl =
+                if (bypassDurationCheck) {
+                    val url = item.url
+                    if (!url.startsWith("sbskip://") && !url.contains("bypassDurationCheck=true")) {
+                        val hasParams = url.contains("?")
+                        val separator = if (hasParams) "&" else "?"
+                        "$url${separator}bypassDurationCheck=true"
+                    } else {
+                        url
+                    }
+                } else {
+                    item.url
+                }
 
-    override suspend fun findItemById(itemId: Long): DownloadQueueItem? {
-        return dao.findById(itemId)?.toDomain()
-    }
+            dao.updateUrlAndStatus(
+                id = itemId,
+                url = updatedUrl,
+                status = DownloadQueueStatus.QUEUED,
+                errorMessage = null,
+                updatedAtEpochMillis = System.currentTimeMillis(),
+            )
+            AppLogger.queue("retry item id=$itemId bypassDurationCheck=$bypassDurationCheck url=$updatedUrl")
+            workScheduler.schedule(itemId)
+            return QueueActionResult(success = true, message = context.getString(R.string.retry_started))
+        }
 
-    override suspend fun markFetchingSegments(itemId: Long) {
-        AppLogger.queue("fetching segments for id=$itemId")
-        dao.updateStatus(
-            id = itemId,
-            status = DownloadQueueStatus.FETCHING_SEGMENTS,
-            errorMessage = null,
-            updatedAtEpochMillis = System.currentTimeMillis(),
-        )
-    }
+        override suspend fun remove(itemId: Long) {
+            dao.deleteById(itemId)
+            AppLogger.queue("removed item id=$itemId")
+        }
 
-    override suspend fun markProcessing(itemId: Long) {
-        AppLogger.queue("processing id=$itemId")
-        dao.markStatus(
-            id = itemId,
-            status = DownloadQueueStatus.PROCESSING,
-            updatedAtEpochMillis = System.currentTimeMillis(),
-        )
-    }
+        override suspend fun findItemById(itemId: Long): DownloadQueueItem? {
+            return dao.findById(itemId)?.toDomain()
+        }
 
-    override suspend fun markCompleted(itemId: Long, outputPath: String) {
-        AppLogger.queue("completed id=$itemId outputPath=$outputPath")
-        dao.markCompleted(
-            id = itemId,
-            outputPath = outputPath,
-            updatedAtEpochMillis = System.currentTimeMillis(),
-        )
-    }
+        override suspend fun markFetchingSegments(itemId: Long) {
+            AppLogger.queue("fetching segments for id=$itemId")
+            dao.updateStatus(
+                id = itemId,
+                status = DownloadQueueStatus.FETCHING_SEGMENTS,
+                errorMessage = null,
+                updatedAtEpochMillis = System.currentTimeMillis(),
+            )
+        }
 
-    override suspend fun markFailed(itemId: Long, errorMessage: String) {
-        AppLogger.queue("failed id=$itemId error=$errorMessage")
-        dao.updateStatus(
-            id = itemId,
-            status = DownloadQueueStatus.FAILED,
-            errorMessage = errorMessage,
-            updatedAtEpochMillis = System.currentTimeMillis(),
-        )
-    }
+        override suspend fun markProcessing(itemId: Long) {
+            AppLogger.queue("processing id=$itemId")
+            dao.markStatus(
+                id = itemId,
+                status = DownloadQueueStatus.PROCESSING,
+                updatedAtEpochMillis = System.currentTimeMillis(),
+            )
+        }
 
-    override suspend fun updateMetadata(
-        itemId: Long,
-        title: String,
-        thumbnailUrl: String?,
-        durationSeconds: Long?,
-    ) {
-        AppLogger.queue("updateMetadata id=$itemId title=$title duration=$durationSeconds")
-        dao.updateMetadata(
-            id = itemId,
-            title = title,
-            thumbnailUrl = thumbnailUrl,
-            durationSeconds = durationSeconds,
-            updatedAtEpochMillis = System.currentTimeMillis(),
-        )
-    }
+        override suspend fun markCompleted(
+            itemId: Long,
+            outputPath: String,
+        ) {
+            AppLogger.queue("completed id=$itemId outputPath=$outputPath")
+            dao.markCompleted(
+                id = itemId,
+                outputPath = outputPath,
+                updatedAtEpochMillis = System.currentTimeMillis(),
+            )
+        }
 
-    private fun DownloadQueueEntity.toDomain(): DownloadQueueItem {
-        val parsedMediaType = runCatching { MediaType.valueOf(mediaType) }.getOrDefault(MediaType.VIDEO)
-        return DownloadQueueItem(
-            id = id,
-            url = url,
-            title = title,
-            localFileUri = localFileUri,
-            mediaType = parsedMediaType,
-            thumbnailUrl = thumbnailUrl,
-            durationSeconds = durationSeconds,
-            status = status,
-            createdAtEpochMillis = createdAtEpochMillis,
-            updatedAtEpochMillis = updatedAtEpochMillis,
-            errorMessage = errorMessage,
-            outputPath = outputPath,
-            convertVideoToAudio = convertVideoToAudio,
-            deleteOriginalVideo = deleteOriginalVideo,
-            audioOutputDirUri = audioOutputDirUri,
-        )
+        override suspend fun markFailed(
+            itemId: Long,
+            errorMessage: String,
+        ) {
+            AppLogger.queue("failed id=$itemId error=$errorMessage")
+            dao.updateStatus(
+                id = itemId,
+                status = DownloadQueueStatus.FAILED,
+                errorMessage = errorMessage,
+                updatedAtEpochMillis = System.currentTimeMillis(),
+            )
+        }
+
+        override suspend fun updateMetadata(
+            itemId: Long,
+            title: String,
+            thumbnailUrl: String?,
+            durationSeconds: Long?,
+        ) {
+            AppLogger.queue("updateMetadata id=$itemId title=$title duration=$durationSeconds")
+            dao.updateMetadata(
+                id = itemId,
+                title = title,
+                thumbnailUrl = thumbnailUrl,
+                durationSeconds = durationSeconds,
+                updatedAtEpochMillis = System.currentTimeMillis(),
+            )
+        }
+
+        private fun DownloadQueueEntity.toDomain(): DownloadQueueItem {
+            val parsedMediaType = runCatching { MediaType.valueOf(mediaType) }.getOrDefault(MediaType.VIDEO)
+            return DownloadQueueItem(
+                id = id,
+                url = url,
+                title = title,
+                localFileUri = localFileUri,
+                mediaType = parsedMediaType,
+                thumbnailUrl = thumbnailUrl,
+                durationSeconds = durationSeconds,
+                status = status,
+                createdAtEpochMillis = createdAtEpochMillis,
+                updatedAtEpochMillis = updatedAtEpochMillis,
+                errorMessage = errorMessage,
+                outputPath = outputPath,
+                convertVideoToAudio = convertVideoToAudio,
+                deleteOriginalVideo = deleteOriginalVideo,
+                audioOutputDirUri = audioOutputDirUri,
+            )
+        }
     }
-}

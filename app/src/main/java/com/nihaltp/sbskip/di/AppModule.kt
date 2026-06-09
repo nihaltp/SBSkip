@@ -53,7 +53,9 @@ abstract class AppModule {
     companion object {
         @Provides
         @Singleton
-        fun provideDatabase(@ApplicationContext context: Context): SBSkipDatabase {
+        fun provideDatabase(
+            @ApplicationContext context: Context,
+        ): SBSkipDatabase {
             return Room.databaseBuilder(context, SBSkipDatabase::class.java, "sbskip.db")
                 .enableMultiInstanceInvalidation()
                 .fallbackToDestructiveMigration()

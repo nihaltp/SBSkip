@@ -3,12 +3,13 @@ package com.nihaltp.sbskip.util
 import android.net.Uri
 
 object YouTubeUrlParser {
-    private val supportedHosts = setOf(
-        "youtube.com",
-        "www.youtube.com",
-        "m.youtube.com",
-        "youtu.be",
-    )
+    private val supportedHosts =
+        setOf(
+            "youtube.com",
+            "www.youtube.com",
+            "m.youtube.com",
+            "youtu.be",
+        )
 
     fun normalize(rawInput: String): String? {
         val extracted = extractCandidateUrl(rawInput) ?: return null
@@ -36,13 +37,18 @@ object YouTubeUrlParser {
         val trimmed = rawInput.trim().trim('"', '\'', '(', ')', '[', ']', ',', '.', ';')
         if (trimmed.isBlank()) return null
 
-        val direct = if (trimmed.startsWith("http://", ignoreCase = true) || trimmed.startsWith("https://", ignoreCase = true)) {
-            trimmed
-        } else if (trimmed.startsWith("www.", ignoreCase = true) || trimmed.startsWith("youtube.com", ignoreCase = true) || trimmed.startsWith("youtu.be", ignoreCase = true)) {
-            "https://$trimmed"
-        } else {
-            Regex("https?://[^\\s]+", RegexOption.IGNORE_CASE).find(trimmed)?.value
-        }
+        val direct =
+            if (trimmed.startsWith("http://", ignoreCase = true) || trimmed.startsWith("https://", ignoreCase = true)) {
+                trimmed
+            } else if (trimmed.startsWith(
+                    "www.",
+                    ignoreCase = true,
+                ) || trimmed.startsWith("youtube.com", ignoreCase = true) || trimmed.startsWith("youtu.be", ignoreCase = true)
+            ) {
+                "https://$trimmed"
+            } else {
+                Regex("https?://[^\\s]+", RegexOption.IGNORE_CASE).find(trimmed)?.value
+            }
 
         if (direct.isNullOrBlank()) return null
         val uri = runCatching { Uri.parse(direct) }.getOrNull() ?: return null

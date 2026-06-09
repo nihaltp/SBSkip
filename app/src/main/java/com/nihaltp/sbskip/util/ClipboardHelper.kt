@@ -15,28 +15,36 @@ import java.io.File
 import java.io.FileOutputStream
 
 object ClipboardHelper {
-    suspend fun copyImageToClipboard(context: Context, imageUrl: String): Boolean = withContext(Dispatchers.IO) {
-        try {
-            val imageLoader = context.imageLoader
-            val request = ImageRequest.Builder(context)
-                .data(imageUrl)
-                .allowHardware(false) // Safe software bitmap creation
-                .build()
-            val result = imageLoader.execute(request)
-            if (result is SuccessResult) {
-                val drawable = result.drawable
-                if (drawable is BitmapDrawable) {
-                    val bitmap = drawable.bitmap
-                    return@withContext saveAndCopyBitmap(context, bitmap)
+    suspend fun copyImageToClipboard(
+        context: Context,
+        imageUrl: String,
+    ): Boolean =
+        withContext(Dispatchers.IO) {
+            try {
+                val imageLoader = context.imageLoader
+                val request =
+                    ImageRequest.Builder(context)
+                        .data(imageUrl)
+                        .allowHardware(false) // Safe software bitmap creation
+                        .build()
+                val result = imageLoader.execute(request)
+                if (result is SuccessResult) {
+                    val drawable = result.drawable
+                    if (drawable is BitmapDrawable) {
+                        val bitmap = drawable.bitmap
+                        return@withContext saveAndCopyBitmap(context, bitmap)
+                    }
                 }
+            } catch (e: Exception) {
+                AppLogger.error("ClipboardHelper", e, "Failed to load/copy thumbnail image")
             }
-        } catch (e: Exception) {
-            AppLogger.error("ClipboardHelper", e, "Failed to load/copy thumbnail image")
+            return@withContext false
         }
-        return@withContext false
-    }
 
-    private fun saveAndCopyBitmap(context: Context, bitmap: Bitmap): Boolean {
+    private fun saveAndCopyBitmap(
+        context: Context,
+        bitmap: Bitmap,
+    ): Boolean {
         try {
             val sharedImagesDir = File(context.cacheDir, "shared_images")
             if (!sharedImagesDir.exists()) {

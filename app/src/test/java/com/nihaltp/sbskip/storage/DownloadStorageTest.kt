@@ -7,13 +7,15 @@ import org.junit.Test
 import java.io.File
 
 class DownloadStorageTest {
-
     private class FakeDownloadStorage : DownloadStorage {
         val deletedUris = mutableListOf<String>()
 
         override suspend fun deleteTemporaryFile(path: String) {}
 
-        override suspend fun copyUriToTempFile(uriString: String, tempFile: File) {}
+        override suspend fun copyUriToTempFile(
+            uriString: String,
+            tempFile: File,
+        ) {}
 
         override suspend fun saveToPublicStorage(
             tempFile: File,
@@ -55,13 +57,14 @@ class DownloadStorageTest {
     }
 
     @Test
-    fun testDeleteUriInvoked() = kotlinx.coroutines.runBlocking {
-        val fakeStorage = FakeDownloadStorage()
-        val uri = "content://media/external/video/1"
-        val result = fakeStorage.deleteUri(uri)
+    fun testDeleteUriInvoked() =
+        kotlinx.coroutines.runBlocking {
+            val fakeStorage = FakeDownloadStorage()
+            val uri = "content://media/external/video/1"
+            val result = fakeStorage.deleteUri(uri)
 
-        assertTrue(result)
-        assertEquals(1, fakeStorage.deletedUris.size)
-        assertEquals(uri, fakeStorage.deletedUris[0])
-    }
+            assertTrue(result)
+            assertEquals(1, fakeStorage.deletedUris.size)
+            assertEquals(uri, fakeStorage.deletedUris[0])
+        }
 }

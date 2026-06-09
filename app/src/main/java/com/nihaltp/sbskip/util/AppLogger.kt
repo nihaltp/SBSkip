@@ -26,7 +26,10 @@ object AppLogger {
         }
     }
 
-    private fun addLogEntry(tag: String, message: String) {
+    private fun addLogEntry(
+        tag: String,
+        message: String,
+    ) {
         val timestamp = dateFormat.format(Date())
         val logLine = "[$timestamp] [$tag] $message"
         recentLogs.add(logLine)
@@ -65,7 +68,10 @@ object AppLogger {
         }
     }
 
-    private fun safeLogD(tag: String, message: String) {
+    private fun safeLogD(
+        tag: String,
+        message: String,
+    ) {
         addLogEntry(tag, message)
         try {
             Log.d(tag, message)
@@ -75,7 +81,11 @@ object AppLogger {
         }
     }
 
-    private fun safeLogE(tag: String, throwable: Throwable, message: String) {
+    private fun safeLogE(
+        tag: String,
+        throwable: Throwable,
+        message: String,
+    ) {
         val fullMessage = "$message | Exception: ${throwable.localizedMessage ?: throwable.message}"
         addLogEntry(tag, fullMessage)
         try {
@@ -98,7 +108,11 @@ object AppLogger {
         safeLogD("$TAG_PREFIX-Metadata", message)
     }
 
-    fun error(tag: String, throwable: Throwable, message: String) {
+    fun error(
+        tag: String,
+        throwable: Throwable,
+        message: String,
+    ) {
         safeLogE("$TAG_PREFIX-$tag", throwable, message)
     }
 

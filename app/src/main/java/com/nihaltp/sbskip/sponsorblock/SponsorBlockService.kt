@@ -3,7 +3,11 @@ package com.nihaltp.sbskip.sponsorblock
 import com.nihaltp.sbskip.model.SponsorBlockCategory
 
 interface SponsorBlockService {
-    suspend fun fetchSegments(videoId: String, categories: Set<SponsorBlockCategory>): List<SponsorBlockSegment>
+    suspend fun fetchSegments(
+        videoId: String,
+        categories: Set<SponsorBlockCategory>,
+    ): List<SponsorBlockSegment>
+
     suspend fun checkApiStatus(): String
 }
 

@@ -10,5 +10,6 @@ import dagger.hilt.components.SingletonComponent
 @InstallIn(SingletonComponent::class)
 interface TestEntryPoint {
     fun database(): SBSkipDatabase
+
     fun settingsRepository(): SettingsRepository
 }

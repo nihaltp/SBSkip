@@ -7,10 +7,10 @@ import org.junit.Assert.fail
 import org.junit.Test
 
 class YouTubeDurationFetcherTest {
-
     @Test
     fun testParseDurationFromLengthSeconds() {
-        val mockHtml = """
+        val mockHtml =
+            """
             <html>
                 <script>
                     var ytInitialPlayerResponse = {
@@ -21,7 +21,7 @@ class YouTubeDurationFetcherTest {
                     };
                 </script>
             </html>
-        """.trimIndent()
+            """.trimIndent()
 
         val parsed = YouTubeDurationFetcher.parseDurationFromHtml(mockHtml)
         assertEquals(185L, parsed)
@@ -29,13 +29,14 @@ class YouTubeDurationFetcherTest {
 
     @Test
     fun testParseDurationFromApproxDurationMs() {
-        val mockHtml = """
+        val mockHtml =
+            """
             <html>
                 <body>
                     <div>"approxDurationMs":"240000"</div>
                 </body>
             </html>
-        """.trimIndent()
+            """.trimIndent()
 
         val parsed = YouTubeDurationFetcher.parseDurationFromHtml(mockHtml)
         assertEquals(240L, parsed)
@@ -43,13 +44,14 @@ class YouTubeDurationFetcherTest {
 
     @Test
     fun testParseDurationFromItempropMetaTag() {
-        val mockHtml = """
+        val mockHtml =
+            """
             <html>
                 <head>
                     <meta itemprop="duration" content="PT3M45S" />
                 </head>
             </html>
-        """.trimIndent()
+            """.trimIndent()
 
         val parsed = YouTubeDurationFetcher.parseDurationFromHtml(mockHtml)
         assertEquals(225L, parsed) // 3 * 60 + 45 = 225
@@ -57,11 +59,12 @@ class YouTubeDurationFetcherTest {
 
     @Test
     fun testParseDurationUnresolved() {
-        val mockHtml = """
+        val mockHtml =
+            """
             <html>
                 <body>No duration details anywhere here.</body>
             </html>
-        """.trimIndent()
+            """.trimIndent()
 
         val parsed = YouTubeDurationFetcher.parseDurationFromHtml(mockHtml)
         assertNull(parsed)
@@ -113,20 +116,22 @@ class YouTubeDurationFetcherTest {
 
     @Test
     fun testDurationValidationBypassSmallDifferenceEnabledWithinThreshold() {
-        val settings = AppSettings(
-            bypassSmallDurationDifference = true,
-            maxDurationDifferenceSeconds = 3,
-        )
+        val settings =
+            AppSettings(
+                bypassSmallDurationDifference = true,
+                maxDurationDifferenceSeconds = 3,
+            )
 
         val youtubeDuration = 180L
         val fileDuration = 183L // 3 seconds difference (equal to threshold)
         val difference = kotlin.math.abs(fileDuration - youtubeDuration)
 
-        val hasMismatch = if (settings.bypassSmallDurationDifference) {
-            difference > settings.maxDurationDifferenceSeconds
-        } else {
-            difference > 0
-        }
+        val hasMismatch =
+            if (settings.bypassSmallDurationDifference) {
+                difference > settings.maxDurationDifferenceSeconds
+            } else {
+                difference > 0
+            }
 
         if (hasMismatch) {
             fail("Should not have mismatch since difference is within threshold")
@@ -135,20 +140,22 @@ class YouTubeDurationFetcherTest {
 
     @Test
     fun testDurationValidationBypassSmallDifferenceEnabledExceedsThreshold() {
-        val settings = AppSettings(
-            bypassSmallDurationDifference = true,
-            maxDurationDifferenceSeconds = 3,
-        )
+        val settings =
+            AppSettings(
+                bypassSmallDurationDifference = true,
+                maxDurationDifferenceSeconds = 3,
+            )
 
         val youtubeDuration = 180L
         val fileDuration = 184L // 4 seconds difference (exceeds threshold)
         val difference = kotlin.math.abs(fileDuration - youtubeDuration)
 
-        val hasMismatch = if (settings.bypassSmallDurationDifference) {
-            difference > settings.maxDurationDifferenceSeconds
-        } else {
-            difference > 0
-        }
+        val hasMismatch =
+            if (settings.bypassSmallDurationDifference) {
+                difference > settings.maxDurationDifferenceSeconds
+            } else {
+                difference > 0
+            }
 
         if (!hasMismatch) {
             fail("Should have mismatch since difference exceeds threshold")
@@ -157,20 +164,22 @@ class YouTubeDurationFetcherTest {
 
     @Test
     fun testDurationValidationBypassSmallDifferenceDisabled() {
-        val settings = AppSettings(
-            bypassSmallDurationDifference = false,
-            maxDurationDifferenceSeconds = 3,
-        )
+        val settings =
+            AppSettings(
+                bypassSmallDurationDifference = false,
+                maxDurationDifferenceSeconds = 3,
+            )
 
         val youtubeDuration = 180L
         val fileDuration = 181L // 1 second difference
         val difference = kotlin.math.abs(fileDuration - youtubeDuration)
 
-        val hasMismatch = if (settings.bypassSmallDurationDifference) {
-            difference > settings.maxDurationDifferenceSeconds
-        } else {
-            difference > 0
-        }
+        val hasMismatch =
+            if (settings.bypassSmallDurationDifference) {
+                difference > settings.maxDurationDifferenceSeconds
+            } else {
+                difference > 0
+            }
 
         if (!hasMismatch) {
             fail("Should have mismatch since bypass setting is disabled")

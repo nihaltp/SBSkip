@@ -14,35 +14,40 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class WorkManagerDownloadScheduler @Inject constructor(
-    @ApplicationContext private val context: Context,
-) : DownloadWorkScheduler {
-    override fun schedule(queueItemId: Long) {
-        val workRequest = OneTimeWorkRequestBuilder<DownloadWorker>()
-            .setInputData(workDataOf(DownloadWorker.KEY_QUEUE_ITEM_ID to queueItemId))
-            .build()
+class WorkManagerDownloadScheduler
+    @Inject
+    constructor(
+        @ApplicationContext private val context: Context,
+    ) : DownloadWorkScheduler {
+        override fun schedule(queueItemId: Long) {
+            val workRequest =
+                OneTimeWorkRequestBuilder<DownloadWorker>()
+                    .setInputData(workDataOf(DownloadWorker.KEY_QUEUE_ITEM_ID to queueItemId))
+                    .build()
 
-        WorkManager.getInstance(context).enqueue(workRequest)
-    }
+            WorkManager.getInstance(context).enqueue(workRequest)
+        }
 
-    override fun scheduleSponsorBlockStatusCheck() {
-        val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.CONNECTED)
-            .build()
+        override fun scheduleSponsorBlockStatusCheck() {
+            val constraints =
+                Constraints.Builder()
+                    .setRequiredNetworkType(NetworkType.CONNECTED)
+                    .build()
 
-        val workRequest = OneTimeWorkRequestBuilder<SponsorBlockStatusWorker>()
-            .setConstraints(constraints)
-            .setBackoffCriteria(
-                BackoffPolicy.EXPONENTIAL,
-                1,
-                TimeUnit.MINUTES,
+            val workRequest =
+                OneTimeWorkRequestBuilder<SponsorBlockStatusWorker>()
+                    .setConstraints(constraints)
+                    .setBackoffCriteria(
+                        BackoffPolicy.EXPONENTIAL,
+                        1,
+                        TimeUnit.MINUTES,
+                    )
+                    .build()
+
+            WorkManager.getInstance(context).enqueueUniqueWork(
+                "SponsorBlockStatusCheck",
+                ExistingWorkPolicy.KEEP,
+                workRequest,
             )
-            .build()
-
-        WorkManager.getInstance(context).enqueueUniqueWork(
-            "SponsorBlockStatusCheck",
-            ExistingWorkPolicy.KEEP,
-            workRequest,
-        )
+        }
     }
-}

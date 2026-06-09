@@ -26,16 +26,17 @@ data class DownloadQueueItem(
     val audioOutputDirUri: String? = null,
 ) {
     val displayDuration: String
-        get() = durationSeconds?.let { seconds ->
-            val hours = seconds / 3600
-            val minutes = (seconds % 3600) / 60
-            val remainingSeconds = seconds % 60
-            if (hours > 0) {
-                "%d:%02d:%02d".format(hours, minutes, remainingSeconds)
-            } else {
-                "%d:%02d".format(minutes, remainingSeconds)
-            }
-        } ?: "--:--"
+        get() =
+            durationSeconds?.let { seconds ->
+                val hours = seconds / 3600
+                val minutes = (seconds % 3600) / 60
+                val remainingSeconds = seconds % 60
+                if (hours > 0) {
+                    "%d:%02d:%02d".format(hours, minutes, remainingSeconds)
+                } else {
+                    "%d:%02d".format(minutes, remainingSeconds)
+                }
+            } ?: "--:--"
 
     val cleanUrl: String
         get() = if (url.startsWith("sbskip://")) "" else url.substringBefore("?bypassDurationCheck").substringBefore("&bypassDurationCheck")

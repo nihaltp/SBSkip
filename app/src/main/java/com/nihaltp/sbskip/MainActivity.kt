@@ -46,11 +46,12 @@ class MainActivity : ComponentActivity() {
         shareEvent = intent.toShareIntentEvent()
         setContent {
             val settingsState by settingsRepository.settings.collectAsState(initial = null)
-            val darkTheme = when (settingsState?.themeMode) {
-                ThemeMode.LIGHT -> false
-                ThemeMode.DARK -> true
-                else -> isSystemInDarkTheme()
-            }
+            val darkTheme =
+                when (settingsState?.themeMode) {
+                    ThemeMode.LIGHT -> false
+                    ThemeMode.DARK -> true
+                    else -> isSystemInDarkTheme()
+                }
             val dynamicColor = settingsState?.dynamicColor ?: true
 
             SBSkipTheme(
