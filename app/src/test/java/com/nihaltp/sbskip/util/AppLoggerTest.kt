@@ -23,6 +23,7 @@ class AppLoggerTest {
         logFile = File(parentDir, "sbskip.log")
         logFileOld = File(parentDir, "sbskip.log.old")
         AppLogger.initForTesting(logFile)
+        AppLogger.isVerboseLoggingEnabled = true
         AppLogger.clearLogs()
     }
 
@@ -74,5 +75,17 @@ class AppLoggerTest {
         assertTrue(logFile.exists())
         assertTrue(logFile.length() < 1024)
         assertTrue(AppLogger.getLogs().contains("Trigger rotation message"))
+    }
+
+    @Test
+    fun testErrorLoggingWhenVerboseLoggingDisabled() {
+        AppLogger.isVerboseLoggingEnabled = false
+        AppLogger.queue("This should not be logged")
+        AppLogger.error("TestTag", Exception("TestException"), "This is an error")
+
+        val logs = AppLogger.getLogs()
+        assertFalse(logs.contains("This should not be logged"))
+        assertTrue(logs.contains("SBSkip-ERROR-TestTag"))
+        assertTrue(logs.contains("This is an error"))
     }
 }

@@ -97,7 +97,10 @@ class DataStoreSettingsRepository
                             categories = categories,
                         ),
                     filenameReplacement = preferences[PreferencesKeys.FILENAME_REPLACEMENT]?.firstOrNull() ?: '_',
-                    verboseLogging = preferences[PreferencesKeys.VERBOSE_LOGGING] ?: false,
+                    verboseLogging =
+                        (preferences[PreferencesKeys.VERBOSE_LOGGING] ?: false).also {
+                            com.nihaltp.sbskip.util.AppLogger.isVerboseLoggingEnabled = it
+                        },
                     sponsorBlockUrl = preferences[PreferencesKeys.SPONSORBLOCK_URL] ?: "https://sponsor.ajay.app",
                     sponsorBlockStatusUrl = preferences[PreferencesKeys.SPONSORBLOCK_STATUS_URL] ?: "https://status.sponsor.ajay.app",
                     overwriteBehavior = preferences[PreferencesKeys.OVERWRITE_BEHAVIOR] ?: true,
@@ -142,7 +145,10 @@ class DataStoreSettingsRepository
                                     }?.toSet() ?: SponsorBlockCategory.entries.toSet(),
                             ),
                         filenameReplacement = preferences[PreferencesKeys.FILENAME_REPLACEMENT]?.firstOrNull() ?: '_',
-                        verboseLogging = preferences[PreferencesKeys.VERBOSE_LOGGING] ?: false,
+                        verboseLogging =
+                            (preferences[PreferencesKeys.VERBOSE_LOGGING] ?: false).also {
+                                com.nihaltp.sbskip.util.AppLogger.isVerboseLoggingEnabled = it
+                            },
                         sponsorBlockUrl = preferences[PreferencesKeys.SPONSORBLOCK_URL] ?: "https://sponsor.ajay.app",
                         sponsorBlockStatusUrl = preferences[PreferencesKeys.SPONSORBLOCK_STATUS_URL] ?: "https://status.sponsor.ajay.app",
                         overwriteBehavior = preferences[PreferencesKeys.OVERWRITE_BEHAVIOR] ?: true,

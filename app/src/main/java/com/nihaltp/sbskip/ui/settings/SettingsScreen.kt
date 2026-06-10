@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -50,6 +51,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -863,12 +865,26 @@ fun SettingsScreen(
                                     )
                                     .padding(8.dp),
                         ) {
-                            item {
-                                Text(
-                                    text = logs.ifEmpty { stringResource(id = R.string.logs_empty) },
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                                )
+                            if (logs.isEmpty()) {
+                                item {
+                                    Text(
+                                        text = stringResource(id = R.string.logs_empty),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                    )
+                                }
+                            } else {
+                                val lines = logs.split("\n")
+                                items(lines) { line ->
+                                    val isError = line.contains("-ERROR-")
+                                    val color = if (isError) Color.Red else MaterialTheme.colorScheme.onSurfaceVariant
+                                    Text(
+                                        text = line,
+                                        color = color,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                    )
+                                }
                             }
                         }
                     }

@@ -12,6 +12,9 @@ object AppLogger {
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US)
     private var logFile: java.io.File? = null
 
+    @Volatile
+    var isVerboseLoggingEnabled: Boolean = false
+
     fun init(context: android.content.Context) {
         synchronized(this) {
             if (logFile == null) {
@@ -29,7 +32,11 @@ object AppLogger {
     private fun addLogEntry(
         tag: String,
         message: String,
+        isError: Boolean = false,
     ) {
+        if (!isVerboseLoggingEnabled && !isError) {
+            return
+        }
         val timestamp = dateFormat.format(Date())
         val logLine = "[$timestamp] [$tag] $message"
         recentLogs.add(logLine)
@@ -72,7 +79,7 @@ object AppLogger {
         tag: String,
         message: String,
     ) {
-        addLogEntry(tag, message)
+        addLogEntry(tag, message, isError = false)
         try {
             Log.d(tag, message)
         } catch (e: Throwable) {
@@ -87,7 +94,7 @@ object AppLogger {
         message: String,
     ) {
         val fullMessage = "$message | Exception: ${throwable.localizedMessage ?: throwable.message}"
-        addLogEntry(tag, fullMessage)
+        addLogEntry(tag, fullMessage, isError = true)
         try {
             Log.e(tag, message, throwable)
         } catch (e: Throwable) {
@@ -113,7 +120,7 @@ object AppLogger {
         throwable: Throwable,
         message: String,
     ) {
-        safeLogE("$TAG_PREFIX-$tag", throwable, message)
+        safeLogE("$TAG_PREFIX-ERROR-$tag", throwable, message)
     }
 
     fun getLogs(): String {
