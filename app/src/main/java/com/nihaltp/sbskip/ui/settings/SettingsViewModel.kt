@@ -140,6 +140,16 @@ class SettingsViewModel
             }
         }
 
+        fun updateSponsorBlockCategories(categories: Set<SponsorBlockCategory>) {
+            viewModelScope.launch {
+                settingsRepository.update { current ->
+                    current.copy(
+                        sponsorBlockSettings = current.sponsorBlockSettings.copy(categories = categories),
+                    )
+                }
+            }
+        }
+
         fun setAllSponsorBlockCategories(enabled: Boolean) {
             viewModelScope.launch {
                 settingsRepository.update { current ->

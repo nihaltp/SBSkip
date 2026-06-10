@@ -58,6 +58,7 @@ fun AppNavGraph(
                 onReplaceConflict = viewModel::proceedConflictReplace,
                 onRenameConflict = viewModel::proceedConflictRename,
                 onDismissWatchlistPrompt = viewModel::dismissWatchlistPromptDialog,
+                onCustomCategoriesChanged = viewModel::onCustomCategoriesChanged,
             )
         }
 

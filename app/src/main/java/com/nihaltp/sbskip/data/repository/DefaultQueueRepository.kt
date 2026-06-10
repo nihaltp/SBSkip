@@ -49,11 +49,28 @@ class DefaultQueueRepository
 
             val normalizedUrl =
                 if (videoId != null) {
-                    val hasBypass = youtubeUrl.contains("bypassDurationCheck=true")
-                    "https://www.youtube.com/watch?v=$videoId" + if (hasBypass) "&bypassDurationCheck=true" else ""
+                    val params = mutableListOf<String>()
+                    if (youtubeUrl.contains("bypassDurationCheck=true")) {
+                        params.add("bypassDurationCheck=true")
+                    }
+                    if (youtubeUrl.contains("overwrite=true")) {
+                        params.add("overwrite=true")
+                    }
+                    if (youtubeUrl.contains("noSuffix=true")) {
+                        params.add("noSuffix=true")
+                    }
+                    if (youtubeUrl.contains("categories=")) {
+                        val startIndex = youtubeUrl.indexOf("categories=")
+                        val categoriesSubStr = youtubeUrl.substring(startIndex)
+                        val value = categoriesSubStr.substringBefore("&").substringAfter("=")
+                        params.add("categories=" + value)
+                    }
+                    val queryString = if (params.isNotEmpty()) "?" + params.joinToString("&") else ""
+                    "https://www.youtube.com/watch?v=" + videoId + queryString
                 } else {
                     youtubeUrl
                 }
+
             val now = System.currentTimeMillis()
             val entity =
                 DownloadQueueEntity(

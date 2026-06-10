@@ -274,4 +274,10 @@
     <string name="dialog_watchlist_prompt_title">No Watchlist Folders</string>
     <string name="dialog_watchlist_prompt_message">To automatically detect downloaded files, you must add at least one folder to your watchlist in Settings.</string>
     <string name="dialog_watchlist_prompt_confirm">Go to Settings</string>
+
+    <!-- Runtime SponsorBlock Category Overrides -->
+    <string name="categories_btn_global">Segments: (%1$d selected)</string>
+    <string name="categories_btn_custom">SponsorBlock: Custom (%1$d selected)</string>
+    <string name="categories_dialog_title_runtime">SponsorBlock Categories (Runtime)</string>
+    <string name="categories_dialog_reset">Reset to Global</string>
 </resources>

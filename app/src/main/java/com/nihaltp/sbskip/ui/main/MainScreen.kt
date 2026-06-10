@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
@@ -82,6 +83,8 @@ import com.nihaltp.sbskip.model.DownloadQueueItem
 import com.nihaltp.sbskip.model.DownloadQueueStatus
 import com.nihaltp.sbskip.model.MainUiState
 import com.nihaltp.sbskip.model.PendingDownload
+import com.nihaltp.sbskip.model.SponsorBlockCategory
+import com.nihaltp.sbskip.ui.components.SponsorBlockCategoryPickerDialog
 import com.nihaltp.sbskip.util.AppLogger
 import com.nihaltp.sbskip.util.PermissionHelper
 import kotlinx.coroutines.launch
@@ -112,6 +115,7 @@ fun MainScreen(
     onReplaceConflict: () -> Unit,
     onRenameConflict: () -> Unit,
     onDismissWatchlistPrompt: () -> Unit,
+    onCustomCategoriesChanged: (Set<SponsorBlockCategory>?) -> Unit,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val clipboardManager = LocalClipboardManager.current
@@ -146,6 +150,7 @@ fun MainScreen(
     var errorDialogItem by remember { mutableStateOf<DownloadQueueItem?>(null) }
     var detailsDialogItem by remember { mutableStateOf<DownloadQueueItem?>(null) }
     var detailsPendingDownloadItem by remember { mutableStateOf<PendingDownload?>(null) }
+    var showCategoriesDialog by remember { mutableStateOf(false) }
     val showLocalCleanButton = uiState.selectedFileUri != null && uiState.urlInput.isNotBlank()
     val showDownloadAndCleanButton = uiState.selectedFileUri == null && uiState.isNewPipeInstalled && uiState.urlInput.isNotBlank()
     val isVideoFile = uiState.selectedFileMediaType == com.nihaltp.sbskip.model.MediaType.VIDEO
@@ -255,32 +260,55 @@ fun MainScreen(
                                 Text(stringResource(id = R.string.paste_button))
                             }
 
-                            if (showLocalCleanButton || showDownloadAndCleanButton || showConvertOnlyButton) {
-                                val isLoading = uiState.isFetchingMetadata || uiState.isVerifyingDuration
-                                Button(
-                                    onClick = onSubmit,
-                                    enabled = !isLoading,
-                                ) {
-                                    if (isLoading) {
-                                        CircularProgressIndicator(modifier = Modifier.height(18.dp).width(18.dp), strokeWidth = 2.dp)
-                                        Spacer(modifier = Modifier.width(8.dp))
+                            if (uiState.urlInput.isNotBlank()) {
+                                val isCustom = uiState.customSponsorBlockCategories != null
+                                val count = uiState.customSponsorBlockCategories?.size ?: uiState.globalSponsorBlockCategories.size
+                                val labelText =
+                                    if (isCustom) {
+                                        stringResource(id = R.string.categories_btn_custom, count)
                                     } else {
-                                        Icon(Icons.Filled.CleaningServices, contentDescription = null)
-                                        Spacer(modifier = Modifier.width(8.dp))
+                                        stringResource(id = R.string.categories_btn_global, count)
                                     }
-                                    Text(
-                                        text =
-                                            if (uiState.isVerifyingDuration) {
-                                                stringResource(id = R.string.dialog_verifying_duration)
-                                            } else if (showDownloadAndCleanButton) {
-                                                stringResource(id = R.string.download_and_clean_button)
-                                            } else if (showConvertOnlyButton) {
-                                                stringResource(id = R.string.convert_to_audio_button)
-                                            } else {
-                                                stringResource(id = R.string.clean_media_button)
-                                            },
+
+                                ElevatedButton(
+                                    onClick = { showCategoriesDialog = true },
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.FilterList,
+                                        contentDescription = null,
                                     )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(labelText)
                                 }
+                            }
+                        }
+
+                        if (showLocalCleanButton || showDownloadAndCleanButton || showConvertOnlyButton) {
+                            val isLoading = uiState.isFetchingMetadata || uiState.isVerifyingDuration
+                            Button(
+                                onClick = onSubmit,
+                                enabled = !isLoading,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                if (isLoading) {
+                                    CircularProgressIndicator(modifier = Modifier.height(18.dp).width(18.dp), strokeWidth = 2.dp)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                } else {
+                                    Icon(Icons.Filled.CleaningServices, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                }
+                                Text(
+                                    text =
+                                        if (uiState.isVerifyingDuration) {
+                                            stringResource(id = R.string.dialog_verifying_duration)
+                                        } else if (showDownloadAndCleanButton) {
+                                            stringResource(id = R.string.download_and_clean_button)
+                                        } else if (showConvertOnlyButton) {
+                                            stringResource(id = R.string.convert_to_audio_button)
+                                        } else {
+                                            stringResource(id = R.string.clean_media_button)
+                                        },
+                                )
                             }
                         }
                     }
@@ -918,6 +946,19 @@ fun MainScreen(
                     }
                 }
             },
+        )
+    }
+
+    if (showCategoriesDialog) {
+        val title = stringResource(id = R.string.categories_dialog_title_runtime)
+        val initial = uiState.customSponsorBlockCategories ?: uiState.globalSponsorBlockCategories
+        SponsorBlockCategoryPickerDialog(
+            title = title,
+            initialCategories = initial,
+            onCategoriesChanged = onCustomCategoriesChanged,
+            onDismissRequest = { showCategoriesDialog = false },
+            showResetButton = uiState.customSponsorBlockCategories != null,
+            onReset = { onCustomCategoriesChanged(null) },
         )
     }
 }

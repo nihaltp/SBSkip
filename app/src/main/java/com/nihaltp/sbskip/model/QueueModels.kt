@@ -106,6 +106,8 @@ data class MainUiState(
     val queueItems: List<DownloadQueueItem> = emptyList(),
     val snackbarMessage: String? = null,
     val showWatchlistPromptDialog: Boolean = false,
+    val globalSponsorBlockCategories: Set<SponsorBlockCategory> = emptySet(),
+    val customSponsorBlockCategories: Set<SponsorBlockCategory>? = null,
 )
 
 data class QueueActionResult(

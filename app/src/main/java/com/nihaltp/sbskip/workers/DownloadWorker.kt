@@ -11,6 +11,7 @@ import com.nihaltp.sbskip.BuildConfig
 import com.nihaltp.sbskip.R
 import com.nihaltp.sbskip.data.repository.QueueRepository
 import com.nihaltp.sbskip.data.repository.SettingsRepository
+import com.nihaltp.sbskip.model.SponsorBlockCategory
 import com.nihaltp.sbskip.notifications.DownloadNotificationManager
 import com.nihaltp.sbskip.processing.MediaProcessor
 import com.nihaltp.sbskip.processing.SegmentProcessor
@@ -88,13 +89,25 @@ class DownloadWorker
                 val fileDuration = localMetadata.durationSeconds ?: 0L
                 val keepRanges = mutableListOf<Pair<Double, Double>>()
 
+                val categories =
+                    if (item.url.isNotBlank() && item.url.contains("categories=")) {
+                        val startIndex = item.url.indexOf("categories=")
+                        val categoriesSubStr = item.url.substring(startIndex)
+                        val value = categoriesSubStr.substringBefore("&").substringAfter("=")
+                        value.split(",")
+                            .mapNotNull { name ->
+                                runCatching { SponsorBlockCategory.valueOf(name) }.getOrNull()
+                            }
+                            .toSet()
+                    } else {
+                        settings.sponsorBlockSettings.categories
+                    }
+
                 if (item.url.isNotBlank() && !item.url.startsWith("sbskip://")) {
                     // Parse Video ID from YouTube URL
                     val videoId =
                         YouTubeUrlParser.extractVideoId(item.url)
                             ?: throw IllegalArgumentException(applicationContext.getString(R.string.enter_valid_url))
-
-                    val categories = settings.sponsorBlockSettings.categories
 
                     // Check if the picked file duration matches the YouTube video duration
                     val bypassCheck = item.url.contains("bypassDurationCheck=true")
@@ -176,7 +189,7 @@ class DownloadWorker
                                 videoId = videoId,
                                 youtubeUrl = item.url,
                                 youtubeTitle = taskTitle,
-                                categories = settings.sponsorBlockSettings.categories.map { it.name },
+                                categories = categories.map { it.name },
                             )
                     }
                 }

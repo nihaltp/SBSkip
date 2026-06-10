@@ -28,7 +28,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -62,8 +61,9 @@ import com.nihaltp.sbskip.BuildConfig
 import com.nihaltp.sbskip.R
 import com.nihaltp.sbskip.model.AudioSaveMode
 import com.nihaltp.sbskip.model.DownloaderType
-import com.nihaltp.sbskip.model.SponsorBlockCategory
 import com.nihaltp.sbskip.model.ThemeMode
+import com.nihaltp.sbskip.ui.components.SponsorBlockCategoryPickerDialog
+import com.nihaltp.sbskip.ui.components.sponsorBlockCategories
 import com.nihaltp.sbskip.util.AppLogger
 import com.nihaltp.sbskip.util.PermissionHelper
 
@@ -694,61 +694,11 @@ fun SettingsScreen(
                     )
                 }
                 SettingsDialogType.SB_CATEGORIES -> {
-                    AlertDialog(
+                    SponsorBlockCategoryPickerDialog(
+                        title = stringResource(id = R.string.settings_sb_categories_dialog_title),
+                        initialCategories = nonNullSettings.sponsorBlockSettings.categories,
+                        onCategoriesChanged = viewModel::updateSponsorBlockCategories,
                         onDismissRequest = { activeDialogType = null },
-                        title = { Text(stringResource(id = R.string.settings_sb_categories_dialog_title)) },
-                        text = {
-                            LazyColumn(
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier.height(350.dp).fillMaxWidth(),
-                            ) {
-                                val allSelected = nonNullSettings.sponsorBlockSettings.categories.size == sponsorBlockCategories.size
-                                item {
-                                    Row(
-                                        modifier =
-                                            Modifier
-                                                .fillMaxWidth()
-                                                .clickable { viewModel.setAllSponsorBlockCategories(!allSelected) }
-                                                .padding(vertical = 8.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically,
-                                    ) {
-                                        Text(stringResource(id = R.string.select_all), fontWeight = FontWeight.Bold)
-                                        Checkbox(
-                                            checked = allSelected,
-                                            onCheckedChange = { viewModel.setAllSponsorBlockCategories(!allSelected) },
-                                        )
-                                    }
-                                    HorizontalDivider()
-                                }
-
-                                sponsorBlockCategories.forEach { categoryRow ->
-                                    item {
-                                        val isChecked = categoryRow.category in nonNullSettings.sponsorBlockSettings.categories
-                                        Row(
-                                            modifier =
-                                                Modifier
-                                                    .fillMaxWidth()
-                                                    .clickable { viewModel.toggleSponsorBlockCategory(categoryRow.category) }
-                                                    .padding(vertical = 8.dp),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically,
-                                        ) {
-                                            Text(stringResource(id = categoryRow.labelResId))
-                                            Checkbox(
-                                                checked = isChecked,
-                                                onCheckedChange = { viewModel.toggleSponsorBlockCategory(categoryRow.category) },
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        confirmButton = {
-                            Button(onClick = { activeDialogType = null }) {
-                                Text(stringResource(id = R.string.done))
-                            }
-                        },
                     )
                 }
                 else -> {
@@ -1040,21 +990,6 @@ private fun SettingValueRow(
         }
     }
 }
-
-private data class CategoryRow(val category: SponsorBlockCategory, val labelResId: Int)
-
-private val sponsorBlockCategories =
-    listOf(
-        CategoryRow(SponsorBlockCategory.SPONSOR, R.string.category_sponsor),
-        CategoryRow(SponsorBlockCategory.SELF_PROMOTION, R.string.category_self_promotion),
-        CategoryRow(SponsorBlockCategory.INTERACTION_REMINDER, R.string.category_interaction_reminder),
-        CategoryRow(SponsorBlockCategory.INTRO, R.string.category_intro),
-        CategoryRow(SponsorBlockCategory.OUTRO, R.string.category_outro),
-        CategoryRow(SponsorBlockCategory.PREVIEW_RECAP, R.string.category_preview_recap),
-        CategoryRow(SponsorBlockCategory.HOOK, R.string.category_hook_greetings),
-        CategoryRow(SponsorBlockCategory.FILLER_TANGENT, R.string.category_filler_tangent),
-        CategoryRow(SponsorBlockCategory.MUSIC_OFFTOPIC, R.string.category_music_non_music_section),
-    )
 
 private enum class SettingsDialogType {
     THEME,

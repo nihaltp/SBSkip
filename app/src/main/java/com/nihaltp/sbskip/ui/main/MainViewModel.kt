@@ -18,6 +18,7 @@ import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.model.PendingAudioFolderPick
 import com.nihaltp.sbskip.model.PendingDownload
 import com.nihaltp.sbskip.model.PendingEnqueueData
+import com.nihaltp.sbskip.model.SponsorBlockCategory
 import com.nihaltp.sbskip.navigation.ShareIntentEvent
 import com.nihaltp.sbskip.storage.DownloadStorage
 import com.nihaltp.sbskip.util.AppLogger
@@ -63,6 +64,13 @@ class MainViewModel
                     _uiState.update { it.copy(queueItems = queueItems) }
                 }
             }
+            viewModelScope.launch {
+                settingsRepository.settings.collect { settings ->
+                    _uiState.update {
+                        it.copy(globalSponsorBlockCategories = settings.sponsorBlockSettings.categories)
+                    }
+                }
+            }
             checkNewPipeInstalled()
         }
 
@@ -75,7 +83,16 @@ class MainViewModel
         }
 
         fun onUrlChanged(value: String) {
-            _uiState.update { it.copy(urlInput = value) }
+            _uiState.update {
+                it.copy(
+                    urlInput = value,
+                    customSponsorBlockCategories = if (value.isBlank()) null else it.customSponsorBlockCategories,
+                )
+            }
+        }
+
+        fun onCustomCategoriesChanged(categories: Set<SponsorBlockCategory>?) {
+            _uiState.update { it.copy(customSponsorBlockCategories = categories) }
         }
 
         fun onFileSelected(uri: Uri) {
@@ -312,6 +329,14 @@ class MainViewModel
                 _uiState.update { it.copy(isFetchingMetadata = true) }
 
                 val normalizedUrl = "https://www.youtube.com/watch?v=$videoId"
+                val customCategories = state.customSponsorBlockCategories
+                val finalUrl =
+                    if (customCategories != null) {
+                        "$normalizedUrl&categories=" + customCategories.joinToString(",") { it.name }
+                    } else {
+                        normalizedUrl
+                    }
+
                 val metadata =
                     runCatching { fetchYouTubeOEmbed(normalizedUrl) }.getOrElse {
                         YouTubeMetadata(title = state.urlInput.ifBlank { videoId }, thumbnailUrl = null)
@@ -320,7 +345,7 @@ class MainViewModel
                 val pendingDownload =
                     PendingDownload(
                         videoId = videoId,
-                        url = normalizedUrl,
+                        url = finalUrl,
                         title = metadata.title.ifBlank { videoId },
                         thumbnailUrl = metadata.thumbnailUrl,
                         createdAtEpochMillis = System.currentTimeMillis(),
@@ -331,6 +356,7 @@ class MainViewModel
                         urlInput = "",
                         pendingDownloads = state.pendingDownloads + pendingDownload,
                         isFetchingMetadata = false,
+                        customSponsorBlockCategories = null,
                         snackbarMessage = null,
                     )
                 }
@@ -450,6 +476,7 @@ class MainViewModel
                             deleteOriginalVideo = true,
                             pendingDownloads = filteredPending,
                             showDurationMismatchDialog = false,
+                            customSponsorBlockCategories = null,
                             snackbarMessage = context.getString(R.string.snackbar_media_enqueued),
                         )
                     } else {
@@ -516,6 +543,7 @@ class MainViewModel
                             deleteOriginalVideo = true,
                             pendingDownloads = filteredPending,
                             showDurationMismatchDialog = false,
+                            customSponsorBlockCategories = null,
                             snackbarMessage = context.getString(R.string.snackbar_media_enqueued),
                         )
                     } else {
@@ -665,7 +693,7 @@ class MainViewModel
                 return
             }
 
-            val finalUrl =
+            var finalUrl =
                 if (isConvertOnly) {
                     ""
                 } else if (force) {
@@ -673,6 +701,12 @@ class MainViewModel
                 } else {
                     youtubeUrl
                 }
+
+            if (finalUrl.isNotBlank() && state.customSponsorBlockCategories != null) {
+                val hasParams = finalUrl.contains("?")
+                val separator = if (hasParams) "&" else "?"
+                finalUrl = finalUrl + separator + "categories=" + state.customSponsorBlockCategories.joinToString(",") { it.name }
+            }
 
             val result =
                 queueRepository.enqueue(
@@ -697,6 +731,7 @@ class MainViewModel
                         pendingDownloads = state.pendingDownloads.filter { it.url != youtubeUrl },
                         showDurationMismatchDialog = false,
                         pendingEnqueueData = null,
+                        customSponsorBlockCategories = null,
                         snackbarMessage = context.getString(R.string.snackbar_media_enqueued),
                     )
                 } else {
@@ -723,6 +758,14 @@ class MainViewModel
             _uiState.update { it.copy(isFetchingMetadata = true) }
 
             val normalizedUrl = "https://www.youtube.com/watch?v=$videoId"
+            val customCategories = state.customSponsorBlockCategories
+            val finalUrl =
+                if (customCategories != null) {
+                    "$normalizedUrl&categories=" + customCategories.joinToString(",") { it.name }
+                } else {
+                    normalizedUrl
+                }
+
             val metadata =
                 runCatching { fetchYouTubeOEmbed(normalizedUrl) }.getOrElse {
                     YouTubeMetadata(title = state.urlInput.ifBlank { videoId }, thumbnailUrl = null)
@@ -731,7 +774,7 @@ class MainViewModel
             val pendingDownload =
                 PendingDownload(
                     videoId = videoId,
-                    url = normalizedUrl,
+                    url = finalUrl,
                     title = metadata.title.ifBlank { videoId },
                     thumbnailUrl = metadata.thumbnailUrl,
                     createdAtEpochMillis = System.currentTimeMillis(),
@@ -743,6 +786,7 @@ class MainViewModel
                     urlInput = "",
                     pendingDownloads = state.pendingDownloads + pendingDownload,
                     isFetchingMetadata = false,
+                    customSponsorBlockCategories = null,
                     snackbarMessage = null,
                     showWatchlistPromptDialog = showPrompt,
                 )
