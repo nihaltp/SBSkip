@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [1.3.0] - 2026-06-10
+
+### Added
+
+- 5b5558d  feat: Add Folders to Watchlist for watching downloaded file
+- 90bf43d  feat: add runtime segment selection
+
+### Style
+
+- ab6798c  style: Update Logging and Style Errors
+
+### Refactor
+
+- 213f207  refactor: remove reduntant new pipe folder watching
+- 2e04df4  refactor: removed scanning for folders outside watchlist
+- 54787c2  refactor: remove "keep temp files" option
+
+### Maintenance
+
+- 9d0b3be  chore: update fastfile to list the commits in reverse
+
 ## [1.2.3] - 2026-06-10
 
 ### Added

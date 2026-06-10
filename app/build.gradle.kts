@@ -31,8 +31,8 @@ android {
         applicationId = "com.nihaltp.sbskip"
         minSdk = 26
         targetSdk = 35
-        versionCode = 6
-        versionName = "1.2.3"
+        versionCode = 7
+        versionName = "1.3.0"
 
         ndk {
             abiFilters += listOf("arm64-v8a", "x86_64", "armeabi-v7a")
