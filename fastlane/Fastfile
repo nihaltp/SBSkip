@@ -179,7 +179,7 @@ platform :android do
 
     commits = []
     unless commits_raw.empty?
-      commits_raw.split("\n").each do |line|
+      commits_raw.split("\n").reverse_each do |line|
         parts = line.split(" ", 2)
         sha = parts[0]
         msg = parts[1] || ""
