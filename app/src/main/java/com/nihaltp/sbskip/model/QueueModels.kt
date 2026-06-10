@@ -105,6 +105,7 @@ data class MainUiState(
     val pendingDownloadForFilePicker: PendingDownload? = null,
     val queueItems: List<DownloadQueueItem> = emptyList(),
     val snackbarMessage: String? = null,
+    val showWatchlistPromptDialog: Boolean = false,
 )
 
 data class QueueActionResult(

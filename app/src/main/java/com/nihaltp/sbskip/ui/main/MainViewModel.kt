@@ -1,7 +1,5 @@
 package com.nihaltp.sbskip.ui.main
 
-import android.content.ContentResolver
-import android.content.ContentUris
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -394,6 +392,14 @@ class MainViewModel
             }
         }
 
+        fun dismissWatchlistPromptDialog() {
+            _uiState.update {
+                it.copy(
+                    showWatchlistPromptDialog = false,
+                )
+            }
+        }
+
         fun cancelConflictDialog() {
             _uiState.update {
                 it.copy(
@@ -731,12 +737,14 @@ class MainViewModel
                     createdAtEpochMillis = System.currentTimeMillis(),
                 )
 
+            val showPrompt = settingsRepository.settings.first().watchlist.isEmpty()
             _uiState.update { state ->
                 state.copy(
                     urlInput = "",
                     pendingDownloads = state.pendingDownloads + pendingDownload,
                     isFetchingMetadata = false,
                     snackbarMessage = null,
+                    showWatchlistPromptDialog = showPrompt,
                 )
             }
 
@@ -870,25 +878,9 @@ class MainViewModel
         ): List<DetectedCandidate> =
             withContext(Dispatchers.IO) {
                 val now = System.currentTimeMillis()
-                val resolver = context.contentResolver
                 val candidates = mutableListOf<DetectedCandidate>()
 
-                AppLogger.metadata("AutoDetect: Scanning MediaStore collections for files...")
-
-                // 1. Query MediaStore collections
-                listOf(
-                    MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
-                    MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                    MediaStore.Downloads.EXTERNAL_CONTENT_URI,
-                ).forEach { collectionUri ->
-                    queryCandidates(
-                        resolver = resolver,
-                        collectionUri = collectionUri,
-                        pendingDownload = pendingDownload,
-                        settings = settings,
-                        output = candidates,
-                    )
-                }
+                AppLogger.metadata("AutoDetect: Scanning watchlist directories for files...")
 
                 // 2. Query watchlist folders
                 settings.watchlist.forEach { folder ->
@@ -940,70 +932,6 @@ class MainViewModel
 
                 candidates.sortedByDescending { it.score }
             }
-
-        private fun queryCandidates(
-            resolver: ContentResolver,
-            collectionUri: Uri,
-            pendingDownload: PendingDownload,
-            settings: com.nihaltp.sbskip.model.AppSettings,
-            output: MutableList<DetectedCandidate>,
-        ) {
-            val projection =
-                arrayOf(
-                    MediaStore.MediaColumns._ID,
-                    MediaStore.MediaColumns.DISPLAY_NAME,
-                    MediaStore.MediaColumns.RELATIVE_PATH,
-                    MediaStore.MediaColumns.DATE_ADDED,
-                    MediaStore.MediaColumns.DATE_MODIFIED,
-                    MediaStore.MediaColumns.DURATION,
-                )
-
-            val sortOrder = "${MediaStore.MediaColumns.DATE_MODIFIED} DESC"
-            resolver.query(collectionUri, projection, null, null, sortOrder)?.use { cursor ->
-                val idIndex = cursor.getColumnIndex(MediaStore.MediaColumns._ID)
-                val displayNameIndex = cursor.getColumnIndex(MediaStore.MediaColumns.DISPLAY_NAME)
-                val relativePathIndex = cursor.getColumnIndex(MediaStore.MediaColumns.RELATIVE_PATH)
-                val dateAddedIndex = cursor.getColumnIndex(MediaStore.MediaColumns.DATE_ADDED)
-                val dateModifiedIndex = cursor.getColumnIndex(MediaStore.MediaColumns.DATE_MODIFIED)
-                val durationIndex = cursor.getColumnIndex(MediaStore.MediaColumns.DURATION)
-
-                var processed = 0
-                while (cursor.moveToNext() && processed < MAX_SCAN_RESULTS_PER_COLLECTION) {
-                    processed++
-                    val id = if (idIndex != -1) cursor.getLong(idIndex) else continue
-                    val displayName = if (displayNameIndex != -1) cursor.getString(displayNameIndex).orEmpty() else ""
-                    val relativePath = if (relativePathIndex != -1) cursor.getString(relativePathIndex).orEmpty() else ""
-                    val dateAddedSeconds = if (dateAddedIndex != -1) cursor.getLong(dateAddedIndex) else 0L
-                    val dateModifiedSeconds = if (dateModifiedIndex != -1) cursor.getLong(dateModifiedIndex) else 0L
-                    val durationSeconds = if (durationIndex != -1) cursor.getLong(durationIndex) else null
-
-                    val timestampMillis =
-                        when {
-                            dateModifiedSeconds > 0 -> dateModifiedSeconds * 1000L
-                            dateAddedSeconds > 0 -> dateAddedSeconds * 1000L
-                            else -> 0L
-                        }
-
-                    val uri = ContentUris.withAppendedId(collectionUri, id).toString()
-                    val score =
-                        scoreCandidate(
-                            pendingDownload = pendingDownload,
-                            displayName = displayName,
-                            relativePath = relativePath,
-                            durationSeconds = durationSeconds,
-                            timestampMillis = timestampMillis,
-                            settings = settings,
-                        )
-
-                    output +=
-                        DetectedCandidate(
-                            uri = uri,
-                            score = score,
-                            fallbackName = displayName.ifBlank { uri.substringAfterLast('/') },
-                        )
-                }
-            }
-        }
 
         private fun scoreCandidate(
             pendingDownload: PendingDownload,

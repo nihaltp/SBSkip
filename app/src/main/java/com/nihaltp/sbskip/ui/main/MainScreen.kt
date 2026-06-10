@@ -111,6 +111,7 @@ fun MainScreen(
     onCancelConflictDialog: () -> Unit,
     onReplaceConflict: () -> Unit,
     onRenameConflict: () -> Unit,
+    onDismissWatchlistPrompt: () -> Unit,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val clipboardManager = LocalClipboardManager.current
@@ -834,6 +835,29 @@ fun MainScreen(
             dismissButton = {
                 TextButton(onClick = { detailsPendingDownloadItem = null }) {
                     Text(stringResource(id = R.string.close))
+                }
+            },
+        )
+    }
+
+    if (uiState.showWatchlistPromptDialog) {
+        AlertDialog(
+            onDismissRequest = onDismissWatchlistPrompt,
+            title = { Text(stringResource(id = R.string.dialog_watchlist_prompt_title)) },
+            text = { Text(stringResource(id = R.string.dialog_watchlist_prompt_message)) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onDismissWatchlistPrompt()
+                        onOpenSettings()
+                    },
+                ) {
+                    Text(stringResource(id = R.string.dialog_watchlist_prompt_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismissWatchlistPrompt) {
+                    Text(stringResource(id = R.string.cancel))
                 }
             },
         )

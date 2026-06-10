@@ -271,4 +271,9 @@
     <string name="settings_watchlist_desc">Scan these custom folders for downloaded files.</string>
     <string name="settings_watchlist_add_button">Add Folder</string>
     <string name="settings_watchlist_empty">No watchlist folders added yet.</string>
+
+    <!-- Watchlist Prompt Dialog -->
+    <string name="dialog_watchlist_prompt_title">No Watchlist Folders</string>
+    <string name="dialog_watchlist_prompt_message">To automatically detect downloaded files, you must add at least one folder to your watchlist in Settings.</string>
+    <string name="dialog_watchlist_prompt_confirm">Go to Settings</string>
 </resources>
