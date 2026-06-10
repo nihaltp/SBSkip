@@ -62,9 +62,6 @@
     <string name="settings_section_newpipe">NewPipe</string>
     <string name="settings_downloader_title">Downloader</string>
     <string name="settings_downloader_newpipe">NewPipe</string>
-    <string name="settings_newpipe_video_folder_title">NewPipe Video Folder</string>
-    <string name="settings_newpipe_audio_folder_title">NewPipe Audio Folder</string>
-    <string name="settings_newpipe_folder_field_label">Folder path</string>
 
     <string name="settings_section_downloads">Downloads</string>
     <string name="settings_video_folder">Video folder</string>

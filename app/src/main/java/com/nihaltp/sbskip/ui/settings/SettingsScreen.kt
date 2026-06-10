@@ -178,42 +178,6 @@ fun SettingsScreen(
             }
         }
 
-    val newPipeVideoFolderLauncher =
-        rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.OpenDocumentTree(),
-        ) { uri ->
-            uri?.let {
-                try {
-                    context.contentResolver.takePersistableUriPermission(
-                        it,
-                        Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
-                    )
-                } catch (e: Exception) {
-                    com.nihaltp.sbskip.util.AppLogger.error("Settings", e, "Failed to take persistable URI permission")
-                }
-                val resolvedPath = resolveRelativePathFromUri(context, it)
-                viewModel.updateNewPipeVideoFolder(resolvedPath, it.toString())
-            }
-        }
-
-    val newPipeAudioFolderLauncher =
-        rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.OpenDocumentTree(),
-        ) { uri ->
-            uri?.let {
-                try {
-                    context.contentResolver.takePersistableUriPermission(
-                        it,
-                        Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
-                    )
-                } catch (e: Exception) {
-                    com.nihaltp.sbskip.util.AppLogger.error("Settings", e, "Failed to take persistable URI permission")
-                }
-                val resolvedPath = resolveRelativePathFromUri(context, it)
-                viewModel.updateNewPipeAudioFolder(resolvedPath, it.toString())
-            }
-        }
-
     val watchlistFolderLauncher =
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.OpenDocumentTree(),
@@ -350,16 +314,6 @@ fun SettingsScreen(
                             title = stringResource(id = R.string.settings_downloader_title),
                             value = stringResource(id = R.string.settings_downloader_newpipe),
                             onClick = { activeDialogType = SettingsDialogType.DOWNLOADER },
-                        )
-                        SettingValueRow(
-                            title = stringResource(id = R.string.settings_newpipe_video_folder_title),
-                            value = settings.newPipeVideoFolder,
-                            onClick = { newPipeVideoFolderLauncher.launch(null) },
-                        )
-                        SettingValueRow(
-                            title = stringResource(id = R.string.settings_newpipe_audio_folder_title),
-                            value = settings.newPipeAudioFolder,
-                            onClick = { newPipeAudioFolderLauncher.launch(null) },
                         )
                     }
                 }

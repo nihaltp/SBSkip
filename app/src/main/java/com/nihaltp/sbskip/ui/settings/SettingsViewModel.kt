@@ -126,24 +126,6 @@ class SettingsViewModel
             }
         }
 
-        fun updateNewPipeVideoFolder(
-            folder: String,
-            uriString: String,
-        ) {
-            viewModelScope.launch {
-                settingsRepository.update { it.copy(newPipeVideoFolder = folder, newPipeVideoFolderUri = uriString) }
-            }
-        }
-
-        fun updateNewPipeAudioFolder(
-            folder: String,
-            uriString: String,
-        ) {
-            viewModelScope.launch {
-                settingsRepository.update { it.copy(newPipeAudioFolder = folder, newPipeAudioFolderUri = uriString) }
-            }
-        }
-
         fun toggleSponsorBlockCategory(category: SponsorBlockCategory) {
             viewModelScope.launch {
                 settingsRepository.update { current ->

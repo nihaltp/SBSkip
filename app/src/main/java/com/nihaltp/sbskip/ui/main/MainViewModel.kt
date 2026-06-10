@@ -890,56 +890,7 @@ class MainViewModel
                     )
                 }
 
-                // 2. Query direct SAF custom folders (highly robust fallback/override)
-                listOf(
-                    settings.newPipeVideoFolderUri to settings.newPipeVideoFolder,
-                    settings.newPipeAudioFolderUri to settings.newPipeAudioFolder,
-                ).forEach { (folderUriStr, relativePathHint) ->
-                    if (folderUriStr.isNotEmpty() && folderUriStr.startsWith("content://")) {
-                        try {
-                            AppLogger.metadata("AutoDetect: Direct SAF scanning directory URI: $folderUriStr")
-                            val folderUri = Uri.parse(folderUriStr)
-                            val dirFile = DocumentFile.fromTreeUri(context, folderUri)
-                            if (dirFile != null && dirFile.exists() && dirFile.isDirectory) {
-                                val files = dirFile.listFiles()
-                                AppLogger.metadata("AutoDetect: SAF directory contains ${files.size} files.")
-                                files.forEach filesLoop@{ file ->
-                                    if (file.isFile && file.name != null) {
-                                        val displayName = file.name!!
-                                        val timestampMillis = file.lastModified()
-
-                                        val score =
-                                            scoreCandidate(
-                                                pendingDownload = pendingDownload,
-                                                displayName = displayName,
-                                                relativePath = relativePathHint, // Ensures exact relative path match score is awarded
-                                                durationSeconds = null,
-                                                timestampMillis = if (timestampMillis > 0) timestampMillis else now,
-                                                settings = settings,
-                                            )
-
-                                        AppLogger.metadata(
-                                            "AutoDetect: Scored SAF file displayName='$displayName' uri=${file.uri} score=$score",
-                                        )
-                                        candidates.add(
-                                            DetectedCandidate(
-                                                uri = file.uri.toString(),
-                                                score = score,
-                                                fallbackName = displayName,
-                                            ),
-                                        )
-                                    }
-                                }
-                            } else {
-                                AppLogger.metadata("AutoDetect: Direct SAF directory not found/resolved for URI: $folderUriStr")
-                            }
-                        } catch (e: Exception) {
-                            AppLogger.error("MainViewModel", e, "AutoDetect: Failed to scan SAF directory: $folderUriStr")
-                        }
-                    }
-                }
-
-                // 3. Query watchlist folders
+                // 2. Query watchlist folders
                 settings.watchlist.forEach { folder ->
                     val folderUriStr = folder.uri
                     val relativePathHint = folder.path
@@ -1076,11 +1027,7 @@ class MainViewModel
             }
 
             var folderMatched = false
-            if (folderHintMatches(
-                    relativePath,
-                    settings.newPipeVideoFolder,
-                ) || folderHintMatches(relativePath, settings.newPipeAudioFolder)
-            ) {
+            if (settings.watchlist.any { folderHintMatches(relativePath, it.path) }) {
                 score += 18
                 folderMatched = true
             }

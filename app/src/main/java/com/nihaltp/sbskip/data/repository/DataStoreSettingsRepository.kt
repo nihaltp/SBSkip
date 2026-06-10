@@ -42,10 +42,6 @@ class DataStoreSettingsRepository
             val AUDIO_FOLDER = stringPreferencesKey("audio_folder")
             val VIDEO_FOLDER_URI = stringPreferencesKey("video_folder_uri")
             val AUDIO_FOLDER_URI = stringPreferencesKey("audio_folder_uri")
-            val NEWPIPE_VIDEO_FOLDER = stringPreferencesKey("newpipe_video_folder")
-            val NEWPIPE_AUDIO_FOLDER = stringPreferencesKey("newpipe_audio_folder")
-            val NEWPIPE_VIDEO_FOLDER_URI = stringPreferencesKey("newpipe_video_folder_uri")
-            val NEWPIPE_AUDIO_FOLDER_URI = stringPreferencesKey("newpipe_audio_folder_uri")
             val TEMP_FOLDER = stringPreferencesKey("temp_folder")
             val SB_ENABLED = booleanPreferencesKey("sb_enabled")
             val SB_CATEGORIES = stringSetPreferencesKey("sb_categories")
@@ -95,10 +91,6 @@ class DataStoreSettingsRepository
                     audioFolder = preferences[PreferencesKeys.AUDIO_FOLDER] ?: "Music/SB Skip/",
                     videoFolderUri = preferences[PreferencesKeys.VIDEO_FOLDER_URI] ?: "",
                     audioFolderUri = preferences[PreferencesKeys.AUDIO_FOLDER_URI] ?: "",
-                    newPipeVideoFolder = preferences[PreferencesKeys.NEWPIPE_VIDEO_FOLDER] ?: "Download/NewPipe/Video/",
-                    newPipeAudioFolder = preferences[PreferencesKeys.NEWPIPE_AUDIO_FOLDER] ?: "Download/NewPipe/Audio/",
-                    newPipeVideoFolderUri = preferences[PreferencesKeys.NEWPIPE_VIDEO_FOLDER_URI] ?: "",
-                    newPipeAudioFolderUri = preferences[PreferencesKeys.NEWPIPE_AUDIO_FOLDER_URI] ?: "",
                     tempFolder = preferences[PreferencesKeys.TEMP_FOLDER] ?: "SB Skip/tmp/",
                     sponsorBlockSettings =
                         SponsorBlockSettings(
@@ -142,10 +134,6 @@ class DataStoreSettingsRepository
                         audioFolder = preferences[PreferencesKeys.AUDIO_FOLDER] ?: "Music/SB Skip/",
                         videoFolderUri = preferences[PreferencesKeys.VIDEO_FOLDER_URI] ?: "",
                         audioFolderUri = preferences[PreferencesKeys.AUDIO_FOLDER_URI] ?: "",
-                        newPipeVideoFolder = preferences[PreferencesKeys.NEWPIPE_VIDEO_FOLDER] ?: "Download/NewPipe/Video/",
-                        newPipeAudioFolder = preferences[PreferencesKeys.NEWPIPE_AUDIO_FOLDER] ?: "Download/NewPipe/Audio/",
-                        newPipeVideoFolderUri = preferences[PreferencesKeys.NEWPIPE_VIDEO_FOLDER_URI] ?: "",
-                        newPipeAudioFolderUri = preferences[PreferencesKeys.NEWPIPE_AUDIO_FOLDER_URI] ?: "",
                         tempFolder = preferences[PreferencesKeys.TEMP_FOLDER] ?: "SB Skip/tmp/",
                         sponsorBlockSettings =
                             SponsorBlockSettings(
@@ -185,10 +173,6 @@ class DataStoreSettingsRepository
                 preferences[PreferencesKeys.AUDIO_FOLDER] = updated.audioFolder
                 preferences[PreferencesKeys.VIDEO_FOLDER_URI] = updated.videoFolderUri
                 preferences[PreferencesKeys.AUDIO_FOLDER_URI] = updated.audioFolderUri
-                preferences[PreferencesKeys.NEWPIPE_VIDEO_FOLDER] = updated.newPipeVideoFolder
-                preferences[PreferencesKeys.NEWPIPE_AUDIO_FOLDER] = updated.newPipeAudioFolder
-                preferences[PreferencesKeys.NEWPIPE_VIDEO_FOLDER_URI] = updated.newPipeVideoFolderUri
-                preferences[PreferencesKeys.NEWPIPE_AUDIO_FOLDER_URI] = updated.newPipeAudioFolderUri
                 preferences[PreferencesKeys.TEMP_FOLDER] = updated.tempFolder
                 preferences[PreferencesKeys.SB_ENABLED] = updated.sponsorBlockSettings.enabled
                 preferences[PreferencesKeys.SB_CATEGORIES] = updated.sponsorBlockSettings.categories.map { it.name }.toSet()
