@@ -939,6 +939,54 @@ class MainViewModel
                     }
                 }
 
+                // 3. Query watchlist folders
+                settings.watchlist.forEach { folder ->
+                    val folderUriStr = folder.uri
+                    val relativePathHint = folder.path
+                    if (folderUriStr.isNotEmpty() && folderUriStr.startsWith("content://")) {
+                        try {
+                            AppLogger.metadata("AutoDetect: Direct SAF scanning watchlist directory URI: $folderUriStr")
+                            val folderUri = Uri.parse(folderUriStr)
+                            val dirFile = DocumentFile.fromTreeUri(context, folderUri)
+                            if (dirFile != null && dirFile.exists() && dirFile.isDirectory) {
+                                val files = dirFile.listFiles()
+                                AppLogger.metadata("AutoDetect: SAF watchlist directory contains ${files.size} files.")
+                                files.forEach filesLoop@{ file ->
+                                    if (file.isFile && file.name != null) {
+                                        val displayName = file.name!!
+                                        val timestampMillis = file.lastModified()
+
+                                        val score =
+                                            scoreCandidate(
+                                                pendingDownload = pendingDownload,
+                                                displayName = displayName,
+                                                relativePath = relativePathHint,
+                                                durationSeconds = null,
+                                                timestampMillis = if (timestampMillis > 0) timestampMillis else now,
+                                                settings = settings,
+                                            )
+
+                                        AppLogger.metadata(
+                                            "AutoDetect: Scored SAF watchlist file displayName='$displayName' uri=${file.uri} score=$score",
+                                        )
+                                        candidates.add(
+                                            DetectedCandidate(
+                                                uri = file.uri.toString(),
+                                                score = score,
+                                                fallbackName = displayName,
+                                            ),
+                                        )
+                                    }
+                                }
+                            } else {
+                                AppLogger.metadata("AutoDetect: Direct SAF watchlist directory not found/resolved for URI: $folderUriStr")
+                            }
+                        } catch (e: Exception) {
+                            AppLogger.error("MainViewModel", e, "AutoDetect: Failed to scan SAF watchlist directory: $folderUriStr")
+                        }
+                    }
+                }
+
                 candidates.sortedByDescending { it.score }
             }
 

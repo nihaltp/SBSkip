@@ -15,13 +15,17 @@ import com.nihaltp.sbskip.model.DownloaderType
 import com.nihaltp.sbskip.model.SponsorBlockCategory
 import com.nihaltp.sbskip.model.SponsorBlockSettings
 import com.nihaltp.sbskip.model.ThemeMode
+import com.nihaltp.sbskip.model.WatchlistFolder
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
+private val json = Json { ignoreUnknownKeys = true }
 
 @Singleton
 class DataStoreSettingsRepository
@@ -57,6 +61,7 @@ class DataStoreSettingsRepository
             val AUDIO_SAVE_MODE = stringPreferencesKey("audio_save_mode")
             val BYPASS_SMALL_DURATION_DIFFERENCE = booleanPreferencesKey("bypass_small_duration_difference")
             val MAX_DURATION_DIFFERENCE_SECONDS = intPreferencesKey("max_duration_difference_seconds")
+            val WATCHLIST = stringPreferencesKey("watchlist")
         }
 
         override val settings: Flow<AppSettings> =
@@ -112,6 +117,10 @@ class DataStoreSettingsRepository
                     audioSaveMode = audioSaveMode,
                     bypassSmallDurationDifference = preferences[PreferencesKeys.BYPASS_SMALL_DURATION_DIFFERENCE] ?: false,
                     maxDurationDifferenceSeconds = preferences[PreferencesKeys.MAX_DURATION_DIFFERENCE_SECONDS] ?: 1,
+                    watchlist =
+                        runCatching {
+                            json.decodeFromString<List<WatchlistFolder>>(preferences[PreferencesKeys.WATCHLIST] ?: "[]")
+                        }.getOrElse { emptyList() },
                 )
             }
 
@@ -161,6 +170,10 @@ class DataStoreSettingsRepository
                             }.getOrDefault(AudioSaveMode.RUNTIME_PICKER),
                         bypassSmallDurationDifference = preferences[PreferencesKeys.BYPASS_SMALL_DURATION_DIFFERENCE] ?: false,
                         maxDurationDifferenceSeconds = preferences[PreferencesKeys.MAX_DURATION_DIFFERENCE_SECONDS] ?: 1,
+                        watchlist =
+                            runCatching {
+                                json.decodeFromString<List<WatchlistFolder>>(preferences[PreferencesKeys.WATCHLIST] ?: "[]")
+                            }.getOrElse { emptyList() },
                     )
                 val updated = transform(current)
 
@@ -191,6 +204,7 @@ class DataStoreSettingsRepository
                 preferences[PreferencesKeys.AUDIO_SAVE_MODE] = updated.audioSaveMode.name
                 preferences[PreferencesKeys.BYPASS_SMALL_DURATION_DIFFERENCE] = updated.bypassSmallDurationDifference
                 preferences[PreferencesKeys.MAX_DURATION_DIFFERENCE_SECONDS] = updated.maxDurationDifferenceSeconds
+                preferences[PreferencesKeys.WATCHLIST] = json.encodeToString(updated.watchlist)
             }
         }
     }

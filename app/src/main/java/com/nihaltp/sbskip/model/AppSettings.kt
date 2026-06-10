@@ -27,4 +27,5 @@ data class AppSettings(
     val audioSaveMode: AudioSaveMode = AudioSaveMode.RUNTIME_PICKER,
     val bypassSmallDurationDifference: Boolean = false,
     val maxDurationDifferenceSeconds: Int = 1,
+    val watchlist: List<WatchlistFolder> = emptyList(),
 )

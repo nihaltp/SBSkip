@@ -268,4 +268,10 @@
     <string name="settings_max_difference_title">Maximum Duration Difference</string>
     <string name="settings_max_difference_seconds_format">%1$d seconds</string>
     <string name="settings_max_difference_field_label">Limit in seconds</string>
+
+    <!-- Watchlist -->
+    <string name="settings_watchlist_title">Watchlist Folders</string>
+    <string name="settings_watchlist_desc">Scan these custom folders for downloaded files.</string>
+    <string name="settings_watchlist_add_button">Add Folder</string>
+    <string name="settings_watchlist_empty">No watchlist folders added yet.</string>
 </resources>

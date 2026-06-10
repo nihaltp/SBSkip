@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.SaveAlt
 import androidx.compose.material3.AlertDialog
@@ -210,6 +211,24 @@ fun SettingsScreen(
                 }
                 val resolvedPath = resolveRelativePathFromUri(context, it)
                 viewModel.updateNewPipeAudioFolder(resolvedPath, it.toString())
+            }
+        }
+
+    val watchlistFolderLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.OpenDocumentTree(),
+        ) { uri ->
+            uri?.let {
+                try {
+                    context.contentResolver.takePersistableUriPermission(
+                        it,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+                    )
+                } catch (e: Exception) {
+                    com.nihaltp.sbskip.util.AppLogger.error("Settings", e, "Failed to take persistable URI permission")
+                }
+                val resolvedPath = resolveRelativePathFromUri(context, it)
+                viewModel.addWatchlistFolder(resolvedPath, it.toString())
             }
         }
 
@@ -422,6 +441,60 @@ fun SettingsScreen(
                                     },
                                 )
                             }
+                        }
+                    }
+                }
+
+                item {
+                    SettingsSection(title = stringResource(id = R.string.settings_watchlist_title)) {
+                        Text(
+                            text = stringResource(id = R.string.settings_watchlist_desc),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        if (settings.watchlist.isEmpty()) {
+                            Text(
+                                text = stringResource(id = R.string.settings_watchlist_empty),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                modifier = Modifier.padding(vertical = 8.dp),
+                            )
+                        } else {
+                            settings.watchlist.forEach { folder ->
+                                Row(
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 4.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(folder.path, fontWeight = FontWeight.Medium, style = MaterialTheme.typography.bodyLarge)
+                                        Text(
+                                            text = folder.uri,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                        )
+                                    }
+                                    IconButton(onClick = { viewModel.removeWatchlistFolder(folder) }) {
+                                        Icon(
+                                            imageVector = androidx.compose.material.icons.Icons.Default.Delete,
+                                            contentDescription = "Remove folder",
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = { watchlistFolderLauncher.launch(null) },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(stringResource(id = R.string.settings_watchlist_add_button))
                         }
                     }
                 }

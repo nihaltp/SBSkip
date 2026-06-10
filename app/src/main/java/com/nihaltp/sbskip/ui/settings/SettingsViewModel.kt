@@ -8,6 +8,7 @@ import com.nihaltp.sbskip.model.AudioSaveMode
 import com.nihaltp.sbskip.model.DownloaderType
 import com.nihaltp.sbskip.model.SponsorBlockCategory
 import com.nihaltp.sbskip.model.ThemeMode
+import com.nihaltp.sbskip.model.WatchlistFolder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -191,6 +192,29 @@ class SettingsViewModel
         fun updateMaxDurationDifferenceSeconds(seconds: Int) {
             viewModelScope.launch {
                 settingsRepository.update { it.copy(maxDurationDifferenceSeconds = seconds) }
+            }
+        }
+
+        fun addWatchlistFolder(
+            path: String,
+            uriString: String,
+        ) {
+            viewModelScope.launch {
+                settingsRepository.update { current ->
+                    if (current.watchlist.none { it.uri == uriString }) {
+                        current.copy(watchlist = current.watchlist + WatchlistFolder(path, uriString))
+                    } else {
+                        current
+                    }
+                }
+            }
+        }
+
+        fun removeWatchlistFolder(folder: WatchlistFolder) {
+            viewModelScope.launch {
+                settingsRepository.update { current ->
+                    current.copy(watchlist = current.watchlist.filter { it.uri != folder.uri })
+                }
             }
         }
 
