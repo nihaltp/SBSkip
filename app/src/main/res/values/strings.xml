@@ -56,8 +56,6 @@
     <string name="settings_dynamic_color_desc">Use system colors when available.</string>
     <string name="settings_notifications_title">Notifications</string>
     <string name="settings_notifications_desc">Show foreground and completion updates.</string>
-    <string name="settings_keep_temp_files_title">Keep temp files</string>
-    <string name="settings_keep_temp_files_desc">Useful while debugging FFmpeg and yt-dlp processing.</string>
     <string name="settings_theme_mode">Theme mode</string>
     <string name="settings_section_newpipe">NewPipe</string>
     <string name="settings_downloader_title">Downloader</string>

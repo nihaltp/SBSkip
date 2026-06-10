@@ -489,12 +489,6 @@ fun SettingsScreen(
                 item {
                     SettingsSection(title = stringResource(id = R.string.settings_section_advanced)) {
                         SettingToggleRow(
-                            title = stringResource(id = R.string.settings_keep_temp_files_title),
-                            description = stringResource(id = R.string.settings_keep_temp_files_desc),
-                            checked = settings.keepTempFiles,
-                            onCheckedChange = viewModel::updateKeepTempFiles,
-                        )
-                        SettingToggleRow(
                             title = stringResource(id = R.string.verbose_logging),
                             description = stringResource(id = R.string.verbose_logging_desc),
                             checked = settings.verboseLogging,

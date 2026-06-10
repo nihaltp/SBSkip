@@ -60,12 +60,6 @@ class SettingsViewModel
             }
         }
 
-        fun updateKeepTempFiles(enabled: Boolean) {
-            viewModelScope.launch {
-                settingsRepository.update { it.copy(keepTempFiles = enabled) }
-            }
-        }
-
         fun updateVerboseLogging(enabled: Boolean) {
             viewModelScope.launch {
                 settingsRepository.update { it.copy(verboseLogging = enabled) }

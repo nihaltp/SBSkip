@@ -46,7 +46,6 @@ class DataStoreSettingsRepository
             val SB_ENABLED = booleanPreferencesKey("sb_enabled")
             val SB_CATEGORIES = stringSetPreferencesKey("sb_categories")
             val FILENAME_REPLACEMENT = stringPreferencesKey("filename_replacement")
-            val KEEP_TEMP_FILES = booleanPreferencesKey("keep_temp_files")
             val VERBOSE_LOGGING = booleanPreferencesKey("verbose_logging")
             val SPONSORBLOCK_URL = stringPreferencesKey("sponsorblock_url")
             val OVERWRITE_BEHAVIOR = booleanPreferencesKey("overwrite_behavior")
@@ -98,7 +97,6 @@ class DataStoreSettingsRepository
                             categories = categories,
                         ),
                     filenameReplacement = preferences[PreferencesKeys.FILENAME_REPLACEMENT]?.firstOrNull() ?: '_',
-                    keepTempFiles = preferences[PreferencesKeys.KEEP_TEMP_FILES] ?: false,
                     verboseLogging = preferences[PreferencesKeys.VERBOSE_LOGGING] ?: false,
                     sponsorBlockUrl = preferences[PreferencesKeys.SPONSORBLOCK_URL] ?: "https://sponsor.ajay.app",
                     sponsorBlockStatusUrl = preferences[PreferencesKeys.SPONSORBLOCK_STATUS_URL] ?: "https://status.sponsor.ajay.app",
@@ -144,7 +142,6 @@ class DataStoreSettingsRepository
                                     }?.toSet() ?: SponsorBlockCategory.entries.toSet(),
                             ),
                         filenameReplacement = preferences[PreferencesKeys.FILENAME_REPLACEMENT]?.firstOrNull() ?: '_',
-                        keepTempFiles = preferences[PreferencesKeys.KEEP_TEMP_FILES] ?: false,
                         verboseLogging = preferences[PreferencesKeys.VERBOSE_LOGGING] ?: false,
                         sponsorBlockUrl = preferences[PreferencesKeys.SPONSORBLOCK_URL] ?: "https://sponsor.ajay.app",
                         sponsorBlockStatusUrl = preferences[PreferencesKeys.SPONSORBLOCK_STATUS_URL] ?: "https://status.sponsor.ajay.app",
@@ -177,7 +174,6 @@ class DataStoreSettingsRepository
                 preferences[PreferencesKeys.SB_ENABLED] = updated.sponsorBlockSettings.enabled
                 preferences[PreferencesKeys.SB_CATEGORIES] = updated.sponsorBlockSettings.categories.map { it.name }.toSet()
                 preferences[PreferencesKeys.FILENAME_REPLACEMENT] = updated.filenameReplacement.toString()
-                preferences[PreferencesKeys.KEEP_TEMP_FILES] = updated.keepTempFiles
                 preferences[PreferencesKeys.VERBOSE_LOGGING] = updated.verboseLogging
                 preferences[PreferencesKeys.SPONSORBLOCK_URL] = updated.sponsorBlockUrl
                 preferences[PreferencesKeys.SPONSORBLOCK_STATUS_URL] = updated.sponsorBlockStatusUrl

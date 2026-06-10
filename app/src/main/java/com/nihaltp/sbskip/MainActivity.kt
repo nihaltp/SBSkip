@@ -37,7 +37,6 @@ class MainActivity : ComponentActivity() {
             runBlocking(Dispatchers.IO) {
                 settingsRepository.update { current ->
                     current.copy(
-                        keepTempFiles = true,
                         verboseLogging = true,
                     )
                 }

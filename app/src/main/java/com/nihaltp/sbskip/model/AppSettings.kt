@@ -12,7 +12,6 @@ data class AppSettings(
     val tempFolder: String = "SB Skip/tmp/",
     val sponsorBlockSettings: SponsorBlockSettings = SponsorBlockSettings(),
     val filenameReplacement: Char = '_',
-    val keepTempFiles: Boolean = false,
     val verboseLogging: Boolean = false,
     val sponsorBlockUrl: String = "https://sponsor.ajay.app",
     val sponsorBlockStatusUrl: String = "https://status.sponsor.ajay.app",
