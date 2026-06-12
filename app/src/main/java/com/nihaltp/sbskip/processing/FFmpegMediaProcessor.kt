@@ -36,7 +36,7 @@ class FFmpegMediaProcessor
                             "-vn -c:a aac"
                         }
                     runFFmpegCommand(
-                        "-y -i \"${inputFile.absolutePath}\" $extractionArgs \"${outputFile.absolutePath}\"",
+                        "-y -analyzeduration 50M -probesize 50M -i \"${inputFile.absolutePath}\" $extractionArgs \"${outputFile.absolutePath}\"",
                     )
                 } else {
                     AppLogger.worker("No keep ranges specified. Copying entire source file.")
@@ -62,13 +62,13 @@ class FFmpegMediaProcessor
                     runFFmpegCommand(
                         "-y -ss ${formatTime(
                             start,
-                        )} -t ${formatTime(duration)} -i \"${inputFile.absolutePath}\" $extractionArgs \"${outputFile.absolutePath}\"",
+                        )} -t ${formatTime(duration)} -analyzeduration 50M -probesize 50M -i \"${inputFile.absolutePath}\" $extractionArgs \"${outputFile.absolutePath}\"",
                     )
                 } else {
                     runFFmpegCommand(
                         "-y -ss ${formatTime(
                             start,
-                        )} -t ${formatTime(duration)} -i \"${inputFile.absolutePath}\" -c copy \"${outputFile.absolutePath}\"",
+                        )} -t ${formatTime(duration)} -analyzeduration 50M -probesize 50M -i \"${inputFile.absolutePath}\" -c copy -avoid_negative_ts make_zero \"${outputFile.absolutePath}\"",
                     )
                 }
                 progressListener(100)
@@ -98,7 +98,7 @@ class FFmpegMediaProcessor
                     runFFmpegCommand(
                         "-y -ss ${formatTime(
                             start,
-                        )} -t ${formatTime(duration)} -i \"${inputFile.absolutePath}\" -c copy \"${tempSegmentFile.absolutePath}\"",
+                        )} -t ${formatTime(duration)} -analyzeduration 50M -probesize 50M -i \"${inputFile.absolutePath}\" -c copy -avoid_negative_ts make_zero \"${tempSegmentFile.absolutePath}\"",
                     )
 
                     // Report progressive split progress
@@ -123,7 +123,7 @@ class FFmpegMediaProcessor
 
                 try {
                     runFFmpegCommand(
-                        "-y -f concat -safe 0 -i \"${concatListFile.absolutePath}\" -c copy \"${actualOutputFile.absolutePath}\"",
+                        "-y -fflags +genpts -f concat -safe 0 -analyzeduration 50M -probesize 50M -i \"${concatListFile.absolutePath}\" -c copy \"${actualOutputFile.absolutePath}\"",
                     )
                 } finally {
                     // Safely clean up the concat list text file
@@ -143,7 +143,7 @@ class FFmpegMediaProcessor
                         }
                     try {
                         runFFmpegCommand(
-                            "-y -i \"${actualOutputFile.absolutePath}\" $extractionArgs \"${outputFile.absolutePath}\"",
+                            "-y -analyzeduration 50M -probesize 50M -i \"${actualOutputFile.absolutePath}\" $extractionArgs \"${outputFile.absolutePath}\"",
                         )
                     } finally {
                         if (actualOutputFile.exists()) {
