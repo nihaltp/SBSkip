@@ -436,6 +436,8 @@ class DownloadWorker
             metadataArgs.add("-metadata SB_SKIP_SEGMENTS=\"${escapeForFfmpeg(sbSkipSegments)}\"")
             metadataArgs.add("-metadata SB_VERSION=\"${escapeForFfmpeg(BuildConfig.VERSION_NAME)}\"")
             metadataArgs.add("-metadata SB_PROCESSED=\"true\"")
+            metadataArgs.add("-metadata YOUTUBE_VIDEO_URL=\"${escapeForFfmpeg(youtubeUrl)}\"")
+            metadataArgs.add("-metadata YOUTUBE_VIDEO_ID=\"${escapeForFfmpeg(videoId)}\"")
 
             val metadataArgsStr = metadataArgs.joinToString(" ")
             val metadataArgsPart = if (metadataArgsStr.isNotEmpty()) " $metadataArgsStr" else ""
