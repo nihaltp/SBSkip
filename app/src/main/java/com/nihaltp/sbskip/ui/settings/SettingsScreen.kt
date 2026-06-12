@@ -329,20 +329,6 @@ fun SettingsScreen(
                             onCheckedChange = viewModel::updateOverwriteBehavior,
                         )
                         SettingToggleRow(
-                            title = stringResource(id = R.string.settings_default_convert_video_to_audio_title),
-                            description = stringResource(id = R.string.settings_default_convert_video_to_audio_desc),
-                            checked = settings.defaultConvertVideoToAudio,
-                            onCheckedChange = viewModel::updateDefaultConvertVideoToAudio,
-                        )
-                        if (settings.defaultConvertVideoToAudio) {
-                            SettingToggleRow(
-                                title = stringResource(id = R.string.settings_default_delete_original_video_title),
-                                description = stringResource(id = R.string.settings_default_delete_original_video_desc),
-                                checked = settings.defaultDeleteOriginalVideo,
-                                onCheckedChange = viewModel::updateDefaultDeleteOriginalVideo,
-                            )
-                        }
-                        SettingToggleRow(
                             title = stringResource(id = R.string.settings_allow_small_difference_title),
                             description = stringResource(id = R.string.settings_allow_small_difference_desc),
                             checked = settings.bypassSmallDurationDifference,
@@ -397,6 +383,25 @@ fun SettingsScreen(
                                     },
                                 )
                             }
+                        }
+                    }
+                }
+
+                item {
+                    SettingsSection(title = stringResource(id = R.string.settings_video_to_audio_title)) {
+                        SettingToggleRow(
+                            title = stringResource(id = R.string.settings_default_convert_video_to_audio_title),
+                            description = stringResource(id = R.string.settings_default_convert_video_to_audio_desc),
+                            checked = settings.defaultConvertVideoToAudio,
+                            onCheckedChange = viewModel::updateDefaultConvertVideoToAudio,
+                        )
+                        if (settings.defaultConvertVideoToAudio) {
+                            SettingToggleRow(
+                                title = stringResource(id = R.string.settings_default_delete_original_video_title),
+                                description = stringResource(id = R.string.settings_default_delete_original_video_desc),
+                                checked = settings.defaultDeleteOriginalVideo,
+                                onCheckedChange = viewModel::updateDefaultDeleteOriginalVideo,
+                            )
                         }
                     }
                 }

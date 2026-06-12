@@ -172,6 +172,7 @@
 
     <!-- Settings Screen Updates -->
     <string name="settings_cleaner_storage_title">Cleaner Storage Settings</string>
+    <string name="settings_video_to_audio_title">Video to Audio Settings</string>
     <string name="settings_overwrite_files_title">Overwrite Files</string>
     <string name="settings_overwrite_files_desc">Save the cleaned file directly where it was picked from, overwriting the original file.</string>
     <string name="settings_suffix_title">Cleaned File Suffix</string>
