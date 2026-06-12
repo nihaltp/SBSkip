@@ -5,10 +5,7 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -21,18 +18,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -42,7 +34,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -63,28 +54,30 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
-import com.nihaltp.sbskip.BuildConfig
 import com.nihaltp.sbskip.R
-import com.nihaltp.sbskip.model.DetectedFile
 import com.nihaltp.sbskip.model.DownloadQueueItem
-import com.nihaltp.sbskip.model.DownloadQueueStatus
 import com.nihaltp.sbskip.model.MainUiState
+import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.model.PendingDownload
 import com.nihaltp.sbskip.model.SponsorBlockCategory
 import com.nihaltp.sbskip.ui.components.SponsorBlockCategoryPickerDialog
+import com.nihaltp.sbskip.ui.main.components.cards.PendingDownloadCard
+import com.nihaltp.sbskip.ui.main.components.cards.QueueItemCard
+import com.nihaltp.sbskip.ui.main.components.common.EmptyStateCard
+import com.nihaltp.sbskip.ui.main.components.common.SectionHeader
+import com.nihaltp.sbskip.ui.main.dialogs.DurationMismatchDialog
+import com.nihaltp.sbskip.ui.main.dialogs.ErrorDetailsDialog
+import com.nihaltp.sbskip.ui.main.dialogs.MediaConflictDialog
+import com.nihaltp.sbskip.ui.main.dialogs.MediaDetailsDialog
+import com.nihaltp.sbskip.ui.main.dialogs.PendingDownloadDetailsDialog
+import com.nihaltp.sbskip.ui.main.dialogs.WatchlistPromptDialog
 import com.nihaltp.sbskip.util.AppLogger
 import com.nihaltp.sbskip.util.PermissionHelper
 import kotlinx.coroutines.launch
@@ -153,7 +146,7 @@ fun MainScreen(
     var showCategoriesDialog by remember { mutableStateOf(false) }
     val showLocalCleanButton = uiState.selectedFileUri != null && uiState.urlInput.isNotBlank()
     val showDownloadAndCleanButton = uiState.selectedFileUri == null && uiState.isNewPipeInstalled && uiState.urlInput.isNotBlank()
-    val isVideoFile = uiState.selectedFileMediaType == com.nihaltp.sbskip.model.MediaType.VIDEO
+    val isVideoFile = uiState.selectedFileMediaType == MediaType.VIDEO
     val showConvertOnlyButton = uiState.selectedFileUri != null && uiState.urlInput.isBlank() && isVideoFile
 
     // Document picker for MP4, M4A, and MP3
@@ -176,7 +169,7 @@ fun MainScreen(
                         Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
                     )
                 } catch (e: Exception) {
-                    com.nihaltp.sbskip.util.AppLogger.error("MainScreen", e, "Failed to take persistable URI permission")
+                    AppLogger.error("MainScreen", e, "Failed to take persistable URI permission")
                 }
             }
             onAudioFolderPicked(uri)
@@ -407,11 +400,14 @@ fun MainScreen(
                             }
                         }
 
-                        if (uiState.selectedFileUri != null && uiState.selectedFileMediaType == com.nihaltp.sbskip.model.MediaType.VIDEO) {
+                        if (uiState.selectedFileUri != null && uiState.selectedFileMediaType == MediaType.VIDEO) {
                             val isUrlEmpty = uiState.urlInput.isBlank()
                             val isConvertChecked = isUrlEmpty || uiState.convertVideoToAudio
                             Column(
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 8.dp),
                                 verticalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
                                 HorizontalDivider()
@@ -540,414 +536,43 @@ fun MainScreen(
         }
     }
 
-    // Full error details popup with formatted GitHub bug report integration
-    errorDialogItem?.let { item ->
-        val errorMessage = item.errorMessage.orEmpty()
-        val isDurationMismatch = errorMessage.startsWith("Picked file duration")
+    ErrorDetailsDialog(
+        item = errorDialogItem,
+        onDismiss = { errorDialogItem = null },
+        onRetryQueueItem = onRetryQueueItem,
+    )
 
-        if (isDurationMismatch) {
-            val regex = """Picked file duration \((\d+)\s*s\) does not match YouTube video duration \((\d+)\s*s\)""".toRegex()
-            val matchResult = regex.find(errorMessage)
-            val fileDurationStr =
-                matchResult?.groupValues?.getOrNull(1)?.toLongOrNull()?.let { seconds ->
-                    val minutes = seconds / 60
-                    val remaining = seconds % 60
-                    "%d:%02d".format(minutes, remaining)
-                } ?: "--:--"
-            val youtubeDurationStr =
-                matchResult?.groupValues?.getOrNull(2)?.toLongOrNull()?.let { seconds ->
-                    val minutes = seconds / 60
-                    val remaining = seconds % 60
-                    "%d:%02d".format(minutes, remaining)
-                } ?: "--:--"
+    MediaDetailsDialog(
+        item = detailsDialogItem,
+        onDismiss = { detailsDialogItem = null },
+    )
 
-            AlertDialog(
-                onDismissRequest = { errorDialogItem = null },
-                title = { Text(stringResource(id = R.string.dialog_duration_mismatch_title)) },
-                text = {
-                    Text(stringResource(id = R.string.dialog_duration_mismatch_message, fileDurationStr, youtubeDurationStr))
-                },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            onRetryQueueItem(item.id, true)
-                            errorDialogItem = null
-                        },
-                    ) {
-                        Text(stringResource(id = R.string.dialog_duration_mismatch_proceed))
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { errorDialogItem = null }) {
-                        Text(stringResource(id = R.string.cancel))
-                    }
-                },
-            )
-        } else {
-            AlertDialog(
-                onDismissRequest = { errorDialogItem = null },
-                title = { Text(stringResource(id = R.string.error_details_title)) },
-                text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text(stringResource(id = R.string.error_details_intro), fontWeight = FontWeight.Medium)
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = Color.Black.copy(alpha = 0.05f),
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text(
-                                text = item.errorMessage.orEmpty(),
-                                modifier = Modifier.padding(12.dp),
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                        }
-                        Text(
-                            stringResource(id = R.string.error_report_explanation),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.Gray,
-                        )
-                    }
-                },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            val titleParam = Uri.encode("[Bug] Pipeline clean failed: ${item.errorMessage?.take(45)}")
-                            val bodyTemplate =
-                                """
-                                |### SB Skip Pipeline Error Report
-                                |
-                                |* **App Version**: ${BuildConfig.VERSION_NAME}
-                                |* **Video Title**: ${item.title}
-                                |* **Video URL**: ${item.cleanUrl}
-                                |* **Media Type**: ${item.mediaType.name}
-                                |
-                                |#### Exception Stack Trace
-                                |```text
-                                |${item.errorMessage}
-                                |```
-                                """.trimMargin()
-                            val bodyParam = Uri.encode(bodyTemplate)
-                            val githubUrl = "https://github.com/nihaltp/SBSkip/issues/new?title=$titleParam&body=$bodyParam"
+    PendingDownloadDetailsDialog(
+        item = detailsPendingDownloadItem,
+        onDismiss = { detailsPendingDownloadItem = null },
+    )
 
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(githubUrl))
-                            context.startActivity(intent)
-                            errorDialogItem = null
-                        },
-                    ) {
-                        Icon(Icons.Filled.BugReport, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(id = R.string.report_to_github))
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { errorDialogItem = null }) {
-                        Text(stringResource(id = R.string.dismiss))
-                    }
-                },
-            )
-        }
-    }
+    WatchlistPromptDialog(
+        show = uiState.showWatchlistPromptDialog,
+        onOpenSettings = onOpenSettings,
+        onDismissWatchlistPrompt = onDismissWatchlistPrompt,
+    )
 
-    // Full media details popup for card clicks
-    detailsDialogItem?.let { item ->
-        val context = LocalContext.current
-        AlertDialog(
-            onDismissRequest = { detailsDialogItem = null },
-            title = { Text(stringResource(id = R.string.media_details_title), fontWeight = FontWeight.Bold) },
-            text = {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    DetailRow(label = stringResource(id = R.string.label_title), value = item.title)
-                    DetailRow(label = stringResource(id = R.string.youtube_url_label), value = item.cleanUrl)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                stringResource(id = R.string.media_type),
-                                fontWeight = FontWeight.SemiBold,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = Color.Gray,
-                            )
-                            Text(item.mediaType.name, style = MaterialTheme.typography.bodyMedium)
-                        }
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                stringResource(id = R.string.duration_label),
-                                fontWeight = FontWeight.SemiBold,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = Color.Gray,
-                            )
-                            Text(item.displayDuration, style = MaterialTheme.typography.bodyMedium)
-                        }
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                stringResource(id = R.string.status_label),
-                                fontWeight = FontWeight.SemiBold,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = Color.Gray,
-                            )
-                            Text(item.status.name, style = MaterialTheme.typography.bodyMedium)
-                        }
-                    }
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Column {
-                            Text(
-                                stringResource(id = R.string.imported_path_label),
-                                fontWeight = FontWeight.SemiBold,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = Color.Gray,
-                            )
-                            SelectionContainer {
-                                Text(
-                                    text = formatUriToPath(context, item.localFileUri),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                )
-                            }
-                        }
+    DurationMismatchDialog(
+        show = uiState.showDurationMismatchDialog,
+        mismatchFileDuration = uiState.mismatchFileDuration,
+        mismatchYoutubeDuration = uiState.mismatchYoutubeDuration,
+        onProceedAnyway = onProceedAnyway,
+        onCancelMismatchDialog = onCancelMismatchDialog,
+    )
 
-                        if (!item.outputPath.isNullOrBlank() && item.outputPath != item.localFileUri) {
-                            Column {
-                                Text(
-                                    stringResource(id = R.string.saved_location_label),
-                                    fontWeight = FontWeight.SemiBold,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = Color.Gray,
-                                )
-                                SelectionContainer {
-                                    Text(
-                                        text = formatUriToPath(context, item.outputPath),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(
-                        onClick = {
-                            clipboardManager.setText(AnnotatedString(item.title))
-                            Toast.makeText(context, context.getString(R.string.title_copied_toast), Toast.LENGTH_SHORT).show()
-                        },
-                    ) {
-                        Text(stringResource(id = R.string.copy_title))
-                    }
-                    TextButton(
-                        onClick = {
-                            clipboardManager.setText(AnnotatedString(item.cleanUrl))
-                            Toast.makeText(context, context.getString(R.string.url_copied_toast), Toast.LENGTH_SHORT).show()
-                        },
-                    ) {
-                        Text(stringResource(id = R.string.copy_url))
-                    }
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { detailsDialogItem = null }) {
-                    Text(stringResource(id = R.string.close))
-                }
-            },
-        )
-    }
-
-    // Full pending download details popup for card clicks
-    detailsPendingDownloadItem?.let { item ->
-        val context = LocalContext.current
-        AlertDialog(
-            onDismissRequest = { detailsPendingDownloadItem = null },
-            title = { Text(stringResource(id = R.string.waiting_for_download_title), fontWeight = FontWeight.Bold) },
-            text = {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    DetailRow(label = stringResource(id = R.string.label_title), value = item.title)
-                    DetailRow(label = stringResource(id = R.string.youtube_url_label), value = item.url)
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                stringResource(id = R.string.status_label),
-                                fontWeight = FontWeight.SemiBold,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = Color.Gray,
-                            )
-                            val statusText =
-                                if (item.isDetectingFile) {
-                                    stringResource(id = R.string.detecting_recent_download)
-                                } else if (item.detectedFile != null) {
-                                    stringResource(id = R.string.found_matching_file, item.detectedFile.score)
-                                } else {
-                                    stringResource(id = R.string.no_pending_download)
-                                }
-                            Text(statusText, style = MaterialTheme.typography.bodyMedium)
-                        }
-                    }
-
-                    if (item.detectedFile != null) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            Column {
-                                Text(
-                                    stringResource(id = R.string.imported_path_label),
-                                    fontWeight = FontWeight.SemiBold,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = Color.Gray,
-                                )
-                                SelectionContainer {
-                                    Text(
-                                        text = formatUriToPath(context, item.detectedFile.uri),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                    )
-                                }
-                            }
-                            if (!item.detectedFileName.isNullOrBlank()) {
-                                Column {
-                                    Text(
-                                        stringResource(id = R.string.selected_file_label),
-                                        fontWeight = FontWeight.SemiBold,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = Color.Gray,
-                                    )
-                                    SelectionContainer {
-                                        Text(
-                                            text = item.detectedFileName,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(
-                        onClick = {
-                            clipboardManager.setText(AnnotatedString(item.title))
-                            Toast.makeText(context, context.getString(R.string.title_copied_toast), Toast.LENGTH_SHORT).show()
-                        },
-                    ) {
-                        Text(stringResource(id = R.string.copy_title))
-                    }
-                    TextButton(
-                        onClick = {
-                            clipboardManager.setText(AnnotatedString(item.url))
-                            Toast.makeText(context, context.getString(R.string.url_copied_toast), Toast.LENGTH_SHORT).show()
-                        },
-                    ) {
-                        Text(stringResource(id = R.string.copy_url))
-                    }
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { detailsPendingDownloadItem = null }) {
-                    Text(stringResource(id = R.string.close))
-                }
-            },
-        )
-    }
-
-    if (uiState.showWatchlistPromptDialog) {
-        AlertDialog(
-            onDismissRequest = onDismissWatchlistPrompt,
-            title = { Text(stringResource(id = R.string.dialog_watchlist_prompt_title)) },
-            text = { Text(stringResource(id = R.string.dialog_watchlist_prompt_message)) },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        onDismissWatchlistPrompt()
-                        onOpenSettings()
-                    },
-                ) {
-                    Text(stringResource(id = R.string.dialog_watchlist_prompt_confirm))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = onDismissWatchlistPrompt) {
-                    Text(stringResource(id = R.string.cancel))
-                }
-            },
-        )
-    }
-
-    if (uiState.showDurationMismatchDialog) {
-        val fileDurationStr =
-            uiState.mismatchFileDuration.let { seconds ->
-                val minutes = seconds / 60
-                val remaining = seconds % 60
-                "%d:%02d".format(minutes, remaining)
-            }
-        val youtubeDurationStr =
-            uiState.mismatchYoutubeDuration.let { seconds ->
-                val minutes = seconds / 60
-                val remaining = seconds % 60
-                "%d:%02d".format(minutes, remaining)
-            }
-        AlertDialog(
-            onDismissRequest = onCancelMismatchDialog,
-            title = { Text(stringResource(id = R.string.dialog_duration_mismatch_title)) },
-            text = {
-                Text(stringResource(id = R.string.dialog_duration_mismatch_message, fileDurationStr, youtubeDurationStr))
-            },
-            confirmButton = {
-                Button(onClick = onProceedAnyway) {
-                    Text(stringResource(id = R.string.dialog_duration_mismatch_proceed))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = onCancelMismatchDialog) {
-                    Text(stringResource(id = R.string.cancel))
-                }
-            },
-        )
-    }
-
-    if (uiState.showConflictDialog) {
-        AlertDialog(
-            onDismissRequest = onCancelConflictDialog,
-            title = { Text(stringResource(id = R.string.dialog_conflict_title)) },
-            text = {
-                Text(stringResource(id = R.string.dialog_conflict_message, uiState.conflictFileName))
-            },
-            confirmButton = {
-                Button(onClick = onReplaceConflict) {
-                    Text(stringResource(id = R.string.dialog_conflict_replace))
-                }
-            },
-            dismissButton = {
-                Row {
-                    TextButton(onClick = onCancelConflictDialog) {
-                        Text(stringResource(id = R.string.cancel))
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    TextButton(onClick = onRenameConflict) {
-                        Text(stringResource(id = R.string.dialog_conflict_rename))
-                    }
-                }
-            },
-        )
-    }
+    MediaConflictDialog(
+        show = uiState.showConflictDialog,
+        conflictFileName = uiState.conflictFileName,
+        onReplaceConflict = onReplaceConflict,
+        onRenameConflict = onRenameConflict,
+        onCancelConflictDialog = onCancelConflictDialog,
+    )
 
     if (showCategoriesDialog) {
         val title = stringResource(id = R.string.categories_dialog_title_runtime)
@@ -961,458 +586,4 @@ fun MainScreen(
             onReset = { onCustomCategoriesChanged(null) },
         )
     }
-}
-
-@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
-@Composable
-private fun PendingDownloadCard(
-    pendingDownloadTitle: String,
-    thumbnailUrl: String?,
-    detectedFileName: String?,
-    detectedFile: com.nihaltp.sbskip.model.DetectedFile?,
-    isDetecting: Boolean,
-    onAutoDetect: () -> Unit,
-    onPickFileManually: () -> Unit,
-    onCancel: () -> Unit,
-    onConfirmDetectedFile: () -> Unit,
-    onCardClick: () -> Unit,
-) {
-    val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clickable { onCardClick() },
-    ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Surface(
-                    modifier =
-                        Modifier
-                            .width(88.dp)
-                            .height(88.dp)
-                            .clip(RoundedCornerShape(16.dp)),
-                    color = Color.Black.copy(alpha = 0.08f),
-                ) {
-                    if (thumbnailUrl.isNullOrBlank()) {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(strokeWidth = 2.dp)
-                        }
-                    } else {
-                        AsyncImage(
-                            model = thumbnailUrl,
-                            contentDescription = null,
-                            modifier =
-                                Modifier
-                                    .fillMaxSize()
-                                    .pointerInput(thumbnailUrl) {
-                                        detectTapGestures(
-                                            onLongPress = {
-                                                coroutineScope.launch {
-                                                    val success =
-                                                        com.nihaltp.sbskip.util.ClipboardHelper.copyImageToClipboard(
-                                                            context,
-                                                            thumbnailUrl,
-                                                        )
-                                                    if (success) {
-                                                        Toast.makeText(
-                                                            context,
-                                                            context.getString(R.string.thumbnail_copied_toast),
-                                                            Toast.LENGTH_SHORT,
-                                                        ).show()
-                                                    } else {
-                                                        Toast.makeText(context, "Failed to copy thumbnail image", Toast.LENGTH_SHORT).show()
-                                                    }
-                                                }
-                                            },
-                                        )
-                                    },
-                        )
-                    }
-                }
-
-                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(stringResource(id = R.string.waiting_for_download_title), fontWeight = FontWeight.Bold)
-                    Text(pendingDownloadTitle, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    if (isDetecting) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                            CircularProgressIndicator(modifier = Modifier.width(18.dp).height(18.dp), strokeWidth = 2.dp)
-                            Text(stringResource(id = R.string.detecting_recent_download))
-                        }
-                    }
-                }
-            }
-
-            if (detectedFile != null) {
-                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(stringResource(id = R.string.found_matching_file, detectedFile.score), fontWeight = FontWeight.Bold)
-                        Text(
-                            detectedFileName ?: stringResource(id = R.string.no_media_selected),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(stringResource(id = R.string.confirm_this_file_prompt))
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            Button(
-                                onClick = onConfirmDetectedFile,
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Text(stringResource(id = R.string.clean_this_file_button))
-                            }
-                            OutlinedButton(
-                                onClick = onAutoDetect,
-                                enabled = !isDetecting,
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Text(stringResource(id = R.string.auto_detect_again_button))
-                            }
-                            OutlinedButton(
-                                onClick = onPickFileManually,
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Text(stringResource(id = R.string.pick_file_manually_button))
-                            }
-                            TextButton(
-                                onClick = onCancel,
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Text(stringResource(id = R.string.cancel))
-                            }
-                        }
-                    }
-                }
-            } else {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Button(
-                        onClick = onAutoDetect,
-                        enabled = !isDetecting,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(stringResource(id = R.string.auto_detect_recent_download))
-                    }
-                    OutlinedButton(
-                        onClick = onPickFileManually,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(stringResource(id = R.string.pick_file_manually_button))
-                    }
-                    TextButton(
-                        onClick = onCancel,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(stringResource(id = R.string.cancel))
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SectionHeader(title: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(title, fontWeight = FontWeight.SemiBold)
-        HorizontalDivider()
-    }
-}
-
-@Composable
-private fun EmptyStateCard(
-    title: String,
-    body: String,
-) {
-    Card {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(title, fontWeight = FontWeight.SemiBold)
-            Text(body)
-        }
-    }
-}
-
-@Composable
-private fun QueueItemCard(
-    item: DownloadQueueItem,
-    onRetry: (Long) -> Unit,
-    onRemove: (Long) -> Unit,
-    onErrorClick: (DownloadQueueItem) -> Unit,
-    onCardClick: (DownloadQueueItem) -> Unit,
-) {
-    val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
-    Card {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .clickable { onCardClick(item) }
-                        .testTag("queue-item-card"),
-            ) {
-                Surface(
-                    modifier =
-                        Modifier
-                            .width(104.dp)
-                            .height(72.dp)
-                            .clip(RoundedCornerShape(14.dp)),
-                    color = Color(0xFF20242A),
-                ) {
-                    if (item.thumbnailUrl == null) {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Icon(Icons.Filled.CleaningServices, contentDescription = null, tint = Color.Gray)
-                        }
-                    } else {
-                        AsyncImage(
-                            model = item.thumbnailUrl,
-                            contentDescription = null,
-                            modifier =
-                                Modifier
-                                    .fillMaxSize()
-                                    .pointerInput(item.thumbnailUrl) {
-                                        detectTapGestures(
-                                            onLongPress = {
-                                                val url = item.thumbnailUrl
-                                                coroutineScope.launch {
-                                                    val success = com.nihaltp.sbskip.util.ClipboardHelper.copyImageToClipboard(context, url)
-                                                    if (success) {
-                                                        Toast.makeText(
-                                                            context,
-                                                            context.getString(R.string.thumbnail_copied_toast),
-                                                            Toast.LENGTH_SHORT,
-                                                        ).show()
-                                                    } else {
-                                                        Toast.makeText(context, "Failed to copy thumbnail image", Toast.LENGTH_SHORT).show()
-                                                    }
-                                                }
-                                            },
-                                        )
-                                    },
-                        )
-                    }
-                }
-
-                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(item.title, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text(item.cleanUrl, maxLines = 1, overflow = TextOverflow.Ellipsis, color = Color.Gray)
-                        }
-                        StatusChip(status = item.status)
-                    }
-
-                    Text(stringResource(id = R.string.duration_prefix, item.displayDuration))
-
-                    item.errorMessage?.let {
-                        Text(
-                            text = stringResource(id = R.string.error_click_to_expand_prefix, it),
-                            color = Color.Red,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                            fontWeight = FontWeight.Medium,
-                            textDecoration = TextDecoration.Underline,
-                            modifier = Modifier.clickable { onErrorClick(item) },
-                        )
-                    }
-                }
-            }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (item.status == DownloadQueueStatus.FAILED) {
-                    Button(onClick = { onRetry(item.id) }) {
-                        Icon(Icons.Filled.Refresh, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(id = R.string.retry))
-                    }
-                }
-                ElevatedButton(onClick = { onRemove(item.id) }) {
-                    Text(stringResource(id = R.string.remove))
-                }
-            }
-
-            if (item.status == DownloadQueueStatus.FETCHING_SEGMENTS || item.status == DownloadQueueStatus.PROCESSING) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-            }
-        }
-    }
-}
-
-@Composable
-private fun StatusChip(status: DownloadQueueStatus) {
-    AssistChip(
-        onClick = {},
-        label = {
-            Text(
-                when (status) {
-                    DownloadQueueStatus.QUEUED -> stringResource(id = R.string.status_queued)
-                    DownloadQueueStatus.FETCHING_SEGMENTS -> stringResource(id = R.string.status_fetching_api)
-                    DownloadQueueStatus.PROCESSING -> stringResource(id = R.string.status_cleaning)
-                    DownloadQueueStatus.COMPLETED -> stringResource(id = R.string.status_completed)
-                    DownloadQueueStatus.FAILED -> stringResource(id = R.string.status_failed)
-                },
-            )
-        },
-    )
-}
-
-@Composable
-private fun DetailRow(
-    label: String,
-    value: String,
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(label, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
-        SelectionContainer {
-            Text(value, style = MaterialTheme.typography.bodyMedium)
-        }
-    }
-}
-
-private fun formatUriToPath(
-    context: android.content.Context,
-    uriString: String?,
-): String {
-    if (uriString.isNullOrBlank()) return "N/A"
-    val decoded =
-        try {
-            android.net.Uri.decode(uriString)
-        } catch (e: Exception) {
-            uriString
-        }
-
-    try {
-        val uri = android.net.Uri.parse(uriString)
-        val resolver = context.contentResolver
-
-        if (uri.scheme == "content") {
-            var docId: String? = null
-            try {
-                if (android.provider.DocumentsContract.isDocumentUri(context, uri)) {
-                    docId = android.provider.DocumentsContract.getDocumentId(uri)
-                }
-            } catch (e: Exception) {
-                // Not a document Uri
-            }
-
-            var targetUri = uri
-            if (docId != null && docId.startsWith("msf:")) {
-                val mediaId = docId.substringAfter("msf:").toLongOrNull()
-                if (mediaId != null) {
-                    targetUri =
-                        android.content.ContentUris.withAppendedId(
-                            android.provider.MediaStore.Files.getContentUri("external"),
-                            mediaId,
-                        )
-                }
-            }
-
-            try {
-                resolver.query(targetUri, arrayOf(android.provider.MediaStore.MediaColumns.DATA), null, null, null)?.use { cursor ->
-                    if (cursor.moveToFirst()) {
-                        val dataIndex = cursor.getColumnIndex(android.provider.MediaStore.MediaColumns.DATA)
-                        if (dataIndex != -1) {
-                            val path = cursor.getString(dataIndex)
-                            if (!path.isNullOrBlank()) {
-                                return formatPrettyAbsolutePath(path)
-                            }
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                // Fallback
-            }
-
-            try {
-                resolver.query(
-                    targetUri,
-                    arrayOf(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.provider.MediaStore.MediaColumns.DISPLAY_NAME),
-                    null,
-                    null,
-                    null,
-                )?.use {
-                        cursor ->
-                    if (cursor.moveToFirst()) {
-                        val relativePathIndex = cursor.getColumnIndex(android.provider.MediaStore.MediaColumns.RELATIVE_PATH)
-                        val displayNameIndex = cursor.getColumnIndex(android.provider.MediaStore.MediaColumns.DISPLAY_NAME)
-                        val relPath = if (relativePathIndex != -1) cursor.getString(relativePathIndex) else null
-                        val dispName = if (displayNameIndex != -1) cursor.getString(displayNameIndex) else null
-                        if (!relPath.isNullOrBlank() || !dispName.isNullOrBlank()) {
-                            val folder = relPath?.trim('/')?.takeIf { it.isNotBlank() }
-                            return if (folder != null && dispName != null) "$folder/$dispName" else dispName ?: "$folder/"
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                // Fallback
-            }
-
-            try {
-                resolver.query(uri, arrayOf(android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME), null, null, null)?.use {
-                        cursor ->
-                    if (cursor.moveToFirst()) {
-                        val dispIndex = cursor.getColumnIndex(android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME)
-                        if (dispIndex != -1) {
-                            val dispName = cursor.getString(dispIndex)
-                            if (!dispName.isNullOrBlank()) {
-                                return dispName
-                            }
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                // Fallback
-            }
-        }
-
-        if (uri.scheme == "file") {
-            val path = uri.path
-            if (!path.isNullOrBlank()) {
-                return formatPrettyAbsolutePath(path)
-            }
-        }
-    } catch (e: Exception) {
-        // Fallback
-    }
-
-    if (decoded.contains("primary:")) {
-        val path = decoded.substringAfterLast("primary:").trim('/')
-        return if (path.isEmpty()) "SB Skip/" else "$path/"
-    }
-    if (decoded.contains("raw:")) {
-        return formatPrettyAbsolutePath(decoded.substringAfterLast("raw:"))
-    }
-    if (decoded.contains("/document/")) {
-        val docPart = decoded.substringAfterLast("/document/")
-        if (docPart.isNotBlank()) {
-            return docPart
-        }
-    }
-    if (decoded.contains("/tree/")) {
-        val treePart = decoded.substringAfterLast("/tree/")
-        if (treePart.isNotBlank()) {
-            return treePart
-        }
-    }
-
-    return decoded
-}
-
-private fun formatPrettyAbsolutePath(path: String): String {
-    val prefixes = listOf("/storage/emulated/0/", "storage/emulated/0/", "/sdcard/", "sdcard/")
-    var pretty = path
-    for (prefix in prefixes) {
-        if (pretty.startsWith(prefix, ignoreCase = true)) {
-            pretty = pretty.substring(prefix.length)
-            break
-        }
-    }
-    return pretty.trim('/')
 }
