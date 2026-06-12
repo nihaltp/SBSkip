@@ -339,14 +339,14 @@ class MainViewModel
 
                 val metadata =
                     runCatching { fetchYouTubeOEmbed(normalizedUrl) }.getOrElse {
-                        YouTubeMetadata(title = state.urlInput.ifBlank { videoId }, thumbnailUrl = null)
+                        YouTubeMetadata(title = state.urlInput.ifBlank { videoId }, authorName = null, authorUrl = null, thumbnailUrl = null)
                     }
 
                 val pendingDownload =
                     PendingDownload(
                         videoId = videoId,
                         url = finalUrl,
-                        title = metadata.title.ifBlank { videoId },
+                        title = metadata.title.orEmpty().ifBlank { videoId },
                         thumbnailUrl = metadata.thumbnailUrl,
                         createdAtEpochMillis = System.currentTimeMillis(),
                     )
@@ -768,14 +768,14 @@ class MainViewModel
 
             val metadata =
                 runCatching { fetchYouTubeOEmbed(normalizedUrl) }.getOrElse {
-                    YouTubeMetadata(title = state.urlInput.ifBlank { videoId }, thumbnailUrl = null)
+                    YouTubeMetadata(title = state.urlInput.ifBlank { videoId }, authorName = null, authorUrl = null, thumbnailUrl = null)
                 }
 
             val pendingDownload =
                 PendingDownload(
                     videoId = videoId,
                     url = finalUrl,
-                    title = metadata.title.ifBlank { videoId },
+                    title = metadata.title.orEmpty().ifBlank { videoId },
                     thumbnailUrl = metadata.thumbnailUrl,
                     createdAtEpochMillis = System.currentTimeMillis(),
                 )
@@ -896,6 +896,8 @@ class MainViewModel
                     val parsed = json.decodeFromString(YouTubeOEmbedResponse.serializer(), body)
                     YouTubeMetadata(
                         title = parsed.title,
+                        authorName = parsed.authorName,
+                        authorUrl = parsed.authorUrl,
                         thumbnailUrl = parsed.thumbnailUrl,
                     )
                 }
@@ -1105,12 +1107,16 @@ class MainViewModel
 
         @Serializable
         private data class YouTubeOEmbedResponse(
-            val title: String,
+            val title: String? = null,
+            @SerialName("author_name") val authorName: String? = null,
+            @SerialName("author_url") val authorUrl: String? = null,
             @SerialName("thumbnail_url") val thumbnailUrl: String? = null,
         )
 
         private data class YouTubeMetadata(
-            val title: String,
+            val title: String?,
+            val authorName: String?,
+            val authorUrl: String?,
             val thumbnailUrl: String?,
         )
 

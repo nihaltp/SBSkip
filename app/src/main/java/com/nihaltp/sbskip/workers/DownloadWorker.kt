@@ -25,6 +25,10 @@ import dagger.assisted.AssistedInject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
@@ -45,6 +49,7 @@ class DownloadWorker
         private val workScheduler: DownloadWorkScheduler,
     ) : CoroutineWorker(appContext, params) {
         private val httpClient = OkHttpClient()
+        private val json = Json { ignoreUnknownKeys = true }
 
         override suspend fun doWork(): Result {
             val queueItemId = inputData.getLong(KEY_QUEUE_ITEM_ID, -1L)
@@ -80,6 +85,11 @@ class DownloadWorker
 
             return try {
                 AppLogger.worker("Cleaner pipeline started for queueItemId=$queueItemId url=${item.url}")
+
+                var oembedTitle: String? = null
+                var oembedAuthorName: String? = null
+                var oembedAuthorUrl: String? = null
+                var finalThumbnailUrl: String? = null
 
                 // 1. Mark as FETCHING_SEGMENTS
                 queueRepository.markFetchingSegments(queueItemId)
@@ -139,10 +149,22 @@ class DownloadWorker
                         AppLogger.worker("YouTube video duration could not be fetched for videoId=$videoId; skipping validation.")
                     }
 
+                    // Fetch YouTube oEmbed metadata if possible
+                    try {
+                        val metadata = fetchYouTubeOEmbed(item.url)
+                        oembedTitle = metadata.title
+                        oembedAuthorName = metadata.authorName
+                        oembedAuthorUrl = metadata.authorUrl
+                        finalThumbnailUrl = metadata.thumbnailUrl
+                    } catch (e: Exception) {
+                        AppLogger.error("DownloadWorker", e, "Failed to fetch oEmbed metadata for ${item.url}")
+                    }
+
                     // Derive thumbnail dynamically and update database metadata
-                    val thumbnailUrl = "https://img.youtube.com/vi/$videoId/mqdefault.jpg"
-                    taskTitle = item.title.ifBlank { localMetadata.title }
-                    queueRepository.updateMetadata(queueItemId, taskTitle, thumbnailUrl, fileDuration)
+                    val thumbUrl = finalThumbnailUrl ?: "https://img.youtube.com/vi/$videoId/mqdefault.jpg"
+                    finalThumbnailUrl = thumbUrl
+                    taskTitle = item.title.ifBlank { oembedTitle ?: localMetadata.title }
+                    queueRepository.updateMetadata(queueItemId, taskTitle, thumbUrl, fileDuration)
 
                     // Fetch SponsorBlock skip segments
                     val segments = sponsorBlockService.fetchSegments(videoId, categories)
@@ -195,9 +217,11 @@ class DownloadWorker
                                 inputFile = tempOutputFile,
                                 videoId = videoId,
                                 youtubeUrl = item.url,
-                                youtubeTitle = taskTitle,
+                                youtubeTitle = oembedTitle ?: taskTitle,
+                                authorName = oembedAuthorName,
+                                authorUrl = oembedAuthorUrl,
+                                thumbnailUrl = finalThumbnailUrl,
                                 categories = categories.map { it.name },
-                                thumbnailUrl = item.thumbnailUrl,
                             )
                     }
                 }
@@ -344,9 +368,11 @@ class DownloadWorker
             inputFile: File,
             videoId: String,
             youtubeUrl: String,
-            youtubeTitle: String,
-            categories: List<String>,
+            youtubeTitle: String?,
+            authorName: String?,
+            authorUrl: String?,
             thumbnailUrl: String?,
+            categories: List<String>,
         ): File {
             if (!inputFile.exists()) return inputFile
 
@@ -359,7 +385,10 @@ class DownloadWorker
                 buildProcessedMetadataJson(
                     videoId = videoId,
                     youtubeUrl = youtubeUrl,
-                    youtubeTitle = youtubeTitle,
+                    youtubeTitle = youtubeTitle ?: "",
+                    authorName = authorName,
+                    authorUrl = authorUrl,
+                    thumbnailUrl = thumbnailUrl,
                     categories = categories,
                 )
             val taggedOutput = File(inputFile.parentFile, "${inputFile.nameWithoutExtension}_tagged.${inputFile.extension}")
@@ -368,20 +397,47 @@ class DownloadWorker
             var thumbFile: File? = null
             if (isAudio && !audioHasCoverImage(inputFile)) {
                 val thumbUrl = thumbnailUrl?.takeIf { it.isNotBlank() }
-                    ?: "https://img.youtube.com/vi/$videoId/hqdefault.jpg"
-                AppLogger.worker("Audio cover image is missing; downloading thumbnail: $thumbUrl")
-                val cacheDir = inputFile.parentFile ?: applicationContext.cacheDir
-                thumbFile = downloadThumbnail(thumbUrl, cacheDir)
+                if (thumbUrl != null) {
+                    AppLogger.worker("Audio cover image is missing; downloading thumbnail: $thumbUrl")
+                    val cacheDir = inputFile.parentFile ?: applicationContext.cacheDir
+                    thumbFile = downloadThumbnail(thumbUrl, cacheDir)
+                }
             }
+
+            val (existingTitle, existingAuthor) = getExistingMetadata(inputFile)
+            val metadataArgs = mutableListOf<String>()
+
+            if (existingTitle.isNullOrBlank() && !youtubeTitle.isNullOrBlank()) {
+                metadataArgs.add("-metadata title=\"${escapeForFfmpeg(youtubeTitle)}\"")
+            }
+
+            if (existingAuthor.isNullOrBlank() && !authorName.isNullOrBlank()) {
+                if (isAudio) {
+                    metadataArgs.add("-metadata artist=\"${escapeForFfmpeg(authorName)}\"")
+                } else {
+                    metadataArgs.add("-metadata author=\"${escapeForFfmpeg(authorName)}\"")
+                }
+            }
+
+            if (!authorUrl.isNullOrBlank()) {
+                metadataArgs.add("-metadata author_url=\"${escapeForFfmpeg(authorUrl)}\"")
+            }
+
+            if (!thumbnailUrl.isNullOrBlank()) {
+                metadataArgs.add("-metadata thumbnail_url=\"${escapeForFfmpeg(thumbnailUrl)}\"")
+            }
+
+            val metadataArgsStr = metadataArgs.joinToString(" ")
+            val metadataArgsPart = if (metadataArgsStr.isNotEmpty()) " $metadataArgsStr" else ""
 
             val command = if (thumbFile != null && thumbFile.exists()) {
                 if (extension == "mp3") {
-                    "-y -i \"${inputFile.absolutePath}\" -i \"${thumbFile.absolutePath}\" -map 0 -map 1 -c copy -id3v2_version 3 -metadata comment=\"${escapeForFfmpeg(metadataJson)}\" -metadata:s:v title=\"Album cover\" -metadata:s:v comment=\"Cover (front)\" \"${taggedOutput.absolutePath}\""
+                    "-y -i \"${inputFile.absolutePath}\" -i \"${thumbFile.absolutePath}\" -map 0 -map 1 -c copy -id3v2_version 3$metadataArgsPart -metadata comment=\"${escapeForFfmpeg(metadataJson)}\" -metadata:s:v title=\"Album cover\" -metadata:s:v comment=\"Cover (front)\" \"${taggedOutput.absolutePath}\""
                 } else { // m4a
-                    "-y -i \"${inputFile.absolutePath}\" -i \"${thumbFile.absolutePath}\" -map 0 -map 1 -c copy -disposition:v:0 attached_pic -metadata comment=\"${escapeForFfmpeg(metadataJson)}\" \"${taggedOutput.absolutePath}\""
+                    "-y -i \"${inputFile.absolutePath}\" -i \"${thumbFile.absolutePath}\" -map 0 -map 1 -c copy -disposition:v:0 attached_pic$metadataArgsPart -metadata comment=\"${escapeForFfmpeg(metadataJson)}\" \"${taggedOutput.absolutePath}\""
                 }
             } else {
-                "-y -i \"${inputFile.absolutePath}\" -metadata comment=\"${escapeForFfmpeg(
+                "-y -i \"${inputFile.absolutePath}\"$metadataArgsPart -metadata comment=\"${escapeForFfmpeg(
                     metadataJson,
                 )}\" -codec copy \"${taggedOutput.absolutePath}\""
             }
@@ -407,17 +463,26 @@ class DownloadWorker
             videoId: String,
             youtubeUrl: String,
             youtubeTitle: String,
+            authorName: String?,
+            authorUrl: String?,
+            thumbnailUrl: String?,
             categories: List<String>,
         ): String {
             val escapedTitle = youtubeTitle.replace("\\", "\\\\").replace("\"", "\\\"")
             val escapedUrl = youtubeUrl.replace("\\", "\\\\").replace("\"", "\\\"")
             val escapedVideoId = videoId.replace("\\", "\\\\").replace("\"", "\\\"")
+            val escapedAuthorName = authorName?.replace("\\", "\\\\")?.replace("\"", "\\\"").orEmpty()
+            val escapedAuthorUrl = authorUrl?.replace("\\", "\\\\")?.replace("\"", "\\\"").orEmpty()
+            val escapedThumbnailUrl = thumbnailUrl?.replace("\\", "\\\\")?.replace("\"", "\\\"").orEmpty()
             val removedCategories = categories.joinToString(",") { "\"${it.replace("\\", "\\\\").replace("\"", "\\\"")}\"" }
             return "{" +
                 "\"processed\":true," +
                 "\"youtubeId\":\"$escapedVideoId\"," +
                 "\"youtubeUrl\":\"$escapedUrl\"," +
                 "\"youtubeTitle\":\"$escapedTitle\"," +
+                "\"authorName\":\"$escapedAuthorName\"," +
+                "\"authorUrl\":\"$escapedAuthorUrl\"," +
+                "\"thumbnailUrl\":\"$escapedThumbnailUrl\"," +
                 "\"processedAt\":\"${System.currentTimeMillis()}\"," +
                 "\"sbskipVersion\":\"${BuildConfig.VERSION_NAME}\"," +
                 "\"removedCategories\":[$removedCategories]" +
@@ -458,6 +523,69 @@ class DownloadWorker
                 false
             }
         }
+
+        private fun getExistingMetadata(file: File): Pair<String?, String?> {
+            val retriever = MediaMetadataRetriever()
+            return try {
+                retriever.setDataSource(file.absolutePath)
+                val title = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
+                val artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
+                val author = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_AUTHOR)
+                val authorName = artist?.takeIf { it.isNotBlank() } ?: author?.takeIf { it.isNotBlank() }
+                Pair(title?.takeIf { it.isNotBlank() }, authorName)
+            } catch (e: Exception) {
+                AppLogger.error("DownloadWorker", e, "Failed to read metadata for ${file.name}")
+                Pair(null, null)
+            } finally {
+                try {
+                    retriever.release()
+                } catch (ignored: Exception) {}
+            }
+        }
+
+        private suspend fun fetchYouTubeOEmbed(videoUrl: String): YouTubeMetadata =
+            withContext(Dispatchers.IO) {
+                val oEmbedUrl =
+                    videoUrl.toHttpUrlOrNull()
+                        ?.newBuilder()
+                        ?.scheme("https")
+                        ?.host("www.youtube.com")
+                        ?.encodedPath("/oembed")
+                        ?.addQueryParameter("url", videoUrl)
+                        ?.addQueryParameter("format", "json")
+                        ?.build()
+                        ?: throw IOException("Unable to parse video URL")
+
+                val request = Request.Builder().url(oEmbedUrl).build()
+                httpClient.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        throw IOException("oEmbed request failed: ${response.code}")
+                    }
+                    val body = response.body?.string().orEmpty()
+                    val parsed = json.decodeFromString(YouTubeOEmbedResponse.serializer(), body)
+                    YouTubeMetadata(
+                        title = parsed.title,
+                        authorName = parsed.authorName,
+                        authorUrl = parsed.authorUrl,
+                        thumbnailUrl = parsed.thumbnailUrl,
+                    )
+                }
+            }
+
+        @Serializable
+        private data class YouTubeOEmbedResponse(
+            val title: String? = null,
+            @SerialName("author_name") val authorName: String? = null,
+            @SerialName("author_url") val authorUrl: String? = null,
+            @SerialName("thumbnail_url") val thumbnailUrl: String? = null,
+        )
+
+        private data class YouTubeMetadata(
+            val title: String?,
+            val authorName: String?,
+            val authorUrl: String?,
+            val thumbnailUrl: String?,
+        )
 
         companion object {
             const val KEY_QUEUE_ITEM_ID = "queue_item_id"
