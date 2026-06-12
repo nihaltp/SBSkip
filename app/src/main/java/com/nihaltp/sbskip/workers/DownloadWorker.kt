@@ -90,6 +90,7 @@ class DownloadWorker
                 var oembedAuthorName: String? = null
                 var oembedAuthorUrl: String? = null
                 var finalThumbnailUrl: String? = null
+                var sbSkipSegments = ""
 
                 // 1. Mark as FETCHING_SEGMENTS
                 queueRepository.markFetchingSegments(queueItemId)
@@ -170,6 +171,8 @@ class DownloadWorker
                     val segments = sponsorBlockService.fetchSegments(videoId, categories)
                     AppLogger.worker("Fetched ${segments.size} SponsorBlock segments for videoID=$videoId")
 
+                    sbSkipSegments = segments.joinToString(";") { "${it.startSeconds}-${it.endSeconds}" }
+
                     val computedKeepRanges = SegmentProcessor.computeKeepRanges(segments, fileDuration.toDouble())
                     keepRanges.addAll(computedKeepRanges)
                     AppLogger.worker("Computed ${keepRanges.size} keep ranges from segments")
@@ -222,6 +225,7 @@ class DownloadWorker
                                 authorUrl = oembedAuthorUrl,
                                 thumbnailUrl = finalThumbnailUrl,
                                 categories = categories.map { it.name },
+                                sbSkipSegments = sbSkipSegments,
                             )
                     }
                 }
@@ -373,6 +377,7 @@ class DownloadWorker
             authorUrl: String?,
             thumbnailUrl: String?,
             categories: List<String>,
+            sbSkipSegments: String,
         ): File {
             if (!inputFile.exists()) return inputFile
 
@@ -390,6 +395,7 @@ class DownloadWorker
                     authorUrl = authorUrl,
                     thumbnailUrl = thumbnailUrl,
                     categories = categories,
+                    sbSkipSegments = sbSkipSegments,
                 )
             val taggedOutput = File(inputFile.parentFile, "${inputFile.nameWithoutExtension}_tagged.${inputFile.extension}")
 
@@ -426,6 +432,10 @@ class DownloadWorker
             if (!thumbnailUrl.isNullOrBlank()) {
                 metadataArgs.add("-metadata thumbnail_url=\"${escapeForFfmpeg(thumbnailUrl)}\"")
             }
+
+            metadataArgs.add("-metadata SB_SKIP_SEGMENTS=\"${escapeForFfmpeg(sbSkipSegments)}\"")
+            metadataArgs.add("-metadata SB_VERSION=\"${escapeForFfmpeg(BuildConfig.VERSION_NAME)}\"")
+            metadataArgs.add("-metadata SB_PROCESSED=\"true\"")
 
             val metadataArgsStr = metadataArgs.joinToString(" ")
             val metadataArgsPart = if (metadataArgsStr.isNotEmpty()) " $metadataArgsStr" else ""
@@ -467,6 +477,7 @@ class DownloadWorker
             authorUrl: String?,
             thumbnailUrl: String?,
             categories: List<String>,
+            sbSkipSegments: String,
         ): String {
             val escapedTitle = youtubeTitle.replace("\\", "\\\\").replace("\"", "\\\"")
             val escapedUrl = youtubeUrl.replace("\\", "\\\\").replace("\"", "\\\"")
@@ -485,7 +496,8 @@ class DownloadWorker
                 "\"thumbnailUrl\":\"$escapedThumbnailUrl\"," +
                 "\"processedAt\":\"${System.currentTimeMillis()}\"," +
                 "\"sbskipVersion\":\"${BuildConfig.VERSION_NAME}\"," +
-                "\"removedCategories\":[$removedCategories]" +
+                "\"removedCategories\":[$removedCategories]," +
+                "\"sbSkipSegments\":\"${sbSkipSegments.replace("\\", "\\\\").replace("\"", "\\\"")}\"" +
                 "}"
         }
 
