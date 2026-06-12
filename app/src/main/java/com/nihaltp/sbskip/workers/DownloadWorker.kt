@@ -1,6 +1,7 @@
 package com.nihaltp.sbskip.workers
 
 import android.content.Context
+import android.media.MediaMetadataRetriever
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
@@ -21,7 +22,11 @@ import com.nihaltp.sbskip.util.AppLogger
 import com.nihaltp.sbskip.util.YouTubeUrlParser
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import java.io.File
 import java.io.IOException
 
@@ -39,6 +44,8 @@ class DownloadWorker
         private val notificationManager: DownloadNotificationManager,
         private val workScheduler: DownloadWorkScheduler,
     ) : CoroutineWorker(appContext, params) {
+        private val httpClient = OkHttpClient()
+
         override suspend fun doWork(): Result {
             val queueItemId = inputData.getLong(KEY_QUEUE_ITEM_ID, -1L)
             if (queueItemId < 0) {
@@ -190,6 +197,7 @@ class DownloadWorker
                                 youtubeUrl = item.url,
                                 youtubeTitle = taskTitle,
                                 categories = categories.map { it.name },
+                                thumbnailUrl = item.thumbnailUrl,
                             )
                     }
                 }
@@ -294,12 +302,51 @@ class DownloadWorker
             }
         }
 
-        private fun tagProcessedMedia(
+        private fun audioHasCoverImage(file: File): Boolean {
+            val retriever = MediaMetadataRetriever()
+            return try {
+                retriever.setDataSource(file.absolutePath)
+                val picture = retriever.embeddedPicture
+                picture != null
+            } catch (e: Exception) {
+                AppLogger.error("DownloadWorker", e, "Failed to check embedded picture for ${file.name}")
+                false
+            } finally {
+                try {
+                    retriever.release()
+                } catch (ignored: Exception) {}
+            }
+        }
+
+        private suspend fun downloadThumbnail(url: String, cacheDir: File): File? =
+            withContext(Dispatchers.IO) {
+                val request = Request.Builder().url(url).build()
+                try {
+                    httpClient.newCall(request).execute().use { response ->
+                        if (!response.isSuccessful) {
+                            AppLogger.worker("Failed to download thumbnail: HTTP ${response.code}")
+                            return@withContext null
+                        }
+                        val body = response.body ?: return@withContext null
+                        val tempFile = File.createTempFile("thumb_", ".jpg", cacheDir)
+                        tempFile.outputStream().use { output ->
+                            body.byteStream().copyTo(output)
+                        }
+                        tempFile
+                    }
+                } catch (e: Exception) {
+                    AppLogger.error("DownloadWorker", e, "Failed to download thumbnail from $url")
+                    null
+                }
+            }
+
+        private suspend fun tagProcessedMedia(
             inputFile: File,
             videoId: String,
             youtubeUrl: String,
             youtubeTitle: String,
             categories: List<String>,
+            thumbnailUrl: String?,
         ): File {
             if (!inputFile.exists()) return inputFile
 
@@ -316,10 +363,34 @@ class DownloadWorker
                     categories = categories,
                 )
             val taggedOutput = File(inputFile.parentFile, "${inputFile.nameWithoutExtension}_tagged.${inputFile.extension}")
-            val command = "-y -i \"${inputFile.absolutePath}\" -metadata comment=\"${escapeForFfmpeg(
-                metadataJson,
-            )}\" -codec copy \"${taggedOutput.absolutePath}\""
-            val session = FFmpegKit.execute(command)
+
+            val isAudio = extension in setOf("m4a", "mp3")
+            var thumbFile: File? = null
+            if (isAudio && !audioHasCoverImage(inputFile)) {
+                val thumbUrl = thumbnailUrl?.takeIf { it.isNotBlank() }
+                    ?: "https://img.youtube.com/vi/$videoId/hqdefault.jpg"
+                AppLogger.worker("Audio cover image is missing; downloading thumbnail: $thumbUrl")
+                val cacheDir = inputFile.parentFile ?: applicationContext.cacheDir
+                thumbFile = downloadThumbnail(thumbUrl, cacheDir)
+            }
+
+            val command = if (thumbFile != null && thumbFile.exists()) {
+                if (extension == "mp3") {
+                    "-y -i \"${inputFile.absolutePath}\" -i \"${thumbFile.absolutePath}\" -map 0 -map 1 -c copy -id3v2_version 3 -metadata comment=\"${escapeForFfmpeg(metadataJson)}\" -metadata:s:v title=\"Album cover\" -metadata:s:v comment=\"Cover (front)\" \"${taggedOutput.absolutePath}\""
+                } else { // m4a
+                    "-y -i \"${inputFile.absolutePath}\" -i \"${thumbFile.absolutePath}\" -map 0 -map 1 -c copy -disposition:v:0 attached_pic -metadata comment=\"${escapeForFfmpeg(metadataJson)}\" \"${taggedOutput.absolutePath}\""
+                }
+            } else {
+                "-y -i \"${inputFile.absolutePath}\" -metadata comment=\"${escapeForFfmpeg(
+                    metadataJson,
+                )}\" -codec copy \"${taggedOutput.absolutePath}\""
+            }
+
+            val session = try {
+                FFmpegKit.execute(command)
+            } finally {
+                thumbFile?.let { if (it.exists()) it.delete() }
+            }
             val returnCode = session.returnCode
 
             return if (ReturnCode.isSuccess(returnCode) && taggedOutput.exists()) {
