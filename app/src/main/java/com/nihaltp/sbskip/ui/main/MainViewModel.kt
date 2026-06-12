@@ -339,7 +339,12 @@ class MainViewModel
 
                 val metadata =
                     runCatching { fetchYouTubeOEmbed(normalizedUrl) }.getOrElse {
-                        YouTubeMetadata(title = state.urlInput.ifBlank { videoId }, authorName = null, authorUrl = null, thumbnailUrl = null)
+                        YouTubeMetadata(
+                            title = state.urlInput.ifBlank { videoId },
+                            authorName = null,
+                            authorUrl = null,
+                            thumbnailUrl = null,
+                        )
                     }
 
                 val pendingDownload =

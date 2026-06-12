@@ -54,7 +54,8 @@ class FFmpegMediaProcessor
                             "-vn -c:a aac"
                         }
                     runFFmpegCommand(
-                        "-y -analyzeduration 50M -probesize 50M -i \"${inputFile.absolutePath}\" $extractionArgs \"${outputFile.absolutePath}\"",
+                        "-y -analyzeduration 50M -probesize 50M " +
+                            "-i \"${inputFile.absolutePath}\" $extractionArgs \"${outputFile.absolutePath}\"",
                     )
                 } else {
                     AppLogger.worker("No keep ranges specified. Copying entire source file.")
@@ -78,15 +79,15 @@ class FFmpegMediaProcessor
                             "-vn -c:a aac"
                         }
                     runFFmpegCommand(
-                        "-y -ss ${formatTime(
-                            start,
-                        )} -t ${formatTime(duration)} -analyzeduration 50M -probesize 50M -i \"${inputFile.absolutePath}\" $extractionArgs \"${outputFile.absolutePath}\"",
+                        "-y -ss ${formatTime(start)} -t ${formatTime(duration)} " +
+                            "-analyzeduration 50M -probesize 50M -i \"${inputFile.absolutePath}\" " +
+                            "$extractionArgs \"${outputFile.absolutePath}\"",
                     )
                 } else {
                     runFFmpegCommand(
-                        "-y -ss ${formatTime(
-                            start,
-                        )} -t ${formatTime(duration)} -analyzeduration 50M -probesize 50M -i \"${inputFile.absolutePath}\" -c copy -avoid_negative_ts make_zero \"${outputFile.absolutePath}\"",
+                        "-y -ss ${formatTime(start)} -t ${formatTime(duration)} " +
+                            "-analyzeduration 50M -probesize 50M -i \"${inputFile.absolutePath}\" " +
+                            "-c copy -avoid_negative_ts make_zero \"${outputFile.absolutePath}\"",
                     )
                 }
                 progressListener(100)
@@ -114,9 +115,9 @@ class FFmpegMediaProcessor
                     AppLogger.worker("Trimming segment $index [start=$start, duration=$duration] to ${tempSegmentFile.name}")
 
                     runFFmpegCommand(
-                        "-y -ss ${formatTime(
-                            start,
-                        )} -t ${formatTime(duration)} -analyzeduration 50M -probesize 50M -i \"${inputFile.absolutePath}\" -c copy -avoid_negative_ts make_zero \"${tempSegmentFile.absolutePath}\"",
+                        "-y -ss ${formatTime(start)} -t ${formatTime(duration)} " +
+                            "-analyzeduration 50M -probesize 50M -i \"${inputFile.absolutePath}\" " +
+                            "-c copy -avoid_negative_ts make_zero \"${tempSegmentFile.absolutePath}\"",
                     )
 
                     // Report progressive split progress
@@ -141,7 +142,8 @@ class FFmpegMediaProcessor
 
                 try {
                     runFFmpegCommand(
-                        "-y -fflags +genpts -f concat -safe 0 -analyzeduration 50M -probesize 50M -i \"${concatListFile.absolutePath}\" -c copy \"${actualOutputFile.absolutePath}\"",
+                        "-y -fflags +genpts -f concat -safe 0 -analyzeduration 50M -probesize 50M " +
+                            "-i \"${concatListFile.absolutePath}\" -c copy \"${actualOutputFile.absolutePath}\"",
                     )
                 } finally {
                     // Safely clean up the concat list text file
@@ -161,7 +163,8 @@ class FFmpegMediaProcessor
                         }
                     try {
                         runFFmpegCommand(
-                            "-y -analyzeduration 50M -probesize 50M -i \"${actualOutputFile.absolutePath}\" $extractionArgs \"${outputFile.absolutePath}\"",
+                            "-y -analyzeduration 50M -probesize 50M " +
+                                "-i \"${actualOutputFile.absolutePath}\" $extractionArgs \"${outputFile.absolutePath}\"",
                         )
                     } finally {
                         if (actualOutputFile.exists()) {
@@ -191,7 +194,11 @@ class FFmpegMediaProcessor
             val result = commandExecutor(command)
 
             if (!result.isSuccess) {
-                AppLogger.error("FFmpeg", Exception("FFmpeg command failed"), "FFmpeg Failure Logs:\n${result.logs}\nStackTrace: ${result.failStackTrace}")
+                AppLogger.error(
+                    "FFmpeg",
+                    Exception("FFmpeg command failed"),
+                    "FFmpeg Failure Logs:\n${result.logs}\nStackTrace: ${result.failStackTrace}",
+                )
                 throw IOException("FFmpeg command failed with return code ${result.returnCode}. Logs:\n${result.logs}")
             }
         }

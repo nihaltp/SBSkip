@@ -24,7 +24,11 @@ class MediaTagger
 
             val videoId = processingContext.videoId ?: return inputFile
             val youtubeUrl = processingContext.queueItem.url
-            val youtubeTitle = processingContext.oembedTitle ?: processingContext.queueItem.title.ifBlank { processingContext.localMetadata.title }
+            val youtubeTitle =
+                processingContext.oembedTitle
+                    ?: processingContext.queueItem.title.ifBlank {
+                        processingContext.localMetadata.title
+                    }
             val authorName = processingContext.authorName
             val authorUrl = processingContext.authorUrl
             val thumbnailUrl = processingContext.thumbnailUrl
@@ -95,13 +99,17 @@ class MediaTagger
             val command =
                 if (thumbFile != null && thumbFile.exists()) {
                     if (extension == "mp3") {
-                        "-y -i \"${inputFile.absolutePath}\" -i \"${thumbFile.absolutePath}\" -map 0 -map 1 -c copy -id3v2_version 3$metadataArgsPart -metadata comment=\"${escapeForFfmpeg(
-                            metadataJson,
-                        )}\" -metadata:s:v title=\"Album cover\" -metadata:s:v comment=\"Cover (front)\" \"${taggedOutput.absolutePath}\""
+                        "-y -i \"${inputFile.absolutePath}\" -i \"${thumbFile.absolutePath}\" " +
+                            "-map 0 -map 1 -c copy -id3v2_version 3$metadataArgsPart " +
+                            "-metadata comment=\"${escapeForFfmpeg(
+                                metadataJson,
+                            )}\" -metadata:s:v title=\"Album cover\" -metadata:s:v comment=\"Cover (front)\" \"${taggedOutput.absolutePath}\""
                     } else { // m4a
-                        "-y -i \"${inputFile.absolutePath}\" -i \"${thumbFile.absolutePath}\" -map 0 -map 1 -c copy -disposition:v:0 attached_pic$metadataArgsPart -metadata comment=\"${escapeForFfmpeg(
-                            metadataJson,
-                        )}\" \"${taggedOutput.absolutePath}\""
+                        "-y -i \"${inputFile.absolutePath}\" -i \"${thumbFile.absolutePath}\" " +
+                            "-map 0 -map 1 -c copy -disposition:v:0 attached_pic$metadataArgsPart " +
+                            "-metadata comment=\"${escapeForFfmpeg(
+                                metadataJson,
+                            )}\" \"${taggedOutput.absolutePath}\""
                     }
                 } else {
                     "-y -i \"${inputFile.absolutePath}\"$metadataArgsPart -metadata comment=\"${escapeForFfmpeg(
