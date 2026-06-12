@@ -4,6 +4,37 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [1.3.1] - 2026-06-13
+
+### Fixed
+
+- 7ea0d50  fix: improve FFmpeg timestamp handling and format detection
+
+### Added
+
+- 77f5eb7  feat: add cover image for audio files
+- 7d63b43  feat: add metadata about video
+- 82b0632  feat: add SB Skip specific metadata
+- 667f8a0  feat: add youtube video metadata
+
+### Style
+
+- 7cb8169  style: move video to audio settings to a new card
+- 1c5b2eb  style: format files
+
+### Refactor
+
+- 8ed14af  refactor: split DownloadWorker into focused helper classes
+- a2e405b  refactor: split MainScreen into components, dialogs, and utilities
+
+### Tests
+
+- 09be200  test: add tests to verify generated commands across all format extensions and range configuration modes
+
+### Maintenance
+
+- f5521cd  chore: update fastlane
+
 ## [1.3.0] - 2026-06-10
 
 ### Added
