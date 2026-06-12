@@ -12,9 +12,27 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
+interface FFmpegExecutionResult {
+    val isSuccess: Boolean
+    val returnCode: ReturnCode
+    val logs: String
+    val failStackTrace: String
+}
+
 class FFmpegMediaProcessor
     @Inject
     constructor() : MediaProcessor {
+        internal var commandExecutor: (String) -> FFmpegExecutionResult = { command ->
+            val session = FFmpegKit.execute(command)
+            val rc = session.getReturnCode()
+            object : FFmpegExecutionResult {
+                override val isSuccess: Boolean = ReturnCode.isSuccess(rc)
+                override val returnCode: ReturnCode = rc
+                override val logs: String = session.getLogsAsString() ?: ""
+                override val failStackTrace: String = session.getFailStackTrace() ?: ""
+            }
+        }
+
         override suspend fun processMedia(
             inputFile: File,
             outputFile: File,
@@ -170,14 +188,11 @@ class FFmpegMediaProcessor
 
         private fun runFFmpegCommand(command: String) {
             AppLogger.worker("FFmpeg command: ffmpeg $command")
-            val session = FFmpegKit.execute(command)
-            val returnCode = session.getReturnCode()
+            val result = commandExecutor(command)
 
-            if (!ReturnCode.isSuccess(returnCode)) {
-                val logs = session.getLogsAsString() ?: "No FFmpeg logs available"
-                val failStackTrace = session.getFailStackTrace() ?: ""
-                AppLogger.error("FFmpeg", Exception("FFmpeg command failed"), "FFmpeg Failure Logs:\n$logs\nStackTrace: $failStackTrace")
-                throw IOException("FFmpeg command failed with return code $returnCode. Logs:\n$logs")
+            if (!result.isSuccess) {
+                AppLogger.error("FFmpeg", Exception("FFmpeg command failed"), "FFmpeg Failure Logs:\n${result.logs}\nStackTrace: ${result.failStackTrace}")
+                throw IOException("FFmpeg command failed with return code ${result.returnCode}. Logs:\n${result.logs}")
             }
         }
 
