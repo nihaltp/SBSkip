@@ -1,14 +1,16 @@
 SB Skip v1.3.1 (2026-06-13)
 
-Commits included in this release:
-- 7ea0d50  fix: improve FFmpeg timestamp handling and format detection
-- 77f5eb7  feat: add cover image for audio files
-- 7d63b43  feat: add metadata about video
-- 82b0632  feat: add SB Skip specific metadata
-- 667f8a0  feat: add youtube video metadata
-- 7cb8169  style: move video to audio settings to a new card
-- 1c5b2eb  style: format files
-- 8ed14af  refactor: split DownloadWorker into focused helper classes
-- a2e405b  refactor: split MainScreen into components, dialogs, and utilities
-- 09be200  test: add tests to verify generated commands across all format extensions and range configuration modes
-- f5521cd  chore: update fastlane
+<h3>Commits included in this release</h3>
+<ul>
+  <li>7ea0d50  fix: improve FFmpeg timestamp handling and format detection</li>
+  <li>77f5eb7  feat: add cover image for audio files</li>
+  <li>7d63b43  feat: add metadata about video</li>
+  <li>82b0632  feat: add SB Skip specific metadata</li>
+  <li>667f8a0  feat: add youtube video metadata</li>
+  <li>7cb8169  style: move video to audio settings to a new card</li>
+  <li>1c5b2eb  style: format files</li>
+  <li>8ed14af  refactor: split DownloadWorker into focused helper classes</li>
+  <li>a2e405b  refactor: split MainScreen into components, dialogs, and utilities</li>
+  <li>09be200  test: add tests to verify generated commands across all format extensions and range configuration modes</li>
+  <li>f5521cd  chore: update fastlane</li>
+</ul>

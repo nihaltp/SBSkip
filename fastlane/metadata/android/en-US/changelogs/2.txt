@@ -1,17 +1,21 @@
 SB Skip v1.1.0 (2026-05-31)
 
 Release highlights
-- Feature work: video/audio conversion enhancements and UI updates.
-- SponsorBlock integration: status URL handling + status-check worker.
-- Build & packaging: resource shrinking enabled for release builds.
-- UX polish: swapped several outlined icons for filled variants.
-- Various small bug fixes and debug improvements.
+<ul>
+  <li>Feature work: video/audio conversion enhancements and UI updates.</li>
+  <li>SponsorBlock integration: status URL handling + status-check worker.</li>
+  <li>Build & packaging: resource shrinking enabled for release builds.</li>
+  <li>UX polish: swapped several outlined icons for filled variants.</li>
+  <li>Various small bug fixes and debug improvements.</li>
+</ul>
 
 Commits included in this release
-- 5b3993d  feat: enhance video conversion functionality and UI for direct audio conversion
-- 7a2b796  feat: add video conversion options and update related settings
-- 5cf2645  feat: add string resources for app name and update AndroidManifest to use them
-- e39c5d8  feat: implement file finding functionality for YouTube URLs in MainViewModel and update UI accordingly
-- 2b0842a  feat: add SponsorBlock status URL handling and implement status check worker
-- 5987021  feat: enable resource shrinking in release build and update logging interceptor to debug implementation
-- 025d88f  feat: replace outlined icons with filled icons in MainScreen and SettingsScreen
+<ul>
+  <li>5b3993d  feat: enhance video conversion functionality and UI for direct audio conversion</li>
+  <li>7a2b796  feat: add video conversion options and update related settings</li>
+  <li>5cf2645  feat: add string resources for app name and update AndroidManifest to use them</li>
+  <li>e39c5d8  feat: implement file finding functionality for YouTube URLs in MainViewModel and update UI accordingly</li>
+  <li>2b0842a  feat: add SponsorBlock status URL handling and implement status check worker</li>
+  <li>5987021  feat: enable resource shrinking in release build and update logging interceptor to debug implementation</li>
+  <li>025d88f  feat: replace outlined icons with filled icons in MainScreen and SettingsScreen</li>
+</ul>

@@ -2,37 +2,43 @@ SB Skip helps you remove SponsorBlock-marked segments from videos and audio file
 
 Many apps can download media, but the resulting files still contain sponsored messages, self-promotion, interaction reminders, intros, outros, and other segments that SponsorBlock users have identified. SB Skip cleans those files after download, creating a new version with unwanted sections removed.
 
-Features:
+<h3>Features</h3>
 
-• Remove SponsorBlock segments from existing video and audio files
-• Supports videos and audio shared from other apps
-• Paste a YouTube URL to retrieve SponsorBlock segment information
-• Queue multiple cleaning jobs for background processing
-• Configure which SponsorBlock categories should be removed
-• Persistent queue with progress tracking and notifications
-• Separate settings for output behavior and file handling
-• Material 3 user interface
-• Translation-ready and fully open source
+<ul>
+  <li>Remove SponsorBlock segments from existing video and audio files</li>
+  <li>Supports videos and audio shared from other apps</li>
+  <li>Paste a YouTube URL to retrieve SponsorBlock segment information</li>
+  <li>Queue multiple cleaning jobs for background processing</li>
+  <li>Configure which SponsorBlock categories should be removed</li>
+  <li>Persistent queue with progress tracking and notifications</li>
+  <li>Separate settings for output behavior and file handling</li>
+  <li>Material 3 user interface</li>
+  <li>Translation-ready and fully open source</li>
+</ul>
 
-Supported SponsorBlock categories include:
+<h3>Supported SponsorBlock categories include</h3>
 
-• Sponsor segments
-• Self-promotion
-• Interaction reminders (like, subscribe, etc.)
-• Intros
-• Outros
-• Preview/recap sections
-• Filler content
-• Music off-topic sections
-• And other categories provided by SponsorBlock
+<ul>
+  <li>Sponsor segments</li>
+  <li>Self-promotion</li>
+  <li>Interaction reminders (like, subscribe, etc.)</li>
+  <li>Intros</li>
+  <li>Outros</li>
+  <li>Preview/recap sections</li>
+  <li>Filler content</li>
+  <li>Music off-topic sections</li>
+  <li>And other categories provided by SponsorBlock</li>
+</ul>
 
-How it works:
+<h3>How it works</h3>
 
-1. Select or share a media file with SB Skip.
-2. Provide the corresponding YouTube URL.
-3. SB Skip retrieves SponsorBlock segment data.
-4. Unwanted segments are removed from the media file.
-5. A cleaned copy is saved to your device.
+<ol>
+  <li>Select or share a media file with SB Skip.</li>
+  <li>Provide the corresponding YouTube URL.</li>
+  <li>SB Skip retrieves SponsorBlock segment data.</li>
+  <li>Unwanted segments are removed from the media file.</li>
+  <li>A cleaned copy is saved to your device.</li>
+</ol>
 
 SB Skip does not download videos. It is designed to work with media files you already possess and uses the community-maintained SponsorBlock database to determine which sections should be removed.
 

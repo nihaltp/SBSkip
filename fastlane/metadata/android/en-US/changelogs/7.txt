@@ -1,10 +1,12 @@
 SB Skip v1.3.0 (2026-06-10)
 
-Commits included in this release:
-- 5b5558d  feat: Add Folders to Watchlist for watching downloaded file
-- 90bf43d  feat: add runtime segment selection
-- ab6798c  style: Update Logging and Style Errors
-- 213f207  refactor: remove reduntant new pipe folder watching
-- 2e04df4  refactor: removed scanning for folders outside watchlist
-- 54787c2  refactor: remove "keep temp files" option
-- 9d0b3be  chore: update fastfile to list the commits in reverse
+<h3>Commits included in this release</h3>
+<ul>
+  <li>5b5558d  feat: Add Folders to Watchlist for watching downloaded file</li>
+  <li>90bf43d  feat: add runtime segment selection</li>
+  <li>ab6798c  style: Update Logging and Style Errors</li>
+  <li>213f207  refactor: remove reduntant new pipe folder watching</li>
+  <li>2e04df4  refactor: removed scanning for folders outside watchlist</li>
+  <li>54787c2  refactor: remove "keep temp files" option</li>
+  <li>9d0b3be  chore: update fastfile to list the commits in reverse</li>
+</ul>
