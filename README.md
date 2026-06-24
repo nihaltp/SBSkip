@@ -33,6 +33,10 @@ SB Skip is built using modern Android development best practices and robust libr
 
 ---
 
+![Alt](https://repobeats.axiom.co/api/embed/2a0950bc5f7135d197c9c1230942928e2e242bf6.svg "Repobeats analytics image")
+
+---
+
 ## 📖 How It Works
 
 ```mermaid
