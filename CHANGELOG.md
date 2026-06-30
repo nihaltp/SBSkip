@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [1.4.0] - 2026-06-30
+
+### Added
+
+- 641b03b  feat: add options when downloading a video
+
+### Maintenance
+
+- 54830f1  chore: use html in fastlane files
+- 90cc43f  chore: add repobeats
+
 ## [1.3.1] - 2026-06-13
 
 ### Fixed
