@@ -193,7 +193,66 @@ class MainViewModel
 
         fun startDownloadAndClean() {
             viewModelScope.launch {
-                startDownloadAndCleanInternal()
+                showDownloadOptionsDialogInternal(forFindFile = false)
+            }
+        }
+
+        fun findFileForUrl() {
+            viewModelScope.launch {
+                showDownloadOptionsDialogInternal(forFindFile = true)
+            }
+        }
+
+        private suspend fun showDownloadOptionsDialogInternal(forFindFile: Boolean) {
+            val state = uiState.value
+            val inputUrl = state.urlInput.trim()
+            val videoId = YouTubeUrlParser.extractVideoId(inputUrl)
+
+            if (inputUrl.isBlank() || videoId.isNullOrBlank()) {
+                _uiState.update { it.copy(snackbarMessage = context.getString(R.string.enter_valid_url)) }
+                return
+            }
+
+            if (!forFindFile && !state.isNewPipeInstalled) {
+                _uiState.update { it.copy(snackbarMessage = context.getString(R.string.newpipe_not_installed)) }
+                return
+            }
+
+            val settings = settingsRepository.settings.first()
+            _uiState.update {
+                it.copy(
+                    showDownloadOptionsDialog = true,
+                    downloadOptionsForFindFile = forFindFile,
+                    downloadOptionsConvertToAudio = settings.defaultConvertVideoToAudio,
+                    downloadOptionsDeleteOriginal = settings.defaultDeleteOriginalVideo,
+                )
+            }
+        }
+
+        fun onDownloadOptionsConvertChanged(value: Boolean) {
+            _uiState.update { it.copy(downloadOptionsConvertToAudio = value) }
+        }
+
+        fun onDownloadOptionsDeleteChanged(value: Boolean) {
+            _uiState.update { it.copy(downloadOptionsDeleteOriginal = value) }
+        }
+
+        fun dismissDownloadOptionsDialog() {
+            _uiState.update { it.copy(showDownloadOptionsDialog = false) }
+        }
+
+        fun confirmDownloadOptions() {
+            val state = uiState.value
+            val forFindFile = state.downloadOptionsForFindFile
+            val convertToAudio = state.downloadOptionsConvertToAudio
+            val deleteOriginal = state.downloadOptionsDeleteOriginal
+            _uiState.update { it.copy(showDownloadOptionsDialog = false) }
+            viewModelScope.launch {
+                if (forFindFile) {
+                    findFileForUrlInternal(convertToAudio, deleteOriginal)
+                } else {
+                    startDownloadAndCleanInternal(convertToAudio, deleteOriginal)
+                }
             }
         }
 
@@ -235,8 +294,12 @@ class MainViewModel
                 metadata?.extension == "mp3" ||
                     metadata?.extension == "m4a" ||
                     metadata?.extension == "aac"
+            // Use per-download choices if the pending download was started from the dialog;
+            // fall back to settings defaults only for audio extensions.
+            val convertVideoToAudio = pendingDownload.convertVideoToAudio || isAudioExtension
+            val deleteOriginalVideo = if (convertVideoToAudio) pendingDownload.deleteOriginalVideo else settings.defaultDeleteOriginalVideo
             val mediaType =
-                if (settings.defaultConvertVideoToAudio || isAudioExtension) {
+                if (convertVideoToAudio) {
                     MediaType.AUDIO
                 } else {
                     MediaType.VIDEO
@@ -268,7 +331,7 @@ class MainViewModel
                 }
 
             val targetTitle = baseTitle + settings.autoCleanSuffix
-            val targetExtension = if (settings.defaultConvertVideoToAudio || mediaType == MediaType.AUDIO) "m4a" else sourceExtension
+            val targetExtension = if (convertVideoToAudio || mediaType == MediaType.AUDIO) "m4a" else sourceExtension
 
             val exists = downloadStorage.checkFileExists(targetTitle, targetExtension, mediaType, customFolderUri)
             if (exists) {
@@ -282,8 +345,8 @@ class MainViewModel
                                 title = title,
                                 youtubeUrl = pendingDownload.url,
                                 mediaType = mediaType,
-                                convertVideoToAudio = settings.defaultConvertVideoToAudio,
-                                deleteOriginalVideo = settings.defaultDeleteOriginalVideo,
+                                convertVideoToAudio = convertVideoToAudio,
+                                deleteOriginalVideo = deleteOriginalVideo,
                                 customFolderUri = customFolderUri,
                                 pendingDownload = pendingDownload,
                             ),
@@ -298,8 +361,8 @@ class MainViewModel
                     title = title,
                     youtubeUrl = pendingDownload.url,
                     mediaType = mediaType,
-                    convertVideoToAudio = settings.defaultConvertVideoToAudio,
-                    deleteOriginalVideo = settings.defaultDeleteOriginalVideo,
+                    convertVideoToAudio = convertVideoToAudio,
+                    deleteOriginalVideo = deleteOriginalVideo,
                     audioOutputDirUri = customFolderUri,
                 )
 
@@ -315,59 +378,62 @@ class MainViewModel
             }
         }
 
-        fun findFileForUrl() {
-            viewModelScope.launch {
-                val state = uiState.value
-                val inputUrl = state.urlInput.trim()
-                val videoId = YouTubeUrlParser.extractVideoId(inputUrl)
+        private suspend fun findFileForUrlInternal(
+            convertVideoToAudio: Boolean,
+            deleteOriginalVideo: Boolean,
+        ) {
+            val state = uiState.value
+            val inputUrl = state.urlInput.trim()
+            val videoId = YouTubeUrlParser.extractVideoId(inputUrl)
 
-                if (inputUrl.isBlank() || videoId.isNullOrBlank()) {
-                    _uiState.update { it.copy(snackbarMessage = context.getString(R.string.enter_valid_url)) }
-                    return@launch
-                }
-
-                _uiState.update { it.copy(isFetchingMetadata = true) }
-
-                val normalizedUrl = "https://www.youtube.com/watch?v=$videoId"
-                val customCategories = state.customSponsorBlockCategories
-                val finalUrl =
-                    if (customCategories != null) {
-                        "$normalizedUrl&categories=" + customCategories.joinToString(",") { it.name }
-                    } else {
-                        normalizedUrl
-                    }
-
-                val metadata =
-                    runCatching { fetchYouTubeOEmbed(normalizedUrl) }.getOrElse {
-                        YouTubeMetadata(
-                            title = state.urlInput.ifBlank { videoId },
-                            authorName = null,
-                            authorUrl = null,
-                            thumbnailUrl = null,
-                        )
-                    }
-
-                val pendingDownload =
-                    PendingDownload(
-                        videoId = videoId,
-                        url = finalUrl,
-                        title = metadata.title.orEmpty().ifBlank { videoId },
-                        thumbnailUrl = metadata.thumbnailUrl,
-                        createdAtEpochMillis = System.currentTimeMillis(),
-                    )
-
-                _uiState.update { state ->
-                    state.copy(
-                        urlInput = "",
-                        pendingDownloads = state.pendingDownloads + pendingDownload,
-                        isFetchingMetadata = false,
-                        customSponsorBlockCategories = null,
-                        snackbarMessage = null,
-                    )
-                }
-
-                autoDetectAndCleanInternal(pendingDownload)
+            if (inputUrl.isBlank() || videoId.isNullOrBlank()) {
+                _uiState.update { it.copy(snackbarMessage = context.getString(R.string.enter_valid_url)) }
+                return
             }
+
+            _uiState.update { it.copy(isFetchingMetadata = true) }
+
+            val normalizedUrl = "https://www.youtube.com/watch?v=$videoId"
+            val customCategories = state.customSponsorBlockCategories
+            val finalUrl =
+                if (customCategories != null) {
+                    "$normalizedUrl&categories=" + customCategories.joinToString(",") { it.name }
+                } else {
+                    normalizedUrl
+                }
+
+            val metadata =
+                runCatching { fetchYouTubeOEmbed(normalizedUrl) }.getOrElse {
+                    YouTubeMetadata(
+                        title = state.urlInput.ifBlank { videoId },
+                        authorName = null,
+                        authorUrl = null,
+                        thumbnailUrl = null,
+                    )
+                }
+
+            val pendingDownload =
+                PendingDownload(
+                    videoId = videoId,
+                    url = finalUrl,
+                    title = metadata.title.orEmpty().ifBlank { videoId },
+                    thumbnailUrl = metadata.thumbnailUrl,
+                    createdAtEpochMillis = System.currentTimeMillis(),
+                    convertVideoToAudio = convertVideoToAudio,
+                    deleteOriginalVideo = deleteOriginalVideo,
+                )
+
+            _uiState.update { state ->
+                state.copy(
+                    urlInput = "",
+                    pendingDownloads = state.pendingDownloads + pendingDownload,
+                    isFetchingMetadata = false,
+                    customSponsorBlockCategories = null,
+                    snackbarMessage = null,
+                )
+            }
+
+            autoDetectAndCleanInternal(pendingDownload)
         }
 
         fun handleSharedText(event: ShareIntentEvent) {
@@ -577,7 +643,7 @@ class MainViewModel
                     return
                 }
 
-                startDownloadAndCleanInternal()
+                showDownloadOptionsDialogInternal(forFindFile = false)
                 return
             }
 
@@ -745,7 +811,10 @@ class MainViewModel
             }
         }
 
-        private suspend fun startDownloadAndCleanInternal() {
+        private suspend fun startDownloadAndCleanInternal(
+            convertVideoToAudio: Boolean,
+            deleteOriginalVideo: Boolean,
+        ) {
             val state = uiState.value
             val inputUrl = state.urlInput.trim()
             val videoId = YouTubeUrlParser.extractVideoId(inputUrl)
@@ -783,6 +852,8 @@ class MainViewModel
                     title = metadata.title.orEmpty().ifBlank { videoId },
                     thumbnailUrl = metadata.thumbnailUrl,
                     createdAtEpochMillis = System.currentTimeMillis(),
+                    convertVideoToAudio = convertVideoToAudio,
+                    deleteOriginalVideo = deleteOriginalVideo,
                 )
 
             val showPrompt = settingsRepository.settings.first().watchlist.isEmpty()

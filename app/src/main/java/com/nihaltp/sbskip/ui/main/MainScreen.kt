@@ -72,6 +72,7 @@ import com.nihaltp.sbskip.ui.main.components.cards.PendingDownloadCard
 import com.nihaltp.sbskip.ui.main.components.cards.QueueItemCard
 import com.nihaltp.sbskip.ui.main.components.common.EmptyStateCard
 import com.nihaltp.sbskip.ui.main.components.common.SectionHeader
+import com.nihaltp.sbskip.ui.main.dialogs.DownloadOptionsDialog
 import com.nihaltp.sbskip.ui.main.dialogs.DurationMismatchDialog
 import com.nihaltp.sbskip.ui.main.dialogs.ErrorDetailsDialog
 import com.nihaltp.sbskip.ui.main.dialogs.MediaConflictDialog
@@ -109,6 +110,10 @@ fun MainScreen(
     onRenameConflict: () -> Unit,
     onDismissWatchlistPrompt: () -> Unit,
     onCustomCategoriesChanged: (Set<SponsorBlockCategory>?) -> Unit,
+    onDownloadOptionsConvertChanged: (Boolean) -> Unit,
+    onDownloadOptionsDeleteChanged: (Boolean) -> Unit,
+    onConfirmDownloadOptions: () -> Unit,
+    onDismissDownloadOptions: () -> Unit,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val clipboardManager = LocalClipboardManager.current
@@ -586,4 +591,14 @@ fun MainScreen(
             onReset = { onCustomCategoriesChanged(null) },
         )
     }
+
+    DownloadOptionsDialog(
+        show = uiState.showDownloadOptionsDialog,
+        convertToAudio = uiState.downloadOptionsConvertToAudio,
+        deleteOriginal = uiState.downloadOptionsDeleteOriginal,
+        onConvertToAudioChange = onDownloadOptionsConvertChanged,
+        onDeleteOriginalChange = onDownloadOptionsDeleteChanged,
+        onConfirm = onConfirmDownloadOptions,
+        onDismiss = onDismissDownloadOptions,
+    )
 }

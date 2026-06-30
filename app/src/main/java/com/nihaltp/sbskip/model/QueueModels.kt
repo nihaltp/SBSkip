@@ -51,6 +51,8 @@ data class PendingDownload(
     val detectedFile: DetectedFile? = null,
     val detectedFileName: String? = null,
     val isDetectingFile: Boolean = false,
+    val convertVideoToAudio: Boolean = false,
+    val deleteOriginalVideo: Boolean = true,
 )
 
 data class DetectedFile(
@@ -108,6 +110,11 @@ data class MainUiState(
     val showWatchlistPromptDialog: Boolean = false,
     val globalSponsorBlockCategories: Set<SponsorBlockCategory> = emptySet(),
     val customSponsorBlockCategories: Set<SponsorBlockCategory>? = null,
+    // Download options dialog (shown before Download & Clean / Find File)
+    val showDownloadOptionsDialog: Boolean = false,
+    val downloadOptionsForFindFile: Boolean = false,
+    val downloadOptionsConvertToAudio: Boolean = false,
+    val downloadOptionsDeleteOriginal: Boolean = true,
 )
 
 data class QueueActionResult(

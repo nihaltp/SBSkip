@@ -281,4 +281,8 @@
     <string name="categories_btn_custom">SponsorBlock: Custom (%1$d selected)</string>
     <string name="categories_dialog_title_runtime">SponsorBlock Categories (Runtime)</string>
     <string name="categories_dialog_reset">Reset to Global</string>
+
+    <!-- Download Options Dialog -->
+    <string name="dialog_download_options_title">Download Options</string>
+    <string name="dialog_download_options_proceed">Proceed</string>
 </resources>
