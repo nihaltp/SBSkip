@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [1.5.0] - 2026-07-04
+
+### Fixed
+
+- 0762ecd  fix: expand supported media formats and update FFmpeg error handling
+- 765b648  fix: add check for non-empty output file before deleting original video
+
 ## [1.4.0] - 2026-06-30
 
 ### Added
