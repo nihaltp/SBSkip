@@ -48,8 +48,12 @@ class OutputSaver
                     )
 
                 if (item.deleteOriginalVideo) {
-                    val deleted = downloadStorage.deleteUri(item.localFileUri)
-                    AppLogger.worker("Deleted original video file: ${item.localFileUri} status=$deleted")
+                    if (tempOutputFile.length() > 0L) {
+                        val deleted = downloadStorage.deleteUri(item.localFileUri)
+                        AppLogger.worker("Deleted original video file: ${item.localFileUri} status=$deleted")
+                    } else {
+                        AppLogger.worker("Skipping deletion of original video: generated audio file is 0 bytes")
+                    }
                 }
 
                 savedUri
