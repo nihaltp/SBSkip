@@ -199,7 +199,7 @@ class FFmpegMediaProcessor
                     Exception("FFmpeg command failed"),
                     "FFmpeg Failure Logs:\n${result.logs}\nStackTrace: ${result.failStackTrace}",
                 )
-                throw IOException("FFmpeg command failed with return code ${result.returnCode}. Logs:\n${result.logs}")
+                throw IOException("This media format isn't supported by your FFmpeg build.")
             }
         }
 

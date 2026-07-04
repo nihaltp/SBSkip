@@ -11,6 +11,7 @@ Unlike streaming players or fully fledged YouTube replacements, **SB Skip** has 
 ## 🚀 Key Features
 
 * **SponsorBlock Integration**: Fetch skip segments directly using the public community-maintained SponsorBlock API.
+* **Broad Media Support**: Processes any audio or video file format supported by FFmpeg (e.g., MP4, MP3, Opus, WebM, MKV, etc.).
 * **Background Queue**: Clean files asynchronously using standard Android `WorkManager` workers, even when the app is in the background.
 * **Paste & Share Integration**: Intake URLs via manual copy-pasting or directly from other apps (e.g. NewPipe, browser) using the Android system Share sheet.
 * **Modern Customization**: Support for HSL-curated color systems, Dynamic Material You colors, Dark/Light modes, and monochrome/adaptive system icons.

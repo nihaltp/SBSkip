@@ -362,7 +362,7 @@ fun MainScreen(
                                             onClick = {
                                                 if (PermissionHelper.hasFilesPermission(context)) {
                                                     filePickerLauncher.launch(
-                                                        arrayOf("video/mp4", "audio/mpeg", "audio/mp3", "audio/x-m4a", "audio/mp4"),
+                                                        arrayOf("video/*", "audio/*"),
                                                     )
                                                 } else {
                                                     requestFilesPermissionWithRationale()
@@ -504,7 +504,7 @@ fun MainScreen(
                         onPickFileManually = {
                             if (PermissionHelper.hasFilesPermission(context)) {
                                 onStartManualPickForPending(pending)
-                                filePickerLauncher.launch(arrayOf("video/mp4", "audio/mpeg", "audio/mp3", "audio/x-m4a", "audio/mp4"))
+                                filePickerLauncher.launch(arrayOf("video/*", "audio/*"))
                             } else {
                                 requestFilesPermissionWithRationale()
                             }
