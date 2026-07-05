@@ -8,6 +8,22 @@ Unlike streaming players or fully fledged YouTube replacements, **SB Skip** has 
 
 ---
 
+## Download
+
+Available on my F-Droid repository:
+
+<img src="https://raw.githubusercontent.com/nihaltp/fdroid/main/repo/index.png" width="100" height="100" align="right" alt="F-Droid QR Code">
+
+**Repository URL:**
+
+```text
+https://nihaltp.github.io/fdroid/repo/
+```
+
+[Open Repo Page](https://nihaltp.github.io/fdroid/repo/) to scan the QR code.
+
+---
+
 ## 🚀 Key Features
 
 * **SponsorBlock Integration**: Fetch skip segments directly using the public community-maintained SponsorBlock API.
