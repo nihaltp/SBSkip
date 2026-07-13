@@ -121,6 +121,9 @@
     <string name="import_media_file_label">Import Media File</string>
     <string name="imported_file_fallback">Imported File</string>
     <string name="detected_file_fallback">Detected File</string>
+    <string name="reauthorize">Reauthorize</string>
+    <string name="permission_revoked_title">Folder Access Lost</string>
+    <string name="permission_revoked_message">Access to the watched folder "%1$s" has been revoked. Please reauthorize it to continue saving files automatically.</string>
     <string name="no_media_selected">No media file selected</string>
     <string name="pick_file_button">Pick File</string>
     <string name="find_file_button">Find File</string>

@@ -38,6 +38,7 @@ class DefaultQueueRepository
             convertVideoToAudio: Boolean,
             deleteOriginalVideo: Boolean,
             audioOutputDirUri: String?,
+            relativePath: String?,
         ): QueueActionResult {
             val videoId =
                 if (youtubeUrl.isBlank() || youtubeUrl.startsWith("sbskip://")) {
@@ -88,6 +89,7 @@ class DefaultQueueRepository
                     convertVideoToAudio = convertVideoToAudio,
                     deleteOriginalVideo = deleteOriginalVideo,
                     audioOutputDirUri = audioOutputDirUri,
+                    relativePath = relativePath,
                 )
 
             val id = dao.insert(entity)
@@ -217,6 +219,7 @@ class DefaultQueueRepository
                 convertVideoToAudio = convertVideoToAudio,
                 deleteOriginalVideo = deleteOriginalVideo,
                 audioOutputDirUri = audioOutputDirUri,
+                relativePath = relativePath,
             )
         }
     }

@@ -24,6 +24,7 @@ data class DownloadQueueItem(
     val convertVideoToAudio: Boolean = false,
     val deleteOriginalVideo: Boolean = true,
     val audioOutputDirUri: String? = null,
+    val relativePath: String? = null,
 ) {
     val displayDuration: String
         get() =
@@ -68,6 +69,7 @@ data class PendingEnqueueData(
     val convertVideoToAudio: Boolean = false,
     val deleteOriginalVideo: Boolean = true,
     val customFolderUri: String? = null,
+    val relativePath: String? = null,
     val pendingDownload: PendingDownload? = null,
 )
 
@@ -115,6 +117,8 @@ data class MainUiState(
     val downloadOptionsForFindFile: Boolean = false,
     val downloadOptionsConvertToAudio: Boolean = false,
     val downloadOptionsDeleteOriginal: Boolean = true,
+    val showPermissionRevokedDialog: Boolean = false,
+    val revokedWatchlistFolder: com.nihaltp.sbskip.model.WatchlistFolder? = null,
 )
 
 data class QueueActionResult(

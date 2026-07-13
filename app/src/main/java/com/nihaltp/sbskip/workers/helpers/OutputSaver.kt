@@ -45,6 +45,7 @@ class OutputSaver
                         mediaType = MediaType.AUDIO,
                         customFolderUri = item.audioOutputDirUri,
                         overwrite = forceOverwrite,
+                        relativePath = item.relativePath,
                     )
 
                 if (item.deleteOriginalVideo) {
@@ -87,6 +88,7 @@ class OutputSaver
                             null
                         },
                     overwrite = false,
+                    relativePath = item.relativePath,
                 )
             }
         }

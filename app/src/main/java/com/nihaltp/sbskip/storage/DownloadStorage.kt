@@ -18,6 +18,7 @@ interface DownloadStorage {
         mediaType: MediaType,
         customFolderUri: String? = null,
         overwrite: Boolean = false,
+        relativePath: String? = null,
     ): String
 
     suspend fun queryMetadata(uriString: String): MediaFileMetadata?
@@ -37,6 +38,10 @@ interface DownloadStorage {
         mediaType: MediaType,
         customFolderUri: String? = null,
     ): String
+
+    suspend fun getMatchedWatchlistFolder(localFileUri: String): com.nihaltp.sbskip.model.MatchedWatchFolder?
+
+    suspend fun hasPersistedPermission(uriString: String): Boolean
 }
 
 data class MediaFileMetadata(

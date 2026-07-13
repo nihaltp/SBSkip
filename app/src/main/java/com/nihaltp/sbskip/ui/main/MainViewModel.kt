@@ -241,6 +241,10 @@ class MainViewModel
             _uiState.update { it.copy(showDownloadOptionsDialog = false) }
         }
 
+        fun dismissPermissionRevokedDialog() {
+            _uiState.update { it.copy(showPermissionRevokedDialog = false, revokedWatchlistFolder = null) }
+        }
+
         fun confirmDownloadOptions() {
             val state = uiState.value
             val forFindFile = state.downloadOptionsForFindFile
@@ -305,7 +309,39 @@ class MainViewModel
                     MediaType.VIDEO
                 }
 
-            if (mediaType == MediaType.AUDIO && settings.audioSaveMode == AudioSaveMode.RUNTIME_PICKER && customFolderUri == null) {
+            var finalFolderUri = customFolderUri
+            var relativePath: String? = null
+
+            if (finalFolderUri == null) {
+                val matched = downloadStorage.getMatchedWatchlistFolder(fileUri)
+                if (matched != null) {
+                    if (downloadStorage.hasPersistedPermission(matched.folder.uri)) {
+                        finalFolderUri = matched.folder.uri
+                        relativePath = matched.relativePath
+                    } else {
+                        _uiState.update {
+                            it.copy(
+                                showPermissionRevokedDialog = true,
+                                revokedWatchlistFolder = matched.folder,
+                                pendingEnqueueData =
+                                    PendingEnqueueData(
+                                        fileUri = fileUri,
+                                        title = displayName.ifBlank { pendingDownload.title },
+                                        youtubeUrl = pendingDownload.url,
+                                        mediaType = mediaType,
+                                        convertVideoToAudio = convertVideoToAudio,
+                                        deleteOriginalVideo = deleteOriginalVideo,
+                                        customFolderUri = customFolderUri,
+                                        pendingDownload = pendingDownload,
+                                    ),
+                            )
+                        }
+                        return
+                    }
+                }
+            }
+
+            if (mediaType == MediaType.AUDIO && settings.audioSaveMode == AudioSaveMode.RUNTIME_PICKER && finalFolderUri == null) {
                 _uiState.update {
                     it.copy(
                         pendingAudioFolderPick =
@@ -333,7 +369,7 @@ class MainViewModel
             val targetTitle = baseTitle + settings.autoCleanSuffix
             val targetExtension = if (convertVideoToAudio || mediaType == MediaType.AUDIO) "m4a" else sourceExtension
 
-            val exists = downloadStorage.checkFileExists(targetTitle, targetExtension, mediaType, customFolderUri)
+            val exists = downloadStorage.checkFileExists(targetTitle, targetExtension, mediaType, finalFolderUri)
             if (exists) {
                 _uiState.update {
                     it.copy(
@@ -347,7 +383,8 @@ class MainViewModel
                                 mediaType = mediaType,
                                 convertVideoToAudio = convertVideoToAudio,
                                 deleteOriginalVideo = deleteOriginalVideo,
-                                customFolderUri = customFolderUri,
+                                customFolderUri = finalFolderUri,
+                                relativePath = relativePath,
                                 pendingDownload = pendingDownload,
                             ),
                     )
@@ -363,7 +400,8 @@ class MainViewModel
                     mediaType = mediaType,
                     convertVideoToAudio = convertVideoToAudio,
                     deleteOriginalVideo = deleteOriginalVideo,
-                    audioOutputDirUri = customFolderUri,
+                    audioOutputDirUri = finalFolderUri,
+                    relativePath = relativePath,
                 )
 
             _uiState.update { state ->
@@ -662,7 +700,43 @@ class MainViewModel
                     MediaType.VIDEO
                 }
 
-            if (mediaType == MediaType.AUDIO && settings.audioSaveMode == AudioSaveMode.RUNTIME_PICKER && customFolderUri == null) {
+            var finalFolderUri = customFolderUri
+            var relativePath: String? = null
+
+            if (finalFolderUri == null && !fileUri.isNullOrBlank()) {
+                val matched = downloadStorage.getMatchedWatchlistFolder(fileUri)
+                if (matched != null) {
+                    if (downloadStorage.hasPersistedPermission(matched.folder.uri)) {
+                        finalFolderUri = matched.folder.uri
+                        relativePath = matched.relativePath
+                    } else {
+                        _uiState.update {
+                            it.copy(
+                                showPermissionRevokedDialog = true,
+                                revokedWatchlistFolder = matched.folder,
+                                pendingEnqueueData =
+                                    PendingEnqueueData(
+                                        fileUri = fileUri,
+                                        title =
+                                            state.selectedFileName.ifBlank {
+                                                metadata?.title ?: context.getString(
+                                                    R.string.imported_file_fallback,
+                                                )
+                                            },
+                                        youtubeUrl = youtubeUrl,
+                                        mediaType = mediaType,
+                                        convertVideoToAudio = if (isConvertOnly) true else state.convertVideoToAudio,
+                                        deleteOriginalVideo = state.deleteOriginalVideo,
+                                        customFolderUri = customFolderUri,
+                                    ),
+                            )
+                        }
+                        return
+                    }
+                }
+            }
+
+            if (mediaType == MediaType.AUDIO && settings.audioSaveMode == AudioSaveMode.RUNTIME_PICKER && finalFolderUri == null) {
                 _uiState.update {
                     it.copy(
                         pendingAudioFolderPick =
@@ -743,7 +817,7 @@ class MainViewModel
             val targetTitle = baseTitle + settings.autoCleanSuffix
             val targetExtension = if (isConvertOnly || state.convertVideoToAudio || mediaType == MediaType.AUDIO) "m4a" else sourceExtension
 
-            val exists = downloadStorage.checkFileExists(targetTitle, targetExtension, mediaType, customFolderUri)
+            val exists = downloadStorage.checkFileExists(targetTitle, targetExtension, mediaType, finalFolderUri)
             if (exists) {
                 _uiState.update {
                     it.copy(
@@ -757,7 +831,8 @@ class MainViewModel
                                 mediaType = mediaType,
                                 convertVideoToAudio = if (isConvertOnly) true else state.convertVideoToAudio,
                                 deleteOriginalVideo = state.deleteOriginalVideo,
-                                customFolderUri = customFolderUri,
+                                customFolderUri = finalFolderUri,
+                                relativePath = relativePath,
                             ),
                     )
                 }
@@ -787,7 +862,8 @@ class MainViewModel
                     mediaType = mediaType,
                     convertVideoToAudio = if (isConvertOnly) true else state.convertVideoToAudio,
                     deleteOriginalVideo = state.deleteOriginalVideo,
-                    audioOutputDirUri = customFolderUri,
+                    audioOutputDirUri = finalFolderUri,
+                    relativePath = relativePath,
                 )
 
             _uiState.update { state ->

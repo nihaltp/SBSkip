@@ -16,6 +16,7 @@ interface QueueRepository {
         convertVideoToAudio: Boolean = false,
         deleteOriginalVideo: Boolean = true,
         audioOutputDirUri: String? = null,
+        relativePath: String? = null,
     ): QueueActionResult
 
     suspend fun retry(

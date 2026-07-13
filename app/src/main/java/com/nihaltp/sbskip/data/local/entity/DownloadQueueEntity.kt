@@ -22,4 +22,5 @@ data class DownloadQueueEntity(
     val convertVideoToAudio: Boolean = false,
     val deleteOriginalVideo: Boolean = true,
     val audioOutputDirUri: String? = null,
+    val relativePath: String? = null,
 )

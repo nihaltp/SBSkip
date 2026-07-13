@@ -62,6 +62,7 @@ class AndroidDownloadStorage
             mediaType: MediaType,
             customFolderUri: String?,
             overwrite: Boolean,
+            relativePath: String?,
         ): String =
             withContext(Dispatchers.IO) {
                 val filename = "$title.$extension"
@@ -88,24 +89,42 @@ class AndroidDownloadStorage
                 if (folderUriStr.isNotEmpty() && folderUriStr.startsWith("content://")) {
                     try {
                         val folderUri = Uri.parse(folderUriStr)
-                        val dirFile = DocumentFile.fromTreeUri(context, folderUri)
+                        var dirFile = DocumentFile.fromTreeUri(context, folderUri)
                         if (dirFile != null && dirFile.exists() && dirFile.isDirectory) {
-                            val existingFile = dirFile.findFile(filename)
-                            if (existingFile != null && (overwrite || settings.overwriteBehavior)) {
-                                existingFile.delete()
-                            }
-                            val newFile =
-                                dirFile.createFile(mimeType, filename)
-                                    ?: throw IOException("Failed to create document file inside SAF directory")
-
-                            context.contentResolver.openOutputStream(newFile.uri)?.use { output ->
-                                FileInputStream(tempFile).use { input ->
-                                    input.copyTo(output)
+                            if (!relativePath.isNullOrEmpty()) {
+                                val parts = relativePath.split('/').filter { it.isNotEmpty() }
+                                for (part in parts) {
+                                    var subDir = dirFile?.findFile(part)
+                                    if (subDir == null) {
+                                        subDir = dirFile?.createDirectory(part)
+                                    }
+                                    dirFile = subDir
                                 }
-                            } ?: throw IOException("Failed to open SAF output stream")
+                            }
+                            if (dirFile != null && dirFile.exists() && dirFile.isDirectory) {
+                                val existingFile = dirFile.findFile(filename)
+                                if (existingFile != null && (overwrite || settings.overwriteBehavior)) {
+                                    existingFile.delete()
+                                }
+                                val tmpFilename = "$filename.tmp"
+                                val existingTmp = dirFile.findFile(tmpFilename)
+                                existingTmp?.delete()
 
-                            AppLogger.worker("Successfully saved clean file to custom SAF directory: $filename")
-                            return@withContext newFile.uri.toString()
+                                val newFile =
+                                    dirFile.createFile(mimeType, tmpFilename)
+                                        ?: throw IOException("Failed to create document file inside SAF directory")
+
+                                context.contentResolver.openOutputStream(newFile.uri)?.use { output ->
+                                    FileInputStream(tempFile).use { input ->
+                                        input.copyTo(output)
+                                    }
+                                } ?: throw IOException("Failed to open SAF output stream")
+
+                                newFile.renameTo(filename)
+
+                                AppLogger.worker("Successfully saved clean file to custom SAF directory: $filename")
+                                return@withContext newFile.uri.toString()
+                            }
                         }
                     } catch (e: Exception) {
                         AppLogger.error("Storage", e, "Failed to save via SAF to custom folder $folderUriStr, falling back to MediaStore")
@@ -337,6 +356,99 @@ class AndroidDownloadStorage
                     candidateTitle = "${baseTitle}_$suffixNum"
                 }
                 return@withContext candidateTitle
+            }
+
+        override suspend fun hasPersistedPermission(uriString: String): Boolean {
+            val uri = Uri.parse(uriString)
+            return context.contentResolver.persistedUriPermissions.any {
+                it.uri == uri && it.isReadPermission && it.isWritePermission
+            }
+        }
+
+        override suspend fun getMatchedWatchlistFolder(localFileUri: String): com.nihaltp.sbskip.model.MatchedWatchFolder? =
+            withContext(Dispatchers.IO) {
+                val settings = settingsRepository.settings.first()
+                if (settings.watchlist.isEmpty()) return@withContext null
+
+                val uri = Uri.parse(localFileUri)
+                var relativePath: String? = null
+                var docId: String? = null
+
+                if (uri.scheme == "content") {
+                    try {
+                        if (android.provider.DocumentsContract.isDocumentUri(context, uri)) {
+                            docId = android.provider.DocumentsContract.getDocumentId(uri)
+                        } else {
+                            val projection = arrayOf(MediaStore.MediaColumns.RELATIVE_PATH)
+                            context.contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
+                                if (cursor.moveToFirst()) {
+                                    val index = cursor.getColumnIndex(MediaStore.MediaColumns.RELATIVE_PATH)
+                                    if (index != -1) {
+                                        relativePath = cursor.getString(index)
+                                    }
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        AppLogger.error("Storage", e, "Failed to resolve path for $localFileUri")
+                    }
+                } else if (uri.scheme == "file") {
+                    val path = uri.path
+                    if (path != null) {
+                        for (folder in settings.watchlist) {
+                            // Watchlist folder path is something like "Download/NewPipe/"
+                            // File path is "/storage/emulated/0/Download/NewPipe/video.mp4"
+                            if (path.contains(folder.path)) {
+                                val relPath = path.substringAfter(folder.path).substringBeforeLast('/', "")
+                                return@withContext com.nihaltp.sbskip.model.MatchedWatchFolder(folder, relPath)
+                            }
+                        }
+                    }
+                }
+
+                for (folder in settings.watchlist) {
+                    // Direct string prefix match is robust for SAF tree URIs containing documents
+                    if (uri.toString().startsWith(folder.uri)) {
+                        val folderTreeId =
+                            try {
+                                val treeUri = Uri.parse(folder.uri)
+                                android.provider.DocumentsContract.getTreeDocumentId(treeUri)
+                            } catch (e: Exception) {
+                                null
+                            }
+
+                        val relPath =
+                            if (docId != null && folderTreeId != null && docId.startsWith(folderTreeId)) {
+                                val remaining = docId.removePrefix(folderTreeId).trimStart('/')
+                                remaining.substringBeforeLast('/', "")
+                            } else {
+                                ""
+                            }
+                        return@withContext com.nihaltp.sbskip.model.MatchedWatchFolder(folder, relPath)
+                    }
+
+                    val folderTreeId =
+                        try {
+                            val treeUri = Uri.parse(folder.uri)
+                            android.provider.DocumentsContract.getTreeDocumentId(treeUri)
+                        } catch (e: Exception) {
+                            null
+                        }
+
+                    if (docId != null && folderTreeId != null && docId.startsWith(folderTreeId)) {
+                        // docId: primary:Download/NewPipe/Playlist/video.mp4
+                        // folderTreeId: primary:Download/NewPipe
+                        val remaining = docId.removePrefix(folderTreeId).trimStart('/')
+                        val relPath = remaining.substringBeforeLast('/', "")
+                        return@withContext com.nihaltp.sbskip.model.MatchedWatchFolder(folder, relPath)
+                    }
+
+                    if (relativePath != null && relativePath!!.contains(folder.path)) {
+                        val relPath = relativePath!!.substringAfter(folder.path).trim('/')
+                        return@withContext com.nihaltp.sbskip.model.MatchedWatchFolder(folder, relPath)
+                    }
+                }
+                null
             }
     }
 

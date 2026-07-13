@@ -114,6 +114,7 @@ fun MainScreen(
     onDownloadOptionsDeleteChanged: (Boolean) -> Unit,
     onConfirmDownloadOptions: () -> Unit,
     onDismissDownloadOptions: () -> Unit,
+    onDismissPermissionRevokedDialog: () -> Unit,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val clipboardManager = LocalClipboardManager.current
@@ -601,4 +602,15 @@ fun MainScreen(
         onConfirm = onConfirmDownloadOptions,
         onDismiss = onDismissDownloadOptions,
     )
+
+    if (uiState.showPermissionRevokedDialog && uiState.revokedWatchlistFolder != null) {
+        com.nihaltp.sbskip.ui.main.dialogs.RevokedPermissionDialog(
+            folderName = uiState.revokedWatchlistFolder.path,
+            onDismiss = onDismissPermissionRevokedDialog,
+            onReauthorize = {
+                // Launch the folder picker again
+                runtimeAudioFolderLauncher.launch(null)
+            },
+        )
+    }
 }
