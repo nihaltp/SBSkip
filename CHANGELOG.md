@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [1.6.0] - 2026-07-13
+
+### Added
+
+- a9e58e3  feat: add relativePath support and permission revoked dialog for folder access
+- 217e4a7  feat: add auto start cleaning feature with corresponding settings
+- e048dcb  feat: enhance screenshot tests with scrolling functionality for settings section
+
+### Documentation
+
+- c1f549d  docs: update README to include download instructions and repository URL
+
+### Maintenance
+
+- 67feab5  chore: remove x86 apk build
+- 85530bc  chore: add dependabot and mergify configuration files
+
 ## [1.5.0] - 2026-07-04
 
 ### Fixed
