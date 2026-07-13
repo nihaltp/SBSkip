@@ -1,5 +1,7 @@
 package com.nihaltp.sbskip
 
+import androidx.compose.ui.test.hasScrollToNodeAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -7,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.printToLog
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -72,6 +75,7 @@ class ScreenshotTest {
 
     @Test
     fun captureScreenshots() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
         // Hide system status bar and navigation bar dynamically to get only the app screen
         composeTestRule.activity.runOnUiThread {
             val window = composeTestRule.activity.window
@@ -111,6 +115,15 @@ class ScreenshotTest {
             Screengrab.screenshot(screenshotCounter.toString())
             screenshotCounter++
 
+            // Scroll down to show more settings (SponsorBlock Configuration)
+            composeTestRule.onNode(
+                hasScrollToNodeAction(),
+            ).performScrollToNode(hasText(context.getString(R.string.settings_section_sponsorblock_config)))
+            composeTestRule.waitForIdle()
+            Thread.sleep(1200)
+            Screengrab.screenshot(screenshotCounter.toString())
+            screenshotCounter++
+
             // Return to main before switching themes
             composeTestRule.onNodeWithContentDescription("Back").performClick()
             composeTestRule.waitForIdle()
@@ -146,6 +159,15 @@ class ScreenshotTest {
             Thread.sleep(1200) // Wait between screens/actions for fluid settled states
             Screengrab.screenshot(screenshotCounter.toString())
             screenshotCounter++
+
+            // Scroll down to show more settings (SponsorBlock Configuration)
+            composeTestRule.onNode(
+                hasScrollToNodeAction(),
+            ).performScrollToNode(hasText(context.getString(R.string.settings_section_sponsorblock_config)))
+            composeTestRule.waitForIdle()
+            Thread.sleep(1200)
+            Screengrab.screenshot(screenshotCounter.toString())
+            screenshotCounter++
         } catch (t: Throwable) {
             println("SCREENSHOT_TEST_FAILURE: ${t.message}")
             try {
@@ -156,7 +178,6 @@ class ScreenshotTest {
             throw t
         } finally {
             // Copy screenshots to external files directory for reliable pulling on Windows
-            val context = InstrumentationRegistry.getInstrumentation().targetContext
             val internalDir = java.io.File(context.filesDir.parentFile, "app_screengrab")
             val externalDir = context.getExternalFilesDir(null)
             if (internalDir.exists() && externalDir != null) {
