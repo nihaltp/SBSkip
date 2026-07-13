@@ -178,6 +178,8 @@
     <string name="settings_video_to_audio_title">Video to Audio Settings</string>
     <string name="settings_overwrite_files_title">Overwrite Files</string>
     <string name="settings_overwrite_files_desc">Save the cleaned file directly where it was picked from, overwriting the original file.</string>
+    <string name="settings_auto_start_cleaning_title">Auto Start Cleaning</string>
+    <string name="settings_auto_start_cleaning_desc">Automatically start cleaning when a download is detected</string>
     <string name="settings_suffix_title">Cleaned File Suffix</string>
     <string name="settings_section_sponsorblock_config">SponsorBlock Configuration</string>
     <string name="settings_sb_url_title">SponsorBlock Server API URL</string>

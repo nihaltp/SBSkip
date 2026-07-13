@@ -1024,6 +1024,15 @@ class MainViewModel
                     snackbarMessage = context.getString(R.string.found_matching_file, bestCandidate.score),
                 )
             }
+
+            if (settings.autoStartCleaning) {
+                val updatedPendingDownload =
+                    pendingDownload.copy(
+                        detectedFile = DetectedFile(uri = bestCandidate.uri, score = bestCandidate.score),
+                        detectedFileName = detectedName,
+                    )
+                confirmDetectedFile(updatedPendingDownload)
+            }
         }
 
         private suspend fun fetchYouTubeOEmbed(videoUrl: String): YouTubeMetadata =

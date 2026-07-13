@@ -84,6 +84,12 @@ class SettingsViewModel
             }
         }
 
+        fun updateAutoStartCleaning(autoStart: Boolean) {
+            viewModelScope.launch {
+                settingsRepository.update { it.copy(autoStartCleaning = autoStart) }
+            }
+        }
+
         fun updateAutoCleanSuffix(suffix: String) {
             viewModelScope.launch {
                 settingsRepository.update { it.copy(autoCleanSuffix = suffix) }

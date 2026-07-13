@@ -17,6 +17,7 @@ data class AppSettings(
     val sponsorBlockStatusUrl: String = "https://status.sponsor.ajay.app",
     val overwriteBehavior: Boolean = true,
     val autoCleanSuffix: String = "",
+    val autoStartCleaning: Boolean = true,
     val defaultConvertVideoToAudio: Boolean = false,
     val defaultDeleteOriginalVideo: Boolean = true,
     val audioSaveMode: AudioSaveMode = AudioSaveMode.RUNTIME_PICKER,

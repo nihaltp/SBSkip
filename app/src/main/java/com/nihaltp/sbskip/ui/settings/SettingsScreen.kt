@@ -323,6 +323,12 @@ fun SettingsScreen(
                 item {
                     SettingsSection(title = stringResource(id = R.string.settings_cleaner_storage_title)) {
                         SettingToggleRow(
+                            title = stringResource(id = R.string.settings_auto_start_cleaning_title),
+                            description = stringResource(id = R.string.settings_auto_start_cleaning_desc),
+                            checked = settings.autoStartCleaning,
+                            onCheckedChange = viewModel::updateAutoStartCleaning,
+                        )
+                        SettingToggleRow(
                             title = stringResource(id = R.string.settings_overwrite_files_title),
                             description = stringResource(id = R.string.settings_overwrite_files_desc),
                             checked = settings.overwriteBehavior,

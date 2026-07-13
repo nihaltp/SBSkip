@@ -50,6 +50,7 @@ class DataStoreSettingsRepository
             val SPONSORBLOCK_URL = stringPreferencesKey("sponsorblock_url")
             val OVERWRITE_BEHAVIOR = booleanPreferencesKey("overwrite_behavior")
             val AUTO_CLEAN_SUFFIX = stringPreferencesKey("auto_clean_suffix")
+            val AUTO_START_CLEANING = booleanPreferencesKey("auto_start_cleaning")
             val SPONSORBLOCK_STATUS_URL = stringPreferencesKey("sponsorblock_status_url")
             val DEFAULT_CONVERT_VIDEO_TO_AUDIO = booleanPreferencesKey("default_convert_video_to_audio")
             val DEFAULT_DELETE_ORIGINAL_VIDEO = booleanPreferencesKey("default_delete_original_video")
@@ -105,6 +106,7 @@ class DataStoreSettingsRepository
                     sponsorBlockStatusUrl = preferences[PreferencesKeys.SPONSORBLOCK_STATUS_URL] ?: "https://status.sponsor.ajay.app",
                     overwriteBehavior = preferences[PreferencesKeys.OVERWRITE_BEHAVIOR] ?: true,
                     autoCleanSuffix = preferences[PreferencesKeys.AUTO_CLEAN_SUFFIX] ?: "",
+                    autoStartCleaning = preferences[PreferencesKeys.AUTO_START_CLEANING] ?: true,
                     defaultConvertVideoToAudio = preferences[PreferencesKeys.DEFAULT_CONVERT_VIDEO_TO_AUDIO] ?: false,
                     defaultDeleteOriginalVideo = preferences[PreferencesKeys.DEFAULT_DELETE_ORIGINAL_VIDEO] ?: true,
                     audioSaveMode = audioSaveMode,
@@ -153,6 +155,7 @@ class DataStoreSettingsRepository
                         sponsorBlockStatusUrl = preferences[PreferencesKeys.SPONSORBLOCK_STATUS_URL] ?: "https://status.sponsor.ajay.app",
                         overwriteBehavior = preferences[PreferencesKeys.OVERWRITE_BEHAVIOR] ?: true,
                         autoCleanSuffix = preferences[PreferencesKeys.AUTO_CLEAN_SUFFIX] ?: "",
+                        autoStartCleaning = preferences[PreferencesKeys.AUTO_START_CLEANING] ?: true,
                         defaultConvertVideoToAudio = preferences[PreferencesKeys.DEFAULT_CONVERT_VIDEO_TO_AUDIO] ?: false,
                         defaultDeleteOriginalVideo = preferences[PreferencesKeys.DEFAULT_DELETE_ORIGINAL_VIDEO] ?: true,
                         audioSaveMode =
@@ -185,6 +188,7 @@ class DataStoreSettingsRepository
                 preferences[PreferencesKeys.SPONSORBLOCK_STATUS_URL] = updated.sponsorBlockStatusUrl
                 preferences[PreferencesKeys.OVERWRITE_BEHAVIOR] = updated.overwriteBehavior
                 preferences[PreferencesKeys.AUTO_CLEAN_SUFFIX] = updated.autoCleanSuffix
+                preferences[PreferencesKeys.AUTO_START_CLEANING] = updated.autoStartCleaning
                 preferences[PreferencesKeys.DEFAULT_CONVERT_VIDEO_TO_AUDIO] = updated.defaultConvertVideoToAudio
                 preferences[PreferencesKeys.DEFAULT_DELETE_ORIGINAL_VIDEO] = updated.defaultDeleteOriginalVideo
                 preferences[PreferencesKeys.AUDIO_SAVE_MODE] = updated.audioSaveMode.name
