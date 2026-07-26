@@ -507,18 +507,16 @@ fun SettingsScreen(
                             checked = settings.verboseLogging,
                             onCheckedChange = viewModel::updateVerboseLogging,
                         )
-                        if (settings.verboseLogging) {
-                            OutlinedButton(
-                                onClick = { showLogsDialog = true },
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.Description,
-                                    contentDescription = null,
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(stringResource(id = R.string.settings_view_logs_button))
-                            }
+                        OutlinedButton(
+                            onClick = { showLogsDialog = true },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Description,
+                                contentDescription = null,
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(stringResource(id = R.string.settings_view_logs_button))
                         }
                     }
                 }
