@@ -1104,11 +1104,13 @@ class MainViewModel
                     }
                     val body = response.body?.string().orEmpty()
                     val parsed = json.decodeFromString(YouTubeOEmbedResponse.serializer(), body)
+                    val videoId = YouTubeUrlParser.extractVideoId(videoUrl)
+                    val customThumbnailUrl = videoId?.let { "https://img.youtube.com/vi/$it/mqdefault.jpg" } ?: parsed.thumbnailUrl
                     YouTubeMetadata(
                         title = parsed.title,
                         authorName = parsed.authorName,
                         authorUrl = parsed.authorUrl,
-                        thumbnailUrl = parsed.thumbnailUrl,
+                        thumbnailUrl = customThumbnailUrl,
                     )
                 }
             }
