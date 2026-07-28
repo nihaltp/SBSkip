@@ -49,6 +49,8 @@ fun AppNavGraph(
                 onDeleteOriginalVideoChange = viewModel::onDeleteOriginalVideoChanged,
                 onOpenSettings = { navController.navigate(Destination.Settings.route) },
                 onRemoveQueueItem = viewModel::removeQueueItem,
+                onUndoRemoveQueueItem = viewModel::undoRemoveQueueItem,
+                onDismissToast = viewModel::dismissToast,
                 onRetryQueueItem = { id, bypass -> viewModel.retryQueueItem(id, bypass) },
                 onSnackbarShown = viewModel::consumeSnackbarMessage,
                 onProceedAnyway = viewModel::proceedWithMismatch,

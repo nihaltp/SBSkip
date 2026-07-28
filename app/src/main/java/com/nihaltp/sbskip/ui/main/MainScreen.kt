@@ -38,7 +38,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -99,7 +98,9 @@ fun MainScreen(
     onConvertVideoToAudioChange: (Boolean) -> Unit,
     onDeleteOriginalVideoChange: (Boolean) -> Unit,
     onOpenSettings: () -> Unit,
-    onRemoveQueueItem: (Long) -> Unit,
+    onRemoveQueueItem: (DownloadQueueItem) -> Unit,
+    onUndoRemoveQueueItem: (DownloadQueueItem) -> Unit,
+    onDismissToast: (String) -> Unit,
     onRetryQueueItem: (Long, Boolean) -> Unit,
     onSnackbarShown: () -> Unit,
     onProceedAnyway: () -> Unit,
@@ -196,12 +197,7 @@ fun MainScreen(
         }
     }
 
-    LaunchedEffect(uiState.snackbarMessage) {
-        uiState.snackbarMessage?.let {
-            snackbarHostState.showSnackbar(it)
-            onSnackbarShown()
-        }
-    }
+    // No Snackbar handling here anymore
 
     Scaffold(
         topBar = {
@@ -220,7 +216,17 @@ fun MainScreen(
                 },
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = {
+            com.nihaltp.sbskip.ui.main.components.common.StackedToastHost(
+                toastMessages = uiState.toastMessages,
+                onActionClick = { toast ->
+                    if (toast.itemToRestore != null) {
+                        onUndoRemoveQueueItem(toast.itemToRestore)
+                        onDismissToast(toast.id)
+                    }
+                },
+            )
+        },
     ) { paddingValues ->
         LazyColumn(
             modifier =
@@ -533,7 +539,12 @@ fun MainScreen(
                     QueueItemCard(
                         item = queueItem,
                         onRetry = { id -> onRetryQueueItem(id, false) },
-                        onRemove = onRemoveQueueItem,
+                        onRemove = { itemId ->
+                            val item = uiState.queueItems.find { it.id == itemId }
+                            item?.let {
+                                onRemoveQueueItem(it)
+                            }
+                        },
                         onErrorClick = { errorDialogItem = it },
                         onCardClick = { detailsDialogItem = it },
                     )

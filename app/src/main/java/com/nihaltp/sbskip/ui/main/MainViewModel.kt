@@ -209,12 +209,12 @@ class MainViewModel
             val videoId = YouTubeUrlParser.extractVideoId(inputUrl)
 
             if (inputUrl.isBlank() || videoId.isNullOrBlank()) {
-                _uiState.update { it.copy(snackbarMessage = context.getString(R.string.enter_valid_url)) }
+                showToast(context.getString(R.string.enter_valid_url))
                 return
             }
 
             if (!forFindFile && !state.isNewPipeInstalled) {
-                _uiState.update { it.copy(snackbarMessage = context.getString(R.string.newpipe_not_installed)) }
+                showToast(context.getString(R.string.newpipe_not_installed))
                 return
             }
 
@@ -408,10 +408,14 @@ class MainViewModel
                 if (result.success) {
                     state.copy(
                         pendingDownloads = state.pendingDownloads.filter { it.videoId != pendingDownload.videoId },
-                        snackbarMessage = context.getString(R.string.snackbar_media_enqueued),
+                        toastMessages =
+                            state.toastMessages +
+                                com.nihaltp.sbskip.model.ToastMessage(
+                                    message = context.getString(R.string.snackbar_media_enqueued),
+                                ),
                     )
                 } else {
-                    state.copy(snackbarMessage = result.message)
+                    state.copy(toastMessages = state.toastMessages + com.nihaltp.sbskip.model.ToastMessage(message = result.message))
                 }
             }
         }
@@ -425,7 +429,7 @@ class MainViewModel
             val videoId = YouTubeUrlParser.extractVideoId(inputUrl)
 
             if (inputUrl.isBlank() || videoId.isNullOrBlank()) {
-                _uiState.update { it.copy(snackbarMessage = context.getString(R.string.enter_valid_url)) }
+                showToast(context.getString(R.string.enter_valid_url))
                 return
             }
 
@@ -467,7 +471,6 @@ class MainViewModel
                     pendingDownloads = state.pendingDownloads + pendingDownload,
                     isFetchingMetadata = false,
                     customSponsorBlockCategories = null,
-                    snackbarMessage = null,
                 )
             }
 
@@ -489,19 +492,46 @@ class MainViewModel
         ) {
             viewModelScope.launch {
                 val result = queueRepository.retry(id, bypassDurationCheck)
-                _uiState.update { it.copy(snackbarMessage = result.message) }
+                showToast(result.message)
             }
         }
 
-        fun removeQueueItem(id: Long) {
+        fun removeQueueItem(item: com.nihaltp.sbskip.model.DownloadQueueItem) {
             viewModelScope.launch {
-                queueRepository.remove(id)
-                _uiState.update { it.copy(snackbarMessage = context.getString(R.string.snackbar_item_removed)) }
+                queueRepository.remove(item.id)
+                showToast(
+                    message = context.getString(R.string.snackbar_item_removed),
+                    actionLabel = context.getString(R.string.undo),
+                    itemToRestore = item,
+                )
+            }
+        }
+
+        fun undoRemoveQueueItem(item: com.nihaltp.sbskip.model.DownloadQueueItem) {
+            viewModelScope.launch {
+                val result =
+                    queueRepository.enqueue(
+                        localFileUri = item.localFileUri,
+                        title = item.title,
+                        youtubeUrl = item.url,
+                        mediaType = item.mediaType,
+                        convertVideoToAudio = item.convertVideoToAudio,
+                        deleteOriginalVideo = item.deleteOriginalVideo,
+                        audioOutputDirUri = item.audioOutputDirUri,
+                        relativePath = item.relativePath,
+                    )
+                if (result.success) {
+                    showToast(context.getString(R.string.snackbar_item_restored))
+                } else {
+                    showToast(result.message)
+                }
             }
         }
 
         fun consumeSnackbarMessage() {
-            _uiState.update { it.copy(snackbarMessage = null) }
+            _uiState.update { it.copy(toastMessages = emptyList()) }
+            //
+            _uiState.update { it.copy(toastMessages = emptyList()) }
         }
 
         fun proceedWithMismatch() {
@@ -586,10 +616,14 @@ class MainViewModel
                             pendingDownloads = filteredPending,
                             showDurationMismatchDialog = false,
                             customSponsorBlockCategories = null,
-                            snackbarMessage = context.getString(R.string.snackbar_media_enqueued),
+                            toastMessages =
+                                state.toastMessages +
+                                    com.nihaltp.sbskip.model.ToastMessage(
+                                        message = context.getString(R.string.snackbar_media_enqueued),
+                                    ),
                         )
                     } else {
-                        state.copy(snackbarMessage = result.message)
+                        state.copy(toastMessages = state.toastMessages + com.nihaltp.sbskip.model.ToastMessage(message = result.message))
                     }
                 }
             }
@@ -653,10 +687,14 @@ class MainViewModel
                             pendingDownloads = filteredPending,
                             showDurationMismatchDialog = false,
                             customSponsorBlockCategories = null,
-                            snackbarMessage = context.getString(R.string.snackbar_media_enqueued),
+                            toastMessages =
+                                state.toastMessages +
+                                    com.nihaltp.sbskip.model.ToastMessage(
+                                        message = context.getString(R.string.snackbar_media_enqueued),
+                                    ),
                         )
                     } else {
-                        state.copy(snackbarMessage = result.message)
+                        state.copy(toastMessages = state.toastMessages + com.nihaltp.sbskip.model.ToastMessage(message = result.message))
                     }
                 }
             }
@@ -672,12 +710,12 @@ class MainViewModel
 
             if (fileUri.isNullOrBlank()) {
                 if (youtubeUrl.isBlank()) {
-                    _uiState.update { it.copy(snackbarMessage = context.getString(R.string.snackbar_paste_first)) }
+                    showToast(context.getString(R.string.snackbar_paste_first))
                     return
                 }
 
                 if (!state.isNewPipeInstalled) {
-                    _uiState.update { it.copy(snackbarMessage = context.getString(R.string.newpipe_not_installed)) }
+                    showToast(context.getString(R.string.newpipe_not_installed))
                     return
                 }
 
@@ -751,13 +789,13 @@ class MainViewModel
 
             if (!isConvertOnly) {
                 if (youtubeUrl.isBlank()) {
-                    _uiState.update { it.copy(snackbarMessage = context.getString(R.string.snackbar_paste_first)) }
+                    showToast(context.getString(R.string.snackbar_paste_first))
                     return
                 }
 
                 val videoId = YouTubeUrlParser.extractVideoId(youtubeUrl)
                 if (videoId.isNullOrBlank()) {
-                    _uiState.update { it.copy(snackbarMessage = context.getString(R.string.enter_valid_url)) }
+                    showToast(context.getString(R.string.enter_valid_url))
                     return
                 }
 
@@ -879,10 +917,14 @@ class MainViewModel
                         showDurationMismatchDialog = false,
                         pendingEnqueueData = null,
                         customSponsorBlockCategories = null,
-                        snackbarMessage = context.getString(R.string.snackbar_media_enqueued),
+                        toastMessages =
+                            state.toastMessages +
+                                com.nihaltp.sbskip.model.ToastMessage(
+                                    message = context.getString(R.string.snackbar_media_enqueued),
+                                ),
                     )
                 } else {
-                    state.copy(snackbarMessage = result.message)
+                    state.copy(toastMessages = state.toastMessages + com.nihaltp.sbskip.model.ToastMessage(message = result.message))
                 }
             }
         }
@@ -896,12 +938,12 @@ class MainViewModel
             val videoId = YouTubeUrlParser.extractVideoId(inputUrl)
 
             if (inputUrl.isBlank() || videoId.isNullOrBlank()) {
-                _uiState.update { it.copy(snackbarMessage = context.getString(R.string.enter_valid_url)) }
+                showToast(context.getString(R.string.enter_valid_url))
                 return
             }
 
             if (!state.isNewPipeInstalled) {
-                _uiState.update { it.copy(snackbarMessage = context.getString(R.string.newpipe_not_installed)) }
+                showToast(context.getString(R.string.newpipe_not_installed))
                 return
             }
 
@@ -939,7 +981,6 @@ class MainViewModel
                     pendingDownloads = state.pendingDownloads + pendingDownload,
                     isFetchingMetadata = false,
                     customSponsorBlockCategories = null,
-                    snackbarMessage = null,
                     showWatchlistPromptDialog = showPrompt,
                 )
             }
@@ -991,7 +1032,11 @@ class MainViewModel
                             state.pendingDownloads.map {
                                 if (it.videoId == pendingDownload.videoId) it.copy(isDetectingFile = false) else it
                             },
-                        snackbarMessage = context.getString(R.string.no_matching_download_found),
+                        toastMessages =
+                            state.toastMessages +
+                                com.nihaltp.sbskip.model.ToastMessage(
+                                    message = context.getString(R.string.no_matching_download_found),
+                                ),
                     )
                 }
                 return
@@ -1021,7 +1066,11 @@ class MainViewModel
                                 it
                             }
                         },
-                    snackbarMessage = context.getString(R.string.found_matching_file, bestCandidate.score),
+                    toastMessages =
+                        state.toastMessages +
+                            com.nihaltp.sbskip.model.ToastMessage(
+                                message = context.getString(R.string.found_matching_file, bestCandidate.score),
+                            ),
                 )
             }
 
@@ -1074,7 +1123,13 @@ class MainViewModel
                 context.startActivity(intent)
             }.onFailure {
                 _uiState.update { state ->
-                    state.copy(snackbarMessage = context.getString(R.string.newpipe_launch_failed))
+                    state.copy(
+                        toastMessages =
+                            state.toastMessages +
+                                com.nihaltp.sbskip.model.ToastMessage(
+                                    message = context.getString(R.string.newpipe_launch_failed),
+                                ),
+                    )
                 }
             }
         }
@@ -1280,6 +1335,23 @@ class MainViewModel
             val authorUrl: String?,
             val thumbnailUrl: String?,
         )
+
+        fun showToast(
+            message: String,
+            actionLabel: String? = null,
+            itemToRestore: com.nihaltp.sbskip.model.DownloadQueueItem? = null,
+        ) {
+            val toast = com.nihaltp.sbskip.model.ToastMessage(message = message, actionLabel = actionLabel, itemToRestore = itemToRestore)
+            _uiState.update { it.copy(toastMessages = it.toastMessages + toast) }
+            viewModelScope.launch {
+                kotlinx.coroutines.delay(4000)
+                dismissToast(toast.id)
+            }
+        }
+
+        fun dismissToast(id: String) {
+            _uiState.update { it.copy(toastMessages = it.toastMessages.filter { t -> t.id != id }) }
+        }
 
         companion object {
             private const val NEWPIPE_PACKAGE_NAME = "org.schabi.newpipe"

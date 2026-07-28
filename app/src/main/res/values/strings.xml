@@ -27,6 +27,8 @@
 
     <string name="snackbar_paste_first">Paste a YouTube URL first.</string>
     <string name="snackbar_item_removed">Item removed.</string>
+    <string name="snackbar_item_restored">Item restored.</string>
+    <string name="undo">Undo</string>
 
     <string name="enter_valid_url">Enter a valid YouTube URL.</string>
     <string name="queued_for_metadata_fetch">Queued for metadata fetch.</string>

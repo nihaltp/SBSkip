@@ -87,6 +87,13 @@ data class PendingAudioFolderPick(
     val displayName: String? = null,
 )
 
+data class ToastMessage(
+    val id: String = java.util.UUID.randomUUID().toString(),
+    val message: String,
+    val actionLabel: String? = null,
+    val itemToRestore: DownloadQueueItem? = null,
+)
+
 data class MainUiState(
     val urlInput: String = "",
     val selectedFileUri: String? = null,
@@ -108,7 +115,7 @@ data class MainUiState(
     val pendingDownloads: List<PendingDownload> = emptyList(),
     val pendingDownloadForFilePicker: PendingDownload? = null,
     val queueItems: List<DownloadQueueItem> = emptyList(),
-    val snackbarMessage: String? = null,
+    val toastMessages: List<ToastMessage> = emptyList(),
     val showWatchlistPromptDialog: Boolean = false,
     val globalSponsorBlockCategories: Set<SponsorBlockCategory> = emptySet(),
     val customSponsorBlockCategories: Set<SponsorBlockCategory>? = null,
