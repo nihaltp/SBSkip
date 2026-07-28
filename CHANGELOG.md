@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [1.7.0] - 2026-07-28
+
+### Added
+
+- a9b126b  feat: optimize media processing by handling empty keep ranges and improving processing plan validation
+- 71ebf08  feat: implement stacked toast notifications for user feedback and restore actions
+- 807b3b3  feat: conditionally hide report button in error details dialog based on error type
+- d981664  feat: allow dismissing notifications by swiping
+- 6ccdfbf  feat: update YouTube thumbnail URL handling to use custom thumbnails when available
+- 73a3def  feat: centralize URL handling by introducing Constants for YouTube and SponsorBlock URLs
+
+### Refactor
+
+- d831c60  refactor: simplify log viewing button in settings screen
+- 0593ad5  refactor: improve audio conversion logic in ProcessingPlanBuilder
+
+### Maintenance
+
+- 8eae0eb  chore: update JVM arguments for Gradle and Kotlin daemon to optimize memory usage
+
 ## [1.6.0] - 2026-07-13
 
 ### Added
