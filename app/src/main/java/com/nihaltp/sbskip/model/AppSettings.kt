@@ -1,5 +1,7 @@
 package com.nihaltp.sbskip.model
 
+import com.nihaltp.sbskip.util.Constants
+
 data class AppSettings(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val dynamicColor: Boolean = true,
@@ -13,8 +15,8 @@ data class AppSettings(
     val sponsorBlockSettings: SponsorBlockSettings = SponsorBlockSettings(),
     val filenameReplacement: Char = '_',
     val verboseLogging: Boolean = false,
-    val sponsorBlockUrl: String = "https://sponsor.ajay.app",
-    val sponsorBlockStatusUrl: String = "https://status.sponsor.ajay.app",
+    val sponsorBlockUrl: String = Constants.SPONSORBLOCK_BASE_URL,
+    val sponsorBlockStatusUrl: String = Constants.SPONSORBLOCK_STATUS_BASE_URL,
     val overwriteBehavior: Boolean = true,
     val autoCleanSuffix: String = "",
     val autoStartCleaning: Boolean = true,

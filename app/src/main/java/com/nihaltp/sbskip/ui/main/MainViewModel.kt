@@ -22,6 +22,7 @@ import com.nihaltp.sbskip.model.SponsorBlockCategory
 import com.nihaltp.sbskip.navigation.ShareIntentEvent
 import com.nihaltp.sbskip.storage.DownloadStorage
 import com.nihaltp.sbskip.util.AppLogger
+import com.nihaltp.sbskip.util.Constants
 import com.nihaltp.sbskip.util.YouTubeUrlParser
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -435,7 +436,7 @@ class MainViewModel
 
             _uiState.update { it.copy(isFetchingMetadata = true) }
 
-            val normalizedUrl = "https://www.youtube.com/watch?v=$videoId"
+            val normalizedUrl = Constants.buildYouTubeWatchUrl(videoId)
             val customCategories = state.customSponsorBlockCategories
             val finalUrl =
                 if (customCategories != null) {
@@ -949,7 +950,7 @@ class MainViewModel
 
             _uiState.update { it.copy(isFetchingMetadata = true) }
 
-            val normalizedUrl = "https://www.youtube.com/watch?v=$videoId"
+            val normalizedUrl = Constants.buildYouTubeWatchUrl(videoId)
             val customCategories = state.customSponsorBlockCategories
             val finalUrl =
                 if (customCategories != null) {
@@ -1105,7 +1106,7 @@ class MainViewModel
                     val body = response.body?.string().orEmpty()
                     val parsed = json.decodeFromString(YouTubeOEmbedResponse.serializer(), body)
                     val videoId = YouTubeUrlParser.extractVideoId(videoUrl)
-                    val customThumbnailUrl = videoId?.let { "https://img.youtube.com/vi/$it/mqdefault.jpg" } ?: parsed.thumbnailUrl
+                    val customThumbnailUrl = videoId?.let { Constants.buildYouTubeThumbnailUrl(it) } ?: parsed.thumbnailUrl
                     YouTubeMetadata(
                         title = parsed.title,
                         authorName = parsed.authorName,

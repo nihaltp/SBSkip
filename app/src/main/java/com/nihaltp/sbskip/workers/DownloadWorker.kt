@@ -11,6 +11,7 @@ import com.nihaltp.sbskip.data.repository.SettingsRepository
 import com.nihaltp.sbskip.model.SponsorBlockCategory
 import com.nihaltp.sbskip.notifications.DownloadNotificationManager
 import com.nihaltp.sbskip.util.AppLogger
+import com.nihaltp.sbskip.util.Constants
 import com.nihaltp.sbskip.util.YouTubeUrlParser
 import com.nihaltp.sbskip.workers.helpers.DurationValidator
 import com.nihaltp.sbskip.workers.helpers.MediaProcessingManager
@@ -132,7 +133,7 @@ class DownloadWorker
                     }
 
                     // Derive thumbnail dynamically and update database metadata
-                    val thumbUrl = finalThumbnailUrl ?: "https://img.youtube.com/vi/$videoId/mqdefault.jpg"
+                    val thumbUrl = finalThumbnailUrl ?: Constants.buildYouTubeThumbnailUrl(videoId)
                     finalThumbnailUrl = thumbUrl
                     taskTitle = item.title.ifBlank { oembedTitle ?: localMetadata.title }
                     queueRepository.updateMetadata(queueItemId, taskTitle, thumbUrl, fileDuration)

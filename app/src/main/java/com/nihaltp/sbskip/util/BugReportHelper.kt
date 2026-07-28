@@ -23,5 +23,5 @@ fun buildGithubBugReportUrl(
         |```
         """.trimMargin()
     val bodyParam = Uri.encode(bodyTemplate)
-    return "https://github.com/nihaltp/SBSkip/issues/new?title=$titleParam&body=$bodyParam"
+    return Constants.buildGithubIssueUrl(titleParam, bodyParam)
 }

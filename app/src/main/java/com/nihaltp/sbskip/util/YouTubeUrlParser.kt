@@ -14,7 +14,7 @@ object YouTubeUrlParser {
     fun normalize(rawInput: String): String? {
         val extracted = extractCandidateUrl(rawInput) ?: return null
         val videoId = extractVideoId(extracted) ?: return null
-        return "https://www.youtube.com/watch?v=$videoId"
+        return Constants.buildYouTubeWatchUrl(videoId)
     }
 
     fun extractVideoId(rawInput: String): String? {

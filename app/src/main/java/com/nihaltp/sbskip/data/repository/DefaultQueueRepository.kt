@@ -9,6 +9,7 @@ import com.nihaltp.sbskip.model.DownloadQueueStatus
 import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.model.QueueActionResult
 import com.nihaltp.sbskip.util.AppLogger
+import com.nihaltp.sbskip.util.Constants
 import com.nihaltp.sbskip.util.YouTubeUrlParser
 import com.nihaltp.sbskip.workers.DownloadWorkScheduler
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -67,7 +68,7 @@ class DefaultQueueRepository
                         params.add("categories=" + value)
                     }
                     val queryString = if (params.isNotEmpty()) "?" + params.joinToString("&") else ""
-                    "https://www.youtube.com/watch?v=" + videoId + queryString
+                    Constants.buildYouTubeWatchUrl(videoId) + queryString
                 } else {
                     youtubeUrl
                 }

@@ -12,7 +12,7 @@ object YouTubeDurationFetcher {
     suspend fun fetchDuration(videoId: String): Long? =
         withContext(Dispatchers.IO) {
             try {
-                val url = "https://www.youtube.com/watch?v=$videoId"
+                val url = Constants.buildYouTubeWatchUrl(videoId)
                 val request =
                     Request.Builder()
                         .url(url)

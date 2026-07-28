@@ -16,6 +16,7 @@ import com.nihaltp.sbskip.model.SponsorBlockCategory
 import com.nihaltp.sbskip.model.SponsorBlockSettings
 import com.nihaltp.sbskip.model.ThemeMode
 import com.nihaltp.sbskip.model.WatchlistFolder
+import com.nihaltp.sbskip.util.Constants
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -102,8 +103,9 @@ class DataStoreSettingsRepository
                         (preferences[PreferencesKeys.VERBOSE_LOGGING] ?: false).also {
                             com.nihaltp.sbskip.util.AppLogger.isVerboseLoggingEnabled = it
                         },
-                    sponsorBlockUrl = preferences[PreferencesKeys.SPONSORBLOCK_URL] ?: "https://sponsor.ajay.app",
-                    sponsorBlockStatusUrl = preferences[PreferencesKeys.SPONSORBLOCK_STATUS_URL] ?: "https://status.sponsor.ajay.app",
+                    sponsorBlockUrl = preferences[PreferencesKeys.SPONSORBLOCK_URL] ?: Constants.SPONSORBLOCK_BASE_URL,
+                    sponsorBlockStatusUrl =
+                        preferences[PreferencesKeys.SPONSORBLOCK_STATUS_URL] ?: Constants.SPONSORBLOCK_STATUS_BASE_URL,
                     overwriteBehavior = preferences[PreferencesKeys.OVERWRITE_BEHAVIOR] ?: true,
                     autoCleanSuffix = preferences[PreferencesKeys.AUTO_CLEAN_SUFFIX] ?: "",
                     autoStartCleaning = preferences[PreferencesKeys.AUTO_START_CLEANING] ?: true,
@@ -151,8 +153,9 @@ class DataStoreSettingsRepository
                             (preferences[PreferencesKeys.VERBOSE_LOGGING] ?: false).also {
                                 com.nihaltp.sbskip.util.AppLogger.isVerboseLoggingEnabled = it
                             },
-                        sponsorBlockUrl = preferences[PreferencesKeys.SPONSORBLOCK_URL] ?: "https://sponsor.ajay.app",
-                        sponsorBlockStatusUrl = preferences[PreferencesKeys.SPONSORBLOCK_STATUS_URL] ?: "https://status.sponsor.ajay.app",
+                        sponsorBlockUrl = preferences[PreferencesKeys.SPONSORBLOCK_URL] ?: Constants.SPONSORBLOCK_BASE_URL,
+                        sponsorBlockStatusUrl =
+                            preferences[PreferencesKeys.SPONSORBLOCK_STATUS_URL] ?: Constants.SPONSORBLOCK_STATUS_BASE_URL,
                         overwriteBehavior = preferences[PreferencesKeys.OVERWRITE_BEHAVIOR] ?: true,
                         autoCleanSuffix = preferences[PreferencesKeys.AUTO_CLEAN_SUFFIX] ?: "",
                         autoStartCleaning = preferences[PreferencesKeys.AUTO_START_CLEANING] ?: true,
