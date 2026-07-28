@@ -41,6 +41,8 @@ fun ErrorDetailsDialog(
     val context = LocalContext.current
     val errorMessage = item.errorMessage.orEmpty()
     val isDurationMismatch = errorMessage.startsWith("Picked file duration")
+    val noReportErrors = listOf("timeout")
+    val shouldHideReportButton = noReportErrors.any { errorMessage.contains(it, ignoreCase = true) }
 
     if (isDurationMismatch) {
         val regex = """Picked file duration \((\d+)\s*s\) does not match YouTube video duration \((\d+)\s*s\)""".toRegex()
@@ -98,25 +100,29 @@ fun ErrorDetailsDialog(
                             style = MaterialTheme.typography.bodyMedium,
                         )
                     }
-                    Text(
-                        text = stringResource(id = R.string.error_report_explanation),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray,
-                    )
+                    if (!shouldHideReportButton) {
+                        Text(
+                            text = stringResource(id = R.string.error_report_explanation),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray,
+                        )
+                    }
                 }
             },
             confirmButton = {
-                Button(
-                    onClick = {
-                        val githubUrl = buildGithubBugReportUrl(BuildConfig.VERSION_NAME, item)
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(githubUrl))
-                        context.startActivity(intent)
-                        onDismiss()
-                    },
-                ) {
-                    Icon(Icons.Filled.BugReport, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(id = R.string.report_to_github))
+                if (!shouldHideReportButton) {
+                    Button(
+                        onClick = {
+                            val githubUrl = buildGithubBugReportUrl(BuildConfig.VERSION_NAME, item)
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(githubUrl))
+                            context.startActivity(intent)
+                            onDismiss()
+                        },
+                    ) {
+                        Icon(Icons.Filled.BugReport, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(id = R.string.report_to_github))
+                    }
                 }
             },
             dismissButton = {
