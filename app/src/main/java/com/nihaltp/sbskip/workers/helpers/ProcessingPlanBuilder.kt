@@ -22,11 +22,13 @@ class ProcessingPlanBuilder
                 AppLogger.worker("Computed ${keepRanges.size} keep ranges from segments")
             }
 
-            val outputExtension = if (item.convertVideoToAudio) "m4a" else localExtension
+            val isAudioExt = localExtension.lowercase() in setOf("m4a", "mp3", "aac", "opus", "ogg", "wav", "flac", "weba")
+            val actualConvert = item.convertVideoToAudio && !isAudioExt
+            val outputExtension = if (actualConvert) "m4a" else localExtension
 
             return ProcessingPlan(
                 keepRanges = keepRanges,
-                convertVideoToAudio = item.convertVideoToAudio,
+                convertVideoToAudio = actualConvert,
                 outputExtension = outputExtension,
             )
         }
