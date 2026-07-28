@@ -80,6 +80,149 @@ def resolve_abi_apk(device_id)
   File.exist?(split_apk) ? split_apk : universal_apk
 end
 
+# Generates changelogs, commits version bump, and creates a local git tag.
+# Skips everything if the version bump commit already exists (idempotent for re-runs).
+# Returns [tag_name, changelog_txt_path, project_root] for use by the caller.
+def prepare_release_commit(version_name:, version_code:)
+  tag_name = "v#{version_name}"
+  project_root = File.expand_path("..", __dir__)
+  changelogs_dir = File.join(project_root, "fastlane", "metadata", "android", "en-US", "changelogs")
+  changelog_txt_path = File.join(changelogs_dir, "#{version_code}.txt")
+
+  # Check if the version bump commit already exists (e.g. from a previous partial run)
+  head_msg = `git log -1 --format=%s`.strip
+  if head_msg == "chore: bump version to v#{version_name}"
+    puts "Version bump commit already exists, skipping changelog generation, commit, and tag."
+    return [tag_name, changelog_txt_path, project_root]
+  end
+
+  # Get commits since last tag
+  last_tag = `git describe --tags --abbrev=0`.strip rescue ""
+  if last_tag.empty?
+    puts "No previous version tag found. Fetching recent commits."
+    commits_raw = `git log --oneline -n 20`.strip rescue ""
+  else
+    puts "Fetching commits since last tag: #{last_tag}"
+    commits_raw = `git log #{last_tag}..HEAD --oneline`.strip rescue ""
+  end
+
+  commits = []
+  unless commits_raw.empty?
+    commits_raw.split("\n").reverse_each do |line|
+      parts = line.split(" ", 2)
+      sha = parts[0]
+      msg = parts[1] || ""
+      next if msg.start_with?("chore: bump version to v")
+      commits << { sha: sha, msg: msg }
+    end
+  end
+
+  types_order = ["fix", "feat", "style", "refactor", "docs", "perf", "test", "build", "ci", "chore", "revert"]
+
+  type_to_section = {
+    "fix" => "### Fixed",
+    "feat" => "### Added",
+    "style" => "### Style",
+    "refactor" => "### Refactor",
+    "docs" => "### Documentation",
+    "perf" => "### Performance",
+    "test" => "### Tests",
+    "build" => "### Build System",
+    "ci" => "### CI/CD",
+    "chore" => "### Maintenance",
+    "revert" => "### Reverted"
+  }
+
+  # Sort commits stably
+  sorted_commits = commits.sort_by.with_index do |commit, idx|
+    type = nil
+    if match = commit[:msg].match(/^([a-zA-Z0-9_-]+)(?:\([^)]+\))?(!?):/)
+      type = match[1]
+    end
+    type_idx = types_order.index(type) || types_order.length
+    [type_idx, idx]
+  end
+
+  # Flat list for version-code changelog file
+  flat_changelog = sorted_commits.map { |c| "- #{c[:sha]}  #{c[:msg]}" }.join("\n")
+
+  current_date = Time.now.strftime("%Y-%m-%d")
+
+  # Format full metadata changelog text
+  metadata_changelog = "#{get_app_name} v#{version_name} (#{current_date})\n\n"
+  metadata_changelog += "Commits included in this release:\n"
+  metadata_changelog += flat_changelog
+  metadata_changelog += "\n"
+
+  # Save metadata changelog to versionCode.txt (e.g. 3.txt)
+  require 'fileutils'
+  FileUtils.mkdir_p(changelogs_dir)
+  File.write(changelog_txt_path, metadata_changelog)
+  puts "Created changelog at #{changelog_txt_path}"
+
+  # Prepend new release section to CHANGELOG.md
+  changelog_md_path = File.join(project_root, "CHANGELOG.md")
+  if File.exist?(changelog_md_path)
+    content = File.read(changelog_md_path)
+
+    # Group commits under section headers
+    groups = Hash.new { |h, k| h[k] = [] }
+    sorted_commits.each do |c|
+      type = nil
+      if match = c[:msg].match(/^([a-zA-Z0-9_-]+)(?:\([^)]+\))?(!?):/)
+        type = match[1]
+      end
+      section = type_to_section[type] || "### Other"
+      groups[section] << c
+    end
+
+    grouped_sections = []
+    ordered_sections = types_order.map { |t| type_to_section[t] } + ["### Other"]
+    ordered_sections.uniq.each do |sec|
+      next if groups[sec].empty?
+      sec_content = "#{sec}\n\n"
+      sec_content += groups[sec].map { |c| "- #{c[:sha]}  #{c[:msg]}" }.join("\n")
+      grouped_sections << sec_content
+    end
+
+    changelog_md_content = grouped_sections.join("\n\n")
+
+    new_entry = "## [#{version_name}] - #{current_date}\n\n"
+    new_entry += changelog_md_content
+    new_entry += "\n\n"
+
+    if content.include?("---")
+      parts = content.split("---", 2)
+      updated_content = parts[0] + "---\n\n" + new_entry + parts[1].strip + "\n"
+    else
+      updated_content = "# Changelog\n\n#{new_entry}" + content
+    end
+    File.write(changelog_md_path, updated_content)
+    puts "Updated CHANGELOG.md"
+  end
+
+  # Commit version changes
+  puts "Committing version changes..."
+  sh("git add #{File.join(project_root, 'app', 'build.gradle.kts')}")
+  sh("git add #{File.join(project_root, 'fastlane', 'metadata', 'android')}")
+  sh("git add #{File.join(project_root, 'CHANGELOG.md')}")
+
+  # Check if there are changes staged before committing to avoid empty commit errors
+  staged_changes = `git diff --cached --name-only`.strip
+  if staged_changes.empty?
+    puts "No files to commit."
+  else
+    sh("git commit -m \"chore: bump version to v#{version_name}\"")
+  end
+
+  # Create local Git tag
+  sh("git tag -d #{tag_name}") rescue nil
+  sh("git tag #{tag_name}")
+  puts "Created local git tag #{tag_name}"
+
+  [tag_name, changelog_txt_path, project_root]
+end
+
 default_platform(:android)
 
 platform :android do
@@ -163,154 +306,26 @@ platform :android do
 
   desc "Build release artifacts and create a GitHub Release"
   lane :github_release do
-    # 1. Read version name and code
     version_name = get_version_name_from_gradle
     version_code = get_version_code_from_gradle
 
-    # 2. Get commits since last tag
-    last_tag = `git describe --tags --abbrev=0`.strip rescue ""
-    if last_tag.empty?
-      puts "No previous version tag found. Fetching recent commits."
-      commits_raw = `git log --oneline -n 20`.strip rescue ""
-    else
-      puts "Fetching commits since last tag: #{last_tag}"
-      commits_raw = `git log #{last_tag}..HEAD --oneline`.strip rescue ""
-    end
+    # Generate changelogs, commit, and tag (skips if already done)
+    tag_name, changelog_txt_path, project_root = prepare_release_commit(
+      version_name: version_name,
+      version_code: version_code
+    )
 
-    commits = []
-    unless commits_raw.empty?
-      commits_raw.split("\n").reverse_each do |line|
-        parts = line.split(" ", 2)
-        sha = parts[0]
-        msg = parts[1] || ""
-        next if msg.start_with?("chore: bump version to v")
-        commits << { sha: sha, msg: msg }
-      end
-    end
-
-    types_order = ["fix", "feat", "style", "refactor", "docs", "perf", "test", "build", "ci", "chore", "revert"]
-
-    type_to_section = {
-      "fix" => "### Fixed",
-      "feat" => "### Added",
-      "style" => "### Style",
-      "refactor" => "### Refactor",
-      "docs" => "### Documentation",
-      "perf" => "### Performance",
-      "test" => "### Tests",
-      "build" => "### Build System",
-      "ci" => "### CI/CD",
-      "chore" => "### Maintenance",
-      "revert" => "### Reverted"
-    }
-
-    # Sort commits stably
-    sorted_commits = commits.sort_by.with_index do |commit, idx|
-      type = nil
-      if match = commit[:msg].match(/^([a-zA-Z0-9_-]+)(?:\([^)]+\))?(!?):/)
-        type = match[1]
-      end
-      type_idx = types_order.index(type) || types_order.length
-      [type_idx, idx]
-    end
-
-    # Flat list for version-code changelog file
-    flat_changelog = sorted_commits.map { |c| "- #{c[:sha]}  #{c[:msg]}" }.join("\n")
-
-    current_date = Time.now.strftime("%Y-%m-%d")
-
-    # 3. Format full metadata changelog text
-    metadata_changelog = "#{get_app_name} v#{version_name} (#{current_date})\n\n"
-    metadata_changelog += "Commits included in this release:\n"
-    metadata_changelog += flat_changelog
-    metadata_changelog += "\n"
-
-    # 4. Save metadata changelog to versionCode.txt (e.g. 3.txt)
-    project_root = File.expand_path("..", __dir__)
-    changelogs_dir = File.join(project_root, "fastlane", "metadata", "android", "en-US", "changelogs")
-    require 'fileutils'
-    FileUtils.mkdir_p(changelogs_dir)
-    changelog_txt_path = File.join(changelogs_dir, "#{version_code}.txt")
-    File.write(changelog_txt_path, metadata_changelog)
-    puts "Created changelog at #{changelog_txt_path}"
-
-    # 5. Prepend new release section to CHANGELOG.md
-    changelog_md_path = File.join(project_root, "CHANGELOG.md")
-    if File.exist?(changelog_md_path)
-      content = File.read(changelog_md_path)
-
-      # Group commits under section headers
-      groups = Hash.new { |h, k| h[k] = [] }
-      sorted_commits.each do |c|
-        type = nil
-        if match = c[:msg].match(/^([a-zA-Z0-9_-]+)(?:\([^)]+\))?(!?):/)
-          type = match[1]
-        end
-        section = type_to_section[type] || "### Other"
-        groups[section] << c
-      end
-
-      grouped_sections = []
-      ordered_sections = types_order.map { |t| type_to_section[t] } + ["### Other"]
-      ordered_sections.uniq.each do |sec|
-        next if groups[sec].empty?
-        sec_content = "#{sec}\n\n"
-        sec_content += groups[sec].map { |c| "- #{c[:sha]}  #{c[:msg]}" }.join("\n")
-        grouped_sections << sec_content
-      end
-
-      changelog_md_content = grouped_sections.join("\n\n")
-
-      new_entry = "## [#{version_name}] - #{current_date}\n\n"
-      new_entry += changelog_md_content
-      new_entry += "\n\n"
-
-      if content.include?("---")
-        parts = content.split("---", 2)
-        updated_content = parts[0] + "---\n\n" + new_entry + parts[1].strip + "\n"
-      else
-        updated_content = "# Changelog\n\n#{new_entry}" + content
-      end
-      File.write(changelog_md_path, updated_content)
-      puts "Updated CHANGELOG.md"
-    end
-
-    # 6. Commit version changes
-    # Files to include:
-    #   app/build.gradle.kts
-    #   all files in fastlane/metadata/android/
-    #   CHANGELOG.md
-    puts "Committing version changes..."
-    sh("git add #{File.join(project_root, 'app', 'build.gradle.kts')}")
-    sh("git add #{File.join(project_root, 'fastlane', 'metadata', 'android')}")
-    sh("git add #{changelog_md_path}")
-
-    # Check if there are changes staged before committing to avoid empty commit errors
-    staged_changes = `git diff --cached --name-only`.strip
-    if staged_changes.empty?
-      puts "No files to commit."
-    else
-      sh("git commit -m \"chore: bump version to v#{version_name}\"")
-    end
-
-    # 7. Create local Git tag
-    tag_name = "v#{version_name}"
-    sh("git tag -d #{tag_name}") rescue nil
-    sh("git tag #{tag_name}")
-    puts "Created local git tag #{tag_name}"
-
-    # 8. Build release APKs
+    # Build release APKs
     puts "Building release APKs..."
     build_release
 
-    # 9. Push current branch and tag to GitHub
+    # Push current branch and tag to GitHub
     current_branch = `git rev-parse --abbrev-ref HEAD`.strip
     puts "Pushing branch #{current_branch} and tag #{tag_name} to origin..."
     sh("git push origin #{current_branch}")
     sh("git push origin #{tag_name} --force")
 
-    # 10. Create GitHub Release using gh CLI and upload all release APKs as assets
-    # Get all .apk files in the release outputs
+    # Create GitHub Release using gh CLI and upload all release APKs as assets
     release_apk_dir = File.join(project_root, "app", "build", "outputs", "apk", "release")
     apk_files = Dir.glob(File.join(release_apk_dir, "**", "*.apk"))
     if apk_files.empty?
@@ -324,13 +339,27 @@ platform :android do
     # Quote the paths to handle any potential spaces or special characters
     apk_files_str = apk_files.map { |f| "\"#{f}\"" }.join(" ")
 
-    # Delete remote release first if it already exists to avoid conflict
-    sh("gh release delete #{tag_name} --yes") rescue nil
+    max_retries = 3
+    attempt = 0
+    begin
+      attempt += 1
+      # Delete remote release first if it already exists to avoid conflict
+      sh("gh release delete #{tag_name} --yes") rescue nil
 
-    # Run gh release create
-    puts "Creating GitHub Release #{tag_name}..."
-    sh("gh release create #{tag_name} #{apk_files_str} --title \"#{tag_name}\" -F \"#{changelog_txt_path}\"")
-    puts "GitHub Release #{tag_name} successfully created!"
+      # Run gh release create
+      puts "Creating GitHub Release #{tag_name} (Attempt #{attempt}/#{max_retries})..."
+      sh("gh release create #{tag_name} #{apk_files_str} --title \"#{tag_name}\" -F \"#{changelog_txt_path}\"")
+      puts "GitHub Release #{tag_name} successfully created!"
+    rescue => e
+      if attempt < max_retries
+        wait = attempt * 30
+        puts "GitHub release creation failed. Retrying in #{wait}s..."
+        sleep(wait)
+        retry
+      else
+        raise e
+      end
+    end
   end
 
   desc "Run tests"
