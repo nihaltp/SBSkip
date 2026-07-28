@@ -29,6 +29,12 @@ class MediaProcessingManager
                 // Copy imported SAF Content URI file locally to cache for native random-access FFmpeg copy seeking
                 downloadStorage.copyUriToTempFile(localFileUri, tempInputFile)
 
+                if (plan.keepRanges.isEmpty() && !plan.convertVideoToAudio) {
+                    onProgress(100)
+                    tempInputFile.renameTo(tempOutputFile)
+                    return tempOutputFile
+                }
+
                 // Process media with FFmpeg
                 mediaProcessor.processMedia(
                     tempInputFile,

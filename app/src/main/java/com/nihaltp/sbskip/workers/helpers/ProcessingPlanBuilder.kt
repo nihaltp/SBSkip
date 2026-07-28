@@ -16,7 +16,7 @@ class ProcessingPlanBuilder
             segments: List<SponsorBlockSegment>?,
         ): ProcessingPlan {
             val keepRanges = mutableListOf<Pair<Double, Double>>()
-            if (item.url.isNotBlank() && !item.url.startsWith("sbskip://") && segments != null) {
+            if (item.url.isNotBlank() && !item.url.startsWith("sbskip://") && !segments.isNullOrEmpty()) {
                 val computedKeepRanges = SegmentProcessor.computeKeepRanges(segments, fileDuration.toDouble())
                 keepRanges.addAll(computedKeepRanges)
                 AppLogger.worker("Computed ${keepRanges.size} keep ranges from segments")
