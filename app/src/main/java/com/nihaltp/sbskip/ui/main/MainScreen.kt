@@ -225,6 +225,9 @@ fun MainScreen(
                         onDismissToast(toast.id)
                     }
                 },
+                onDismissToast = { toast ->
+                    onDismissToast(toast.id)
+                },
             )
         },
     ) { paddingValues ->
