@@ -11,7 +11,6 @@ import com.nihaltp.sbskip.R
 import com.nihaltp.sbskip.data.repository.QueueRepository
 import com.nihaltp.sbskip.data.repository.SettingsRepository
 import com.nihaltp.sbskip.model.AudioFolderPickTarget
-import com.nihaltp.sbskip.model.AudioSaveMode
 import com.nihaltp.sbskip.model.DetectedFile
 import com.nihaltp.sbskip.model.MainUiState
 import com.nihaltp.sbskip.model.MediaType
@@ -271,7 +270,7 @@ class MainViewModel
             viewModelScope.launch {
                 val detected = pendingDownload.detectedFile ?: return@launch
                 val detectedName = pendingDownload.detectedFileName ?: context.getString(R.string.detected_file_fallback)
-                enqueuePendingDownload(pendingDownload, detected.uri, detectedName)
+                enqueuePendingDownload(pendingDownload, detected.uri, detectedName, detected.relativePath, detected.folderUri)
             }
         }
 
@@ -291,6 +290,8 @@ class MainViewModel
             pendingDownload: PendingDownload,
             fileUri: String,
             displayName: String,
+            knownRelativePath: String? = null,
+            knownFolderUri: String? = null,
             customFolderUri: String? = null,
         ) {
             val settings = settingsRepository.settings.first()
@@ -310,20 +311,28 @@ class MainViewModel
                     MediaType.VIDEO
                 }
 
-            var finalFolderUri = customFolderUri
-            var relativePath: String? = null
+            var finalFolderUri: String? = customFolderUri
+            var relativePath: String = ""
 
             if (finalFolderUri == null) {
-                val matched = downloadStorage.getMatchedWatchlistFolder(fileUri)
-                if (matched != null) {
-                    if (downloadStorage.hasPersistedPermission(matched.folder.uri)) {
-                        finalFolderUri = matched.folder.uri
-                        relativePath = matched.relativePath
+                // If it's audio and user wants to save to the SAME directory where the original was found
+                // OR if it's video, we check if the source file is in a watchlist folder.
+                if ((mediaType == MediaType.AUDIO && settings.audioSaveMode == AudioSaveMode.PRESET_FOLDER) || mediaType == MediaType.VIDEO) {
+                    if (knownFolderUri != null) {
+                        finalFolderUri = knownFolderUri
+                        relativePath = knownRelativePath ?: ""
                     } else {
+                        val matched = downloadStorage.getMatchedWatchlistFolder(fileUri)
+                        if (matched != null) {
+                            finalFolderUri = matched.folder.uri
+                            relativePath = matched.relativePath
+                        }
+                    }
+                    if (finalFolderUri != null && !downloadStorage.hasPersistedPermission(finalFolderUri!!)) {
                         _uiState.update {
                             it.copy(
                                 showPermissionRevokedDialog = true,
-                                revokedWatchlistFolder = matched.folder,
+                                revokedWatchlistFolder = settings.watchlist.find { folder -> folder.uri == finalFolderUri } ?: com.nihaltp.sbskip.model.WatchlistFolder("", ""),
                                 pendingEnqueueData =
                                     PendingEnqueueData(
                                         fileUri = fileUri,
@@ -1060,7 +1069,12 @@ class MainViewModel
                             if (it.videoId == pendingDownload.videoId) {
                                 it.copy(
                                     isDetectingFile = false,
-                                    detectedFile = DetectedFile(uri = bestCandidate.uri, score = bestCandidate.score),
+                                    detectedFile = DetectedFile(
+                                        uri = bestCandidate.uri,
+                                        score = bestCandidate.score,
+                                        relativePath = bestCandidate.relativePath,
+                                        folderUri = bestCandidate.folderUri
+                                    ),
                                     detectedFileName = detectedName,
                                 )
                             } else {
@@ -1078,7 +1092,12 @@ class MainViewModel
             if (settings.autoStartCleaning) {
                 val updatedPendingDownload =
                     pendingDownload.copy(
-                        detectedFile = DetectedFile(uri = bestCandidate.uri, score = bestCandidate.score),
+                        detectedFile = DetectedFile(
+                            uri = bestCandidate.uri,
+                            score = bestCandidate.score,
+                            relativePath = bestCandidate.relativePath,
+                            folderUri = bestCandidate.folderUri
+                        ),
                         detectedFileName = detectedName,
                     )
                 confirmDetectedFile(updatedPendingDownload)
@@ -1157,35 +1176,53 @@ class MainViewModel
                             val folderUri = Uri.parse(folderUriStr)
                             val dirFile = DocumentFile.fromTreeUri(context, folderUri)
                             if (dirFile != null && dirFile.exists() && dirFile.isDirectory) {
-                                val files = dirFile.listFiles()
-                                AppLogger.metadata("AutoDetect: SAF watchlist directory contains ${files.size} files.")
-                                files.forEach filesLoop@{ file ->
-                                    if (file.isFile && file.name != null) {
-                                        val displayName = file.name!!
-                                        val timestampMillis = file.lastModified()
+                                val queue = ArrayDeque<Pair<androidx.documentfile.provider.DocumentFile, String>>()
+                                queue.add(Pair(dirFile, ""))
+                                var fileCount = 0
 
-                                        val score =
-                                            scoreCandidate(
-                                                pendingDownload = pendingDownload,
-                                                displayName = displayName,
-                                                relativePath = relativePathHint,
-                                                durationSeconds = null,
-                                                timestampMillis = if (timestampMillis > 0) timestampMillis else now,
-                                                settings = settings,
+                                while (queue.isNotEmpty()) {
+                                    val (currentDir, currentRelPath) = queue.removeFirst()
+                                    val files = currentDir.listFiles()
+                                    
+                                    files.forEach filesLoop@{ file ->
+                                        if (file.isDirectory) {
+                                            val dirName = file.name
+                                            if (dirName != null) {
+                                                queue.add(Pair(file, "$currentRelPath$dirName/"))
+                                            }
+                                        } else if (file.isFile && file.name != null) {
+                                            fileCount++
+                                            val displayName = file.name!!
+                                            val timestampMillis = file.lastModified()
+                                            
+                                            val actualRelPath = "$relativePathHint$currentRelPath"
+
+                                            val score =
+                                                scoreCandidate(
+                                                    pendingDownload = pendingDownload,
+                                                    displayName = displayName,
+                                                    relativePath = actualRelPath,
+                                                    durationSeconds = null,
+                                                    timestampMillis = if (timestampMillis > 0) timestampMillis else now,
+                                                    settings = settings,
+                                                )
+
+                                            AppLogger.metadata(
+                                                "AutoDetect: Scored SAF watchlist file displayName='$displayName' uri=${file.uri} score=$score",
                                             )
-
-                                        AppLogger.metadata(
-                                            "AutoDetect: Scored SAF watchlist file displayName='$displayName' uri=${file.uri} score=$score",
-                                        )
-                                        candidates.add(
-                                            DetectedCandidate(
-                                                uri = file.uri.toString(),
-                                                score = score,
-                                                fallbackName = displayName,
-                                            ),
-                                        )
+                                            candidates.add(
+                                                DetectedCandidate(
+                                                    uri = file.uri.toString(),
+                                                    score = score,
+                                                    fallbackName = displayName,
+                                                    relativePath = actualRelPath,
+                                                    folderUri = folderUriStr,
+                                                ),
+                                            )
+                                        }
                                     }
                                 }
+                                AppLogger.metadata("AutoDetect: SAF watchlist directory recursive scan found $fileCount files.")
                             } else {
                                 AppLogger.metadata("AutoDetect: Direct SAF watchlist directory not found/resolved for URI: $folderUriStr")
                             }
@@ -1322,6 +1359,8 @@ class MainViewModel
             val uri: String,
             val score: Int,
             val fallbackName: String,
+            val relativePath: String? = null,
+            val folderUri: String? = null,
         )
 
         @Serializable
