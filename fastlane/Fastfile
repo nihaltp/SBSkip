@@ -76,8 +76,15 @@ def resolve_abi_apk(device_id)
 
   split_apk = File.expand_path("../app/build/outputs/apk/debug/#{apk_name}", __dir__)
   universal_apk = File.expand_path("../app/build/outputs/apk/debug/app-universal-debug.apk", __dir__)
+  default_apk = File.expand_path("../app/build/outputs/apk/debug/app-debug.apk", __dir__)
 
-  File.exist?(split_apk) ? split_apk : universal_apk
+  if File.exist?(split_apk)
+    split_apk
+  elsif File.exist?(universal_apk)
+    universal_apk
+  else
+    default_apk
+  end
 end
 
 # Generates changelogs, commits version bump, and creates a local git tag.
@@ -368,7 +375,7 @@ platform :android do
   end
 
   desc "Capture screenshots of the application using Screengrab"
-  lane :screenshots do
+  lane :screenshots do |options|
     # Resolve device ID first
     properties = {}
     [File.expand_path("local.properties", __dir__), File.expand_path("../local.properties", __dir__)].each do |properties_path|
@@ -400,10 +407,12 @@ platform :android do
     gradle(task: "assembleDebug")
     gradle(task: "assembleDebugAndroidTest")
 
+    debug_application_id = "#{get_application_id}.debug"
+
     # Uninstall existing packages to ensure a clean state
     puts "Uninstalling previous installations..."
-    sh("adb -s #{device_id} uninstall #{get_application_id}.debug") rescue nil
-    sh("adb -s #{device_id} uninstall #{get_application_id}.debug.test") rescue nil
+    sh("adb -s #{device_id} uninstall #{debug_application_id}") rescue nil
+    sh("adb -s #{device_id} uninstall #{debug_application_id}.test") rescue nil
 
     # Install both debug and test APKs
     puts "Installing debug and test APKs..."
@@ -414,8 +423,8 @@ platform :android do
 
     # Silence app notifications while capturing screenshots so heads-up banners do not appear.
     puts "Temporarily muting app notifications for screenshots..."
-    sh("adb -s #{device_id} shell appops set #{get_application_id}.debug POST_NOTIFICATION ignore") rescue nil
-    sh("adb -s #{device_id} shell appops set #{get_application_id}.debug.test POST_NOTIFICATION ignore") rescue nil
+    sh("adb -s #{device_id} shell appops set #{debug_application_id} POST_NOTIFICATION ignore") rescue nil
+    sh("adb -s #{device_id} shell appops set #{debug_application_id}.test POST_NOTIFICATION ignore") rescue nil
 
     # Clean previous screenshots on the device
     puts "Clearing previous screenshots on device..."
@@ -476,13 +485,13 @@ platform :android do
       sh("adb -s #{device_id} shell am broadcast -a com.android.systemui.demo -e command exit") rescue nil
 
       # Restore original DND setting precisely
-      sh("adb -s #{device_id} shell appops set #{get_application_id}.debug POST_NOTIFICATION allow") rescue nil
-      sh("adb -s #{device_id} shell appops set #{get_application_id}.debug.test POST_NOTIFICATION allow") rescue nil
+      sh("adb -s #{device_id} shell appops set #{debug_application_id} POST_NOTIFICATION allow") rescue nil
+      sh("adb -s #{device_id} shell appops set #{debug_application_id}.test POST_NOTIFICATION allow") rescue nil
       puts "Restoring original DND zen_mode state to: #{original_zen_mode}..."
       sh("adb -s #{device_id} shell settings put global zen_mode #{original_zen_mode}") rescue nil
     end
 
     # Uninstall the app after screenshots are captured
-    sh("adb -s #{device_id} uninstall #{get_application_id}.debug.test") rescue nil
+    sh("adb -s #{device_id} uninstall #{get_application_id}.test") rescue nil
   end
 end
