@@ -33,8 +33,8 @@ android {
         applicationId = "com.nihaltp.sbskip"
         minSdk = 26
         targetSdk = 35
-        versionCode = 12
-        versionName = "1.7.0"
+        versionCode = 13
+        versionName = "1.8.0"
 
         val changelogsDir = rootProject.file("fastlane/metadata/android/en-US/changelogs")
         var latestChangelog = ""
@@ -43,7 +43,7 @@ android {
                 ?.filter { it.extension == "txt" && it.nameWithoutExtension.toIntOrNull() != null }
                 ?.maxByOrNull { it.nameWithoutExtension.toInt() }
             if (latestFile != null && latestFile.exists()) {
-                val text = latestFile.readText().replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n")
+                val text = latestFile.readText().replace("\\", "\\\\").replace("\"", "\\\"").replace("\r", "").replace("\n", "\\n")
                 latestChangelog = text
             }
         }

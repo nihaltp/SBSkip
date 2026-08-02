@@ -1,0 +1,21 @@
+SB Skip v1.8.0 (2026-08-02)
+
+Commits included in this release:
+- dc03919  feat: enhance AndroidDownloadStorage to handle relative paths correctly
+- 3f025fc  feat: add changelog dialog to settings screen and update build config to include latest changelog
+- a4d919b  feat: add translation request template and update related strings in settings
+- 4c48c8c  feat: integrate AboutLibraries plugin and update dependencies in build.gradle
+- 11c0c78  feat: add Turkish localization for strings and update translatable attributes
+- eb679ef  feat: add language selection feature and support for Turkish localization
+- 77cef5e  feat: add Turkish localization support and update metadata for app descriptions
+- 5fe2af4  feat: update ScreenshotTest to enhance screenshot capturing and scrolling functionality
+- 745cb65  feat: enhance APK resolution logic and improve screenshot lane for debug builds
+- aafbf97  style: add border styling to buttons in PendingDownloadCard for improved UI
+- b4a9da2  refactor: update MainViewModel to pass relativePath and folderUri in enqueuePendingDownload
+- f90a5c9  refactor: remove AudioSaveMode and related functionality from settings and models
+- 3ecdd89  test: add unit tests for DetectedFile and PendingEnqueueData relativePath and folderUri
+- 8bff1ab  chore: bump fastlane from 2.236.1 to 2.237.0
+- 3864708  chore: bump com.squareup.retrofit2:retrofit from 2.11.0 to 3.0.0 in /app
+- b0cadc4  chore: bump androidx.compose:compose-bom from 2024.02.02 to 2026.06.01
+- 785ff06  chore: Refactor release lane and add GH retry
+- dd715fa  chore: update Kotlin plugin versions to 2.0.21 and add compose plugin
