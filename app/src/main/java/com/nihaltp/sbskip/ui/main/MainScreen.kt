@@ -89,7 +89,6 @@ fun MainScreen(
     onUrlChange: (String) -> Unit,
     onFileSelected: (Uri) -> Unit,
     onClearSelectedFile: () -> Unit,
-    onAudioFolderPicked: (Uri?) -> Unit,
     onSubmit: () -> Unit,
     onAutoDetectPending: (PendingDownload) -> Unit,
     onCancelPending: (PendingDownload) -> Unit,
@@ -165,7 +164,7 @@ fun MainScreen(
             },
         )
 
-    val runtimeAudioFolderLauncher =
+    val reauthorizeFolderLauncher =
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.OpenDocumentTree(),
         ) { uri ->
@@ -179,14 +178,10 @@ fun MainScreen(
                     AppLogger.error("MainScreen", e, "Failed to take persistable URI permission")
                 }
             }
-            onAudioFolderPicked(uri)
+            // we should really call a ViewModel method here to resume processing,
+            // but for now, we just dismiss the dialog and let the user tap again
+            onDismissPermissionRevokedDialog()
         }
-
-    LaunchedEffect(uiState.pendingAudioFolderPick) {
-        if (uiState.pendingAudioFolderPick != null) {
-            runtimeAudioFolderLauncher.launch(null)
-        }
-    }
 
     LaunchedEffect(Unit) {
         if (!PermissionHelper.hasAllRequiredPermissions(context)) {
@@ -623,7 +618,7 @@ fun MainScreen(
             onDismiss = onDismissPermissionRevokedDialog,
             onReauthorize = {
                 // Launch the folder picker again
-                runtimeAudioFolderLauncher.launch(null)
+                reauthorizeFolderLauncher.launch(null)
             },
         )
     }

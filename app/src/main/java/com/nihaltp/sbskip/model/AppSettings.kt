@@ -22,7 +22,6 @@ data class AppSettings(
     val autoStartCleaning: Boolean = true,
     val defaultConvertVideoToAudio: Boolean = false,
     val defaultDeleteOriginalVideo: Boolean = true,
-    val audioSaveMode: AudioSaveMode = AudioSaveMode.RUNTIME_PICKER,
     val bypassSmallDurationDifference: Boolean = false,
     val maxDurationDifferenceSeconds: Int = 1,
     val watchlist: List<WatchlistFolder> = emptyList(),

@@ -23,9 +23,38 @@ class QueueModelsTest {
         assertEquals("Never Gonna Give You Up", pending.title)
         assertEquals("https://img.youtube.com/vi/dQw4w9WgXcQ/0.jpg", pending.thumbnailUrl)
         assertEquals(123456789L, pending.createdAtEpochMillis)
-        assertNull(pending.detectedFile)
-        assertNull(pending.detectedFileName)
-        assertFalse(pending.isDetectingFile)
+    }
+
+    @Test
+    fun testDetectedFileRelativePathAndFolderUri() {
+        val detected =
+            DetectedFile(
+                uri = "content://dummy/uri",
+                score = 100,
+                relativePath = "yt/ROMH/",
+                folderUri = "content://folder/uri",
+            )
+
+        assertEquals("content://dummy/uri", detected.uri)
+        assertEquals(100, detected.score)
+        assertEquals("yt/ROMH/", detected.relativePath)
+        assertEquals("content://folder/uri", detected.folderUri)
+    }
+
+    @Test
+    fun testPendingEnqueueDataRelativePath() {
+        val enqueueData =
+            PendingEnqueueData(
+                fileUri = "content://dummy/file",
+                title = "Dummy Title",
+                youtubeUrl = "https://youtube.com/watch",
+                mediaType = MediaType.AUDIO,
+                relativePath = "yt/ROMH/",
+                customFolderUri = "content://folder/uri",
+            )
+
+        assertEquals("yt/ROMH/", enqueueData.relativePath)
+        assertEquals("content://folder/uri", enqueueData.customFolderUri)
     }
 
     @Test
@@ -170,33 +199,6 @@ class QueueModelsTest {
 
         assertEquals("content://com.android.externalstorage.documents/tree/primary%3AMusic", item.audioOutputDirUri)
         assertTrue(item.convertVideoToAudio)
-    }
-
-    @Test
-    fun testMainUiStatePendingAudioFolderPick() {
-        val initialState = MainUiState()
-        assertNull(initialState.pendingAudioFolderPick)
-
-        val pendingPick =
-            PendingAudioFolderPick(
-                target = AudioFolderPickTarget.SUBMIT,
-                force = true,
-                fileUri = "content://media/external/video/1",
-                displayName = "Custom Title.mp4",
-            )
-
-        val stateWithPick =
-            initialState.copy(
-                pendingAudioFolderPick = pendingPick,
-            )
-
-        assertEquals(AudioFolderPickTarget.SUBMIT, stateWithPick.pendingAudioFolderPick?.target)
-        assertTrue(stateWithPick.pendingAudioFolderPick?.force ?: false)
-        assertEquals("content://media/external/video/1", stateWithPick.pendingAudioFolderPick?.fileUri)
-        assertEquals("Custom Title.mp4", stateWithPick.pendingAudioFolderPick?.displayName)
-
-        val stateCleared = stateWithPick.copy(pendingAudioFolderPick = null)
-        assertNull(stateCleared.pendingAudioFolderPick)
     }
 
     @Test

@@ -39,7 +39,6 @@ fun AppNavGraph(
                 onUrlChange = viewModel::onUrlChanged,
                 onFileSelected = viewModel::onFileSelected,
                 onClearSelectedFile = viewModel::clearSelectedFile,
-                onAudioFolderPicked = viewModel::onAudioFolderPicked,
                 onSubmit = viewModel::queueCurrentItem,
                 onAutoDetectPending = viewModel::autoDetectAndClean,
                 onCancelPending = viewModel::cancelPendingDownload,

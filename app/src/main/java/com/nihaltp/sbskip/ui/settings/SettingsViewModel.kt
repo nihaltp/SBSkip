@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nihaltp.sbskip.data.repository.SettingsRepository
 import com.nihaltp.sbskip.model.AppSettings
-import com.nihaltp.sbskip.model.AudioSaveMode
 import com.nihaltp.sbskip.model.DownloaderType
 import com.nihaltp.sbskip.model.SponsorBlockCategory
 import com.nihaltp.sbskip.model.ThemeMode
@@ -33,12 +32,6 @@ class SettingsViewModel
         fun updateThemeMode(themeMode: ThemeMode) {
             viewModelScope.launch {
                 settingsRepository.update { it.copy(themeMode = themeMode) }
-            }
-        }
-
-        fun updateAudioSaveMode(audioSaveMode: AudioSaveMode) {
-            viewModelScope.launch {
-                settingsRepository.update { it.copy(audioSaveMode = audioSaveMode) }
             }
         }
 

@@ -10,7 +10,6 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.nihaltp.sbskip.model.AppSettings
-import com.nihaltp.sbskip.model.AudioSaveMode
 import com.nihaltp.sbskip.model.DownloaderType
 import com.nihaltp.sbskip.model.SponsorBlockCategory
 import com.nihaltp.sbskip.model.SponsorBlockSettings
@@ -55,7 +54,6 @@ class DataStoreSettingsRepository
             val SPONSORBLOCK_STATUS_URL = stringPreferencesKey("sponsorblock_status_url")
             val DEFAULT_CONVERT_VIDEO_TO_AUDIO = booleanPreferencesKey("default_convert_video_to_audio")
             val DEFAULT_DELETE_ORIGINAL_VIDEO = booleanPreferencesKey("default_delete_original_video")
-            val AUDIO_SAVE_MODE = stringPreferencesKey("audio_save_mode")
             val BYPASS_SMALL_DURATION_DIFFERENCE = booleanPreferencesKey("bypass_small_duration_difference")
             val MAX_DURATION_DIFFERENCE_SECONDS = intPreferencesKey("max_duration_difference_seconds")
             val WATCHLIST = stringPreferencesKey("watchlist")
@@ -72,11 +70,6 @@ class DataStoreSettingsRepository
                     runCatching {
                         DownloaderType.valueOf(preferences[PreferencesKeys.DOWNLOADER] ?: DownloaderType.NEWPIPE.name)
                     }.getOrDefault(DownloaderType.NEWPIPE)
-
-                val audioSaveMode =
-                    runCatching {
-                        AudioSaveMode.valueOf(preferences[PreferencesKeys.AUDIO_SAVE_MODE] ?: AudioSaveMode.RUNTIME_PICKER.name)
-                    }.getOrDefault(AudioSaveMode.RUNTIME_PICKER)
 
                 val categories =
                     preferences[PreferencesKeys.SB_CATEGORIES]?.mapNotNull { name ->
@@ -111,7 +104,6 @@ class DataStoreSettingsRepository
                     autoStartCleaning = preferences[PreferencesKeys.AUTO_START_CLEANING] ?: true,
                     defaultConvertVideoToAudio = preferences[PreferencesKeys.DEFAULT_CONVERT_VIDEO_TO_AUDIO] ?: false,
                     defaultDeleteOriginalVideo = preferences[PreferencesKeys.DEFAULT_DELETE_ORIGINAL_VIDEO] ?: true,
-                    audioSaveMode = audioSaveMode,
                     bypassSmallDurationDifference = preferences[PreferencesKeys.BYPASS_SMALL_DURATION_DIFFERENCE] ?: false,
                     maxDurationDifferenceSeconds = preferences[PreferencesKeys.MAX_DURATION_DIFFERENCE_SECONDS] ?: 1,
                     watchlist =
@@ -161,10 +153,6 @@ class DataStoreSettingsRepository
                         autoStartCleaning = preferences[PreferencesKeys.AUTO_START_CLEANING] ?: true,
                         defaultConvertVideoToAudio = preferences[PreferencesKeys.DEFAULT_CONVERT_VIDEO_TO_AUDIO] ?: false,
                         defaultDeleteOriginalVideo = preferences[PreferencesKeys.DEFAULT_DELETE_ORIGINAL_VIDEO] ?: true,
-                        audioSaveMode =
-                            runCatching {
-                                AudioSaveMode.valueOf(preferences[PreferencesKeys.AUDIO_SAVE_MODE] ?: AudioSaveMode.RUNTIME_PICKER.name)
-                            }.getOrDefault(AudioSaveMode.RUNTIME_PICKER),
                         bypassSmallDurationDifference = preferences[PreferencesKeys.BYPASS_SMALL_DURATION_DIFFERENCE] ?: false,
                         maxDurationDifferenceSeconds = preferences[PreferencesKeys.MAX_DURATION_DIFFERENCE_SECONDS] ?: 1,
                         watchlist =
@@ -194,7 +182,6 @@ class DataStoreSettingsRepository
                 preferences[PreferencesKeys.AUTO_START_CLEANING] = updated.autoStartCleaning
                 preferences[PreferencesKeys.DEFAULT_CONVERT_VIDEO_TO_AUDIO] = updated.defaultConvertVideoToAudio
                 preferences[PreferencesKeys.DEFAULT_DELETE_ORIGINAL_VIDEO] = updated.defaultDeleteOriginalVideo
-                preferences[PreferencesKeys.AUDIO_SAVE_MODE] = updated.audioSaveMode.name
                 preferences[PreferencesKeys.BYPASS_SMALL_DURATION_DIFFERENCE] = updated.bypassSmallDurationDifference
                 preferences[PreferencesKeys.MAX_DURATION_DIFFERENCE_SECONDS] = updated.maxDurationDifferenceSeconds
                 preferences[PreferencesKeys.WATCHLIST] = json.encodeToString(updated.watchlist)

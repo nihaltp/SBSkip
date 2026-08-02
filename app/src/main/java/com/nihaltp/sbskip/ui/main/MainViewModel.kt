@@ -10,11 +10,9 @@ import androidx.lifecycle.viewModelScope
 import com.nihaltp.sbskip.R
 import com.nihaltp.sbskip.data.repository.QueueRepository
 import com.nihaltp.sbskip.data.repository.SettingsRepository
-import com.nihaltp.sbskip.model.AudioFolderPickTarget
 import com.nihaltp.sbskip.model.DetectedFile
 import com.nihaltp.sbskip.model.MainUiState
 import com.nihaltp.sbskip.model.MediaType
-import com.nihaltp.sbskip.model.PendingAudioFolderPick
 import com.nihaltp.sbskip.model.PendingDownload
 import com.nihaltp.sbskip.model.PendingEnqueueData
 import com.nihaltp.sbskip.model.SponsorBlockCategory
@@ -148,43 +146,6 @@ class MainViewModel
             _uiState.update { it.copy(deleteOriginalVideo = value) }
         }
 
-        fun onAudioFolderPicked(uri: Uri?) {
-            val state = uiState.value
-            val pendingPick = state.pendingAudioFolderPick ?: return
-            _uiState.update { it.copy(pendingAudioFolderPick = null) }
-
-            if (uri == null) {
-                if (pendingPick.target == AudioFolderPickTarget.SUBMIT) {
-                    _uiState.update { it.copy(pendingEnqueueData = null, showDurationMismatchDialog = false) }
-                }
-                return
-            }
-
-            viewModelScope.launch {
-                when (pendingPick.target) {
-                    AudioFolderPickTarget.SUBMIT -> {
-                        queueCurrentItemInternal(force = pendingPick.force, customFolderUri = uri.toString())
-                    }
-                    AudioFolderPickTarget.CONFIRM_PENDING -> {
-                        val pendingDownload = pendingPick.pendingDownload ?: return@launch
-                        val fileUri = pendingPick.fileUri ?: return@launch
-                        val displayName = pendingPick.displayName ?: return@launch
-                        enqueuePendingDownload(pendingDownload, fileUri, displayName, customFolderUri = uri.toString())
-                    }
-                    AudioFolderPickTarget.PROCEED_MISMATCH -> {
-                        val pending = state.pendingEnqueueData ?: return@launch
-                        _uiState.update {
-                            it.copy(
-                                selectedFileUri = pending.fileUri,
-                                selectedFileName = pending.title,
-                            )
-                        }
-                        queueCurrentItemInternal(force = true, customFolderUri = uri.toString())
-                    }
-                }
-            }
-        }
-
         fun queueCurrentItem() {
             viewModelScope.launch {
                 queueCurrentItemInternal()
@@ -315,55 +276,42 @@ class MainViewModel
             var relativePath: String = ""
 
             if (finalFolderUri == null) {
-                // If it's audio and user wants to save to the SAME directory where the original was found
-                // OR if it's video, we check if the source file is in a watchlist folder.
-                if ((mediaType == MediaType.AUDIO && settings.audioSaveMode == AudioSaveMode.PRESET_FOLDER) || mediaType == MediaType.VIDEO) {
-                    if (knownFolderUri != null) {
-                        finalFolderUri = knownFolderUri
-                        relativePath = knownRelativePath ?: ""
-                    } else {
-                        val matched = downloadStorage.getMatchedWatchlistFolder(fileUri)
-                        if (matched != null) {
-                            finalFolderUri = matched.folder.uri
-                            relativePath = matched.relativePath
-                        }
-                    }
-                    if (finalFolderUri != null && !downloadStorage.hasPersistedPermission(finalFolderUri!!)) {
-                        _uiState.update {
-                            it.copy(
-                                showPermissionRevokedDialog = true,
-                                revokedWatchlistFolder = settings.watchlist.find { folder -> folder.uri == finalFolderUri } ?: com.nihaltp.sbskip.model.WatchlistFolder("", ""),
-                                pendingEnqueueData =
-                                    PendingEnqueueData(
-                                        fileUri = fileUri,
-                                        title = displayName.ifBlank { pendingDownload.title },
-                                        youtubeUrl = pendingDownload.url,
-                                        mediaType = mediaType,
-                                        convertVideoToAudio = convertVideoToAudio,
-                                        deleteOriginalVideo = deleteOriginalVideo,
-                                        customFolderUri = customFolderUri,
-                                        pendingDownload = pendingDownload,
-                                    ),
-                            )
-                        }
-                        return
+                // We check if the source file is in a watchlist folder.
+                if (knownFolderUri != null) {
+                    finalFolderUri = knownFolderUri
+                    relativePath = knownRelativePath ?: ""
+                } else {
+                    val matched = downloadStorage.getMatchedWatchlistFolder(fileUri)
+                    if (matched != null) {
+                        finalFolderUri = matched.folder.uri
+                        relativePath = matched.relativePath
                     }
                 }
-            }
 
-            if (mediaType == MediaType.AUDIO && settings.audioSaveMode == AudioSaveMode.RUNTIME_PICKER && finalFolderUri == null) {
-                _uiState.update {
-                    it.copy(
-                        pendingAudioFolderPick =
-                            PendingAudioFolderPick(
-                                target = AudioFolderPickTarget.CONFIRM_PENDING,
-                                pendingDownload = pendingDownload,
-                                fileUri = fileUri,
-                                displayName = displayName,
-                            ),
-                    )
+                if (finalFolderUri != null && !downloadStorage.hasPersistedPermission(finalFolderUri!!)) {
+                    _uiState.update {
+                        it.copy(
+                            showPermissionRevokedDialog = true,
+                            revokedWatchlistFolder =
+                                settings.watchlist.find {
+                                        folder ->
+                                    folder.uri == finalFolderUri
+                                } ?: com.nihaltp.sbskip.model.WatchlistFolder("", ""),
+                            pendingEnqueueData =
+                                PendingEnqueueData(
+                                    fileUri = fileUri,
+                                    title = displayName.ifBlank { pendingDownload.title },
+                                    youtubeUrl = pendingDownload.url,
+                                    mediaType = mediaType,
+                                    convertVideoToAudio = convertVideoToAudio,
+                                    deleteOriginalVideo = deleteOriginalVideo,
+                                    customFolderUri = customFolderUri,
+                                    pendingDownload = pendingDownload,
+                                ),
+                        )
+                    }
+                    return
                 }
-                return
             }
 
             // Conflict check!
@@ -784,19 +732,6 @@ class MainViewModel
                 }
             }
 
-            if (mediaType == MediaType.AUDIO && settings.audioSaveMode == AudioSaveMode.RUNTIME_PICKER && finalFolderUri == null) {
-                _uiState.update {
-                    it.copy(
-                        pendingAudioFolderPick =
-                            PendingAudioFolderPick(
-                                target = AudioFolderPickTarget.SUBMIT,
-                                force = force,
-                            ),
-                    )
-                }
-                return
-            }
-
             if (!isConvertOnly) {
                 if (youtubeUrl.isBlank()) {
                     showToast(context.getString(R.string.snackbar_paste_first))
@@ -1069,12 +1004,13 @@ class MainViewModel
                             if (it.videoId == pendingDownload.videoId) {
                                 it.copy(
                                     isDetectingFile = false,
-                                    detectedFile = DetectedFile(
-                                        uri = bestCandidate.uri,
-                                        score = bestCandidate.score,
-                                        relativePath = bestCandidate.relativePath,
-                                        folderUri = bestCandidate.folderUri
-                                    ),
+                                    detectedFile =
+                                        DetectedFile(
+                                            uri = bestCandidate.uri,
+                                            score = bestCandidate.score,
+                                            relativePath = bestCandidate.relativePath,
+                                            folderUri = bestCandidate.folderUri,
+                                        ),
                                     detectedFileName = detectedName,
                                 )
                             } else {
@@ -1092,12 +1028,13 @@ class MainViewModel
             if (settings.autoStartCleaning) {
                 val updatedPendingDownload =
                     pendingDownload.copy(
-                        detectedFile = DetectedFile(
-                            uri = bestCandidate.uri,
-                            score = bestCandidate.score,
-                            relativePath = bestCandidate.relativePath,
-                            folderUri = bestCandidate.folderUri
-                        ),
+                        detectedFile =
+                            DetectedFile(
+                                uri = bestCandidate.uri,
+                                score = bestCandidate.score,
+                                relativePath = bestCandidate.relativePath,
+                                folderUri = bestCandidate.folderUri,
+                            ),
                         detectedFileName = detectedName,
                     )
                 confirmDetectedFile(updatedPendingDownload)
@@ -1183,7 +1120,7 @@ class MainViewModel
                                 while (queue.isNotEmpty()) {
                                     val (currentDir, currentRelPath) = queue.removeFirst()
                                     val files = currentDir.listFiles()
-                                    
+
                                     files.forEach filesLoop@{ file ->
                                         if (file.isDirectory) {
                                             val dirName = file.name
@@ -1194,7 +1131,7 @@ class MainViewModel
                                             fileCount++
                                             val displayName = file.name!!
                                             val timestampMillis = file.lastModified()
-                                            
+
                                             val actualRelPath = "$relativePathHint$currentRelPath"
 
                                             val score =
@@ -1208,7 +1145,8 @@ class MainViewModel
                                                 )
 
                                             AppLogger.metadata(
-                                                "AutoDetect: Scored SAF watchlist file displayName='$displayName' uri=${file.uri} score=$score",
+                                                "AutoDetect: Scored SAF watchlist file " +
+                                                    "displayName='$displayName' uri=${file.uri} score=$score",
                                             )
                                             candidates.add(
                                                 DetectedCandidate(

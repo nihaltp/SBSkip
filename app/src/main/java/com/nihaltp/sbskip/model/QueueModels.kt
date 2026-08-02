@@ -75,20 +75,6 @@ data class PendingEnqueueData(
     val pendingDownload: PendingDownload? = null,
 )
 
-enum class AudioFolderPickTarget {
-    SUBMIT,
-    CONFIRM_PENDING,
-    PROCEED_MISMATCH,
-}
-
-data class PendingAudioFolderPick(
-    val target: AudioFolderPickTarget,
-    val pendingDownload: PendingDownload? = null,
-    val force: Boolean = false,
-    val fileUri: String? = null,
-    val displayName: String? = null,
-)
-
 data class ToastMessage(
     val id: String = java.util.UUID.randomUUID().toString(),
     val message: String,
@@ -113,7 +99,6 @@ data class MainUiState(
     val mismatchFileDuration: Long = 0L,
     val mismatchYoutubeDuration: Long = 0L,
     val pendingEnqueueData: PendingEnqueueData? = null,
-    val pendingAudioFolderPick: PendingAudioFolderPick? = null,
     val pendingDownloads: List<PendingDownload> = emptyList(),
     val pendingDownloadForFilePicker: PendingDownload? = null,
     val queueItems: List<DownloadQueueItem> = emptyList(),
