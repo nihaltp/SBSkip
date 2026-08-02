@@ -1,0 +1,26 @@
+name: Translation request
+description: Request a new language or volunteer to translate SB Skip
+title: "[Translation]: "
+labels: [translation]
+body:
+  - type: input
+    id: language
+    attributes:
+      label: Which language?
+      placeholder: e.g. Spanish, French, Hindi
+    validations:
+      required: true
+  - type: dropdown
+    id: volunteer
+    attributes:
+      label: Can you help translate it?
+      options:
+        - "Yes, I can help translate it!"
+        - "No, I just want to request it."
+    validations:
+      required: true
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Any other information you want to add?

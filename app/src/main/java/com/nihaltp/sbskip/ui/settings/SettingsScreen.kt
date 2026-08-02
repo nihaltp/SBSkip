@@ -556,11 +556,7 @@ fun SettingsScreen(
                             title = stringResource(id = R.string.settings_request_translation),
                             value = stringResource(id = R.string.settings_request_translation_desc),
                             onClick = {
-                                val url =
-                                    "https://github.com/nihaltp/SBSkip/issues/new?title=" +
-                                        Uri.encode(
-                                            "Translation Request",
-                                        ) + "&body=" + Uri.encode("I would like to help translate SBSkip into [LANGUAGE].")
+                                val url = "https://github.com/nihaltp/SBSkip/issues/new?template=translation_request.yml"
                                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                                 context.startActivity(intent)
                             },

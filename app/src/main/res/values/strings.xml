@@ -215,8 +215,8 @@
 
     <!-- Translation Section -->
     <string name="settings_section_translation">Translation</string>
-    <string name="settings_request_translation">Request Translation</string>
-    <string name="settings_request_translation_desc">Help translate SBSkip to your language</string>
+    <string name="settings_request_translation">Request a Language</string>
+    <string name="settings_request_translation_desc">Request a new language or help translate SBSkip</string>
 
     <!-- Worker and ViewModels -->
     <string name="notification_copying_cache">Copying media to cache...</string>
