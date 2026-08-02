@@ -79,6 +79,7 @@ fun SettingsScreen(
 
     val context = LocalContext.current
     var showLicensesDialog by remember { mutableStateOf(false) }
+    var showChangelogDialog by remember { mutableStateOf(false) }
     var filesPermissionGranted by remember {
         mutableStateOf(PermissionHelper.hasFilesPermission(context))
     }
@@ -521,6 +522,15 @@ fun SettingsScreen(
                                 context.startActivity(intent)
                             },
                         )
+                        if (BuildConfig.CHANGELOG.isNotEmpty()) {
+                            SettingValueRow(
+                                title = stringResource(id = R.string.label_changelog),
+                                value = stringResource(id = R.string.app_changelog_desc),
+                                onClick = {
+                                    showChangelogDialog = true
+                                },
+                            )
+                        }
                         SettingValueRow(
                             title = stringResource(id = R.string.label_issues),
                             value = stringResource(id = R.string.app_issues),
@@ -785,6 +795,31 @@ fun SettingsScreen(
             },
             confirmButton = {
                 Button(onClick = { showLicensesDialog = false }) {
+                    Text(stringResource(id = R.string.close))
+                }
+            },
+        )
+    }
+
+    if (showChangelogDialog) {
+        AlertDialog(
+            onDismissRequest = { showChangelogDialog = false },
+            title = { Text(stringResource(id = R.string.label_changelog)) },
+            text = {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.height(300.dp),
+                ) {
+                    item {
+                        Text(
+                            text = BuildConfig.CHANGELOG,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(onClick = { showChangelogDialog = false }) {
                     Text(stringResource(id = R.string.close))
                 }
             },

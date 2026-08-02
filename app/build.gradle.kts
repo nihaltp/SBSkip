@@ -35,6 +35,19 @@ android {
         versionCode = 12
         versionName = "1.7.0"
 
+        val changelogsDir = rootProject.file("fastlane/metadata/android/en-US/changelogs")
+        var latestChangelog = ""
+        if (changelogsDir.exists() && changelogsDir.isDirectory) {
+            val latestFile = changelogsDir.listFiles()
+                ?.filter { it.extension == "txt" && it.nameWithoutExtension.toIntOrNull() != null }
+                ?.maxByOrNull { it.nameWithoutExtension.toInt() }
+            if (latestFile != null && latestFile.exists()) {
+                val text = latestFile.readText().replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n")
+                latestChangelog = text
+            }
+        }
+        buildConfigField("String", "CHANGELOG", "\"$latestChangelog\"")
+
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a")
         }

@@ -81,6 +81,8 @@
     <string name="app_github">github.com/nihaltp/SBSkip</string>
     <string name="app_issues">github.com/nihaltp/SBSkip/issues</string>
     <string name="app_licenses">Open source components</string>
+    <string name="label_changelog">Changelog</string>
+    <string name="app_changelog_desc">View latest changes</string>
     <string name="download_config_title">Download configuration</string>
     <string name="preview">Preview</string>
     <string name="selected_video">Selected video</string>
