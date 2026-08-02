@@ -5,6 +5,7 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -58,6 +59,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.os.LocaleListCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.mikepenz.aboutlibraries.ui.compose.m3.LibrariesContainer
 import com.nihaltp.sbskip.BuildConfig
@@ -68,6 +70,9 @@ import com.nihaltp.sbskip.ui.components.SponsorBlockCategoryPickerDialog
 import com.nihaltp.sbskip.ui.components.sponsorBlockCategories
 import com.nihaltp.sbskip.util.AppLogger
 import com.nihaltp.sbskip.util.PermissionHelper
+import java.util.Locale
+
+data class AppLanguage(val tag: String, val displayName: String)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -274,6 +279,19 @@ fun SettingsScreen(
                             title = stringResource(id = R.string.settings_theme_mode),
                             value = themeModeLabel,
                             onClick = { activeDialogType = SettingsDialogType.THEME },
+                        )
+                        val currentLocaleTag = AppCompatDelegate.getApplicationLocales().toLanguageTags()
+                        val appLanguages =
+                            listOf(
+                                AppLanguage("", "System Default"),
+                                AppLanguage("en", Locale("en").getDisplayName(Locale("en"))),
+                                AppLanguage("tr", Locale("tr").getDisplayName(Locale("tr"))),
+                            )
+                        val currentLanguage = appLanguages.find { it.tag == currentLocaleTag } ?: appLanguages.first()
+                        SettingValueRow(
+                            title = "Language",
+                            value = currentLanguage.displayName,
+                            onClick = { activeDialogType = SettingsDialogType.LANGUAGE },
                         )
                     }
                 }
@@ -572,6 +590,50 @@ fun SettingsScreen(
     settings?.let { nonNullSettings ->
         activeDialogType?.let { dialogType ->
             when (dialogType) {
+                SettingsDialogType.LANGUAGE -> {
+                    val currentLocaleTag = AppCompatDelegate.getApplicationLocales().toLanguageTags()
+                    val appLanguages =
+                        listOf(
+                            AppLanguage("", "System Default"),
+                            AppLanguage("en", Locale("en").getDisplayName(Locale("en"))),
+                            AppLanguage("tr", Locale("tr").getDisplayName(Locale("tr"))),
+                        )
+                    AlertDialog(
+                        onDismissRequest = { activeDialogType = null },
+                        title = { Text("Language") },
+                        text = {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                appLanguages.forEach { language ->
+                                    Row(
+                                        modifier =
+                                            Modifier
+                                                .fillMaxWidth()
+                                                .clickable {
+                                                    AppCompatDelegate.setApplicationLocales(
+                                                        LocaleListCompat.forLanguageTags(language.tag),
+                                                    )
+                                                    activeDialogType = null
+                                                }
+                                                .padding(vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        RadioButton(
+                                            selected = language.tag == currentLocaleTag,
+                                            onClick = null,
+                                        )
+                                        Spacer(modifier = Modifier.width(16.dp))
+                                        Text(text = language.displayName, style = MaterialTheme.typography.bodyLarge)
+                                    }
+                                }
+                            }
+                        },
+                        confirmButton = {
+                            TextButton(onClick = { activeDialogType = null }) {
+                                Text(stringResource(id = R.string.cancel))
+                            }
+                        },
+                    )
+                }
                 SettingsDialogType.THEME -> {
                     AlertDialog(
                         onDismissRequest = { activeDialogType = null },
@@ -939,6 +1001,7 @@ private fun SettingValueRow(
 
 private enum class SettingsDialogType {
     THEME,
+    LANGUAGE,
     DOWNLOADER,
     SUFFIX,
     SB_URL,
