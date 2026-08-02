@@ -399,7 +399,7 @@ class AndroidDownloadStorage
                             // Watchlist folder path is something like "Download/NewPipe/"
                             // File path is "/storage/emulated/0/Download/NewPipe/video.mp4"
                             if (path.contains(folder.path)) {
-                                val relPath = path.substringAfter(folder.path).substringBeforeLast('/', "")
+                                val relPath = path.substringAfter(folder.path).trimStart('/').substringBeforeLast('/', "")
                                 return@withContext com.nihaltp.sbskip.model.MatchedWatchFolder(folder, relPath)
                             }
                         }

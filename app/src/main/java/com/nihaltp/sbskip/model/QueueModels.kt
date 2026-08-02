@@ -59,6 +59,8 @@ data class PendingDownload(
 data class DetectedFile(
     val uri: String,
     val score: Int,
+    val relativePath: String? = null,
+    val folderUri: String? = null,
 )
 
 data class PendingEnqueueData(
