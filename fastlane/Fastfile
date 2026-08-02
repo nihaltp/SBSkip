@@ -419,7 +419,11 @@ platform :android do
 
     # Clean previous screenshots on the device
     puts "Clearing previous screenshots on device..."
-    sh("adb -s #{device_id} shell rm -rf /sdcard/Android/data/#{get_application_id}.debug/files/app_screengrab") rescue nil
+    sh("adb -s #{device_id} shell rm -rf /sdcard/Android/data/#{debug_application_id}/files/app_screengrab") rescue nil
+
+    # Grant CHANGE_CONFIGURATION for LocaleTestRule to work
+    puts "Granting CHANGE_CONFIGURATION permission to test app..."
+    sh("adb -s #{device_id} shell pm grant #{debug_application_id}.test android.permission.CHANGE_CONFIGURATION") rescue nil
 
     # Query original DND state (zen_mode)
     original_zen_mode = `adb -s #{device_id} shell settings get global zen_mode`.strip rescue "0"
@@ -435,29 +439,37 @@ platform :android do
     sh("adb -s #{device_id} shell am broadcast -a com.android.systemui.demo -e command enter") rescue nil
 
     begin
-      # Run the instrumented UI tests for locale en-US
-      puts "Running instrumented tests..."
-      sh("adb -s #{device_id} shell am instrument --no-window-animation -w -e class #{get_application_id}.ScreenshotTest -e testLocale en-US -e appendTimestamp false #{get_application_id}.debug.test/androidx.test.runner.AndroidJUnitRunner")
+      metadata_dir = File.expand_path("metadata/android", __dir__)
+      available_locales = Dir.children(metadata_dir).select { |d| File.directory?(File.join(metadata_dir, d)) }
 
-      # Pull screenshots directly from the app's external files directory on the device
-      output_dir = "metadata/android/en-US/images/phoneScreenshots"
-      require 'fileutils'
-      FileUtils.mkdir_p(output_dir)
-      # Clear local screenshots dir first to ensure we don't have old ones
-      FileUtils.rm_rf(Dir.glob(File.join(output_dir, "*")))
-
-      puts "Pulling screenshots manually from external storage..."
-      sh("adb -s #{device_id} pull /sdcard/Android/data/#{get_application_id}.debug/files/app_screengrab/en-US/images/screenshots #{output_dir}")
-
-      # Move files out of the nested folder if ADB nested them
-      nested_dir = File.join(output_dir, "screenshots")
-      if Dir.exist?(nested_dir)
-        Dir.glob(File.join(nested_dir, "*")).each do |file|
-          FileUtils.mv(file, output_dir, force: true)
+      if options[:locale]
+        unless available_locales.include?(options[:locale])
+          raise "Locale '#{options[:locale]}' not found in metadata directory."
         end
-        FileUtils.rm_rf(nested_dir)
+        available_locales = [options[:locale]]
       end
-      puts "Successfully pulled all screenshots manually to #{output_dir}!"
+
+      available_locales.each do |locale|
+        puts "Running instrumented tests for locale #{locale}..."
+        sh("adb -s #{device_id} shell am instrument --no-window-animation -w -e class #{get_application_id}.ScreenshotTest -e testLocale #{locale} -e appendTimestamp false #{debug_application_id}.test/androidx.test.runner.AndroidJUnitRunner")
+
+        output_dir = "metadata/android/#{locale}/images/phoneScreenshots"
+        require 'fileutils'
+        FileUtils.mkdir_p(output_dir)
+        FileUtils.rm_rf(Dir.glob(File.join(output_dir, "*")))
+
+        puts "Pulling screenshots manually from external storage for #{locale}..."
+        sh("adb -s #{device_id} pull /sdcard/Android/data/#{debug_application_id}/files/app_screengrab/#{locale}/images/screenshots #{output_dir}")
+
+        nested_dir = File.join(output_dir, "screenshots")
+        if Dir.exist?(nested_dir)
+          Dir.glob(File.join(nested_dir, "*")).each do |file|
+            FileUtils.mv(file, output_dir, force: true)
+          end
+          FileUtils.rm_rf(nested_dir)
+        end
+        puts "Successfully pulled all screenshots manually to #{output_dir} for #{locale}!"
+      end
     ensure
       # Exit Demo Mode
       puts "Exiting SystemUI Demo Mode..."

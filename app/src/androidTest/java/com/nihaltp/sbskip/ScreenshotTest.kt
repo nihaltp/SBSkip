@@ -41,6 +41,15 @@ class ScreenshotTest {
 
     @Before
     fun setUp() {
+        val targetLocale = androidx.test.platform.app.InstrumentationRegistry.getArguments().getString("testLocale")
+        if (targetLocale != null) {
+            composeTestRule.activity.runOnUiThread {
+                androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(
+                    androidx.core.os.LocaleListCompat.forLanguageTags(targetLocale),
+                )
+            }
+        }
+
         val context = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext
         val entryPoint = dagger.hilt.EntryPoints.get(context, TestEntryPoint::class.java)
         val database = entryPoint.database()
@@ -105,11 +114,11 @@ class ScreenshotTest {
             screenshotCounter++
 
             // Close details
-            composeTestRule.onNodeWithText("Close").performClick()
+            composeTestRule.onNodeWithText(context.getString(R.string.close)).performClick()
             composeTestRule.waitForIdle()
 
             // 3. LIGHT Theme - Settings Screen
-            composeTestRule.onNodeWithContentDescription("Settings").performClick()
+            composeTestRule.onNodeWithContentDescription(context.getString(R.string.settings_title)).performClick()
             composeTestRule.waitForIdle()
             Thread.sleep(1200) // Wait between screens/actions for fluid settled states
             Screengrab.screenshot(screenshotCounter.toString())
@@ -150,11 +159,11 @@ class ScreenshotTest {
             screenshotCounter++
 
             // Close details before opening settings
-            composeTestRule.onNodeWithText("Close").performClick()
+            composeTestRule.onNodeWithText(context.getString(R.string.close)).performClick()
             composeTestRule.waitForIdle()
 
             // 6. DARK Theme - Settings Screen
-            composeTestRule.onNodeWithContentDescription("Settings").performClick()
+            composeTestRule.onNodeWithContentDescription(context.getString(R.string.settings_title)).performClick()
             composeTestRule.waitForIdle()
             Thread.sleep(1200) // Wait between screens/actions for fluid settled states
             Screengrab.screenshot(screenshotCounter.toString())

@@ -1,0 +1,45 @@
+SB Skip, cihazınızda halihazırda bulunan video ve ses dosyalarından SponsorBlock tarafından işaretlenmiş bölümleri kaldırmanıza yardımcı olur.
+
+Birçok uygulama medya indirebilir, ancak ortaya çıkan dosyalar hala sponsorlu mesajlar, kendi tanıtımları, etkileşim hatırlatıcıları, girişler, çıkışlar ve SponsorBlock kullanıcılarının tanımladığı diğer bölümleri içerir. SB Skip, indirildikten sonra bu dosyaları temizler ve istenmeyen bölümleri kaldırılmış yeni bir sürüm oluşturur.
+
+<h3>Özellikler</h3>
+
+<ul>
+  <li>Mevcut video ve ses dosyalarından SponsorBlock bölümlerini kaldırın</li>
+  <li>Diğer uygulamalardan paylaşılan videoları ve sesleri destekler</li>
+  <li>SponsorBlock bölüm bilgilerini almak için bir YouTube URL'si yapıştırın</li>
+  <li>Arka plan işlemleri için birden fazla temizleme işini sıraya alın</li>
+  <li>Hangi SponsorBlock kategorilerinin kaldırılacağını yapılandırın</li>
+  <li>İlerleme takibi ve bildirimlerle kalıcı sıra</li>
+  <li>Çıktı davranışı ve dosya işleme için ayrı ayarlar</li>
+  <li>Material 3 kullanıcı arayüzü</li>
+  <li>Çeviriye hazır ve tamamen açık kaynaklı</li>
+</ul>
+
+<h3>Desteklenen SponsorBlock kategorileri</h3>
+
+<ul>
+  <li>Sponsor bölümleri</li>
+  <li>Kendi tanıtımı</li>
+  <li>Etkileşim hatırlatıcıları (beğen, abone ol, vb.)</li>
+  <li>Girişler</li>
+  <li>Çıkışlar</li>
+  <li>Önizleme/özet bölümleri</li>
+  <li>Gereksiz (dolgu) içerik</li>
+  <li>Müzik konu dışı bölümler</li>
+  <li>Ve SponsorBlock tarafından sağlanan diğer kategoriler</li>
+</ul>
+
+<h3>Nasıl çalışır?</h3>
+
+<ol>
+  <li>SB Skip ile bir medya dosyası seçin veya paylaşın.</li>
+  <li>Karşılık gelen YouTube URL'sini sağlayın.</li>
+  <li>SB Skip SponsorBlock bölüm verilerini alır.</li>
+  <li>İstenmeyen bölümler medya dosyasından kaldırılır.</li>
+  <li>Temizlenmiş bir kopya cihazınıza kaydedilir.</li>
+</ol>
+
+SB Skip video indirmez. Zaten sahip olduğunuz medya dosyalarıyla çalışmak üzere tasarlanmıştır ve hangi bölümlerin kaldırılması gerektiğini belirlemek için topluluk tarafından korunan SponsorBlock veritabanını kullanır.
+
+SB Skip ücretsiz bir yazılımdır ve hangi bölüm kategorilerinin işleneceği konusunda tam kontrol sağlayarak kullanıcı seçimine saygı duyar.

@@ -55,6 +55,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -210,6 +211,7 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                modifier = Modifier.testTag("settingsTopAppBar"),
                 title = { Text(stringResource(id = R.string.settings_title)) },
                 navigationIcon = {
                     IconButton(
@@ -340,7 +342,10 @@ fun SettingsScreen(
                 }
 
                 item {
-                    SettingsSection(title = stringResource(id = R.string.settings_cleaner_storage_title)) {
+                    SettingsSection(
+                        modifier = Modifier.testTag("cleanerStorageCard"),
+                        title = stringResource(id = R.string.settings_cleaner_storage_title),
+                    ) {
                         SettingToggleRow(
                             title = stringResource(id = R.string.settings_auto_start_cleaning_title),
                             description = stringResource(id = R.string.settings_auto_start_cleaning_desc),
@@ -475,7 +480,10 @@ fun SettingsScreen(
                 }
 
                 item {
-                    SettingsSection(title = stringResource(id = R.string.settings_section_sponsorblock_config)) {
+                    SettingsSection(
+                        modifier = Modifier.testTag("sponsorBlockCard"),
+                        title = stringResource(id = R.string.settings_section_sponsorblock_config),
+                    ) {
                         SettingValueRow(
                             title = stringResource(id = R.string.settings_sb_url_title),
                             value = settings.sponsorBlockUrl,
@@ -939,9 +947,10 @@ fun SettingsScreen(
 @Composable
 private fun SettingsSection(
     title: String,
+    modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    Card(colors = CardDefaults.cardColors()) {
+    Card(modifier = modifier, colors = CardDefaults.cardColors()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(title, fontWeight = FontWeight.SemiBold)
             HorizontalDivider()
