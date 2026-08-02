@@ -1,6 +1,7 @@
 package com.nihaltp.sbskip.ui.main.components.cards
 
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -146,12 +147,14 @@ fun PendingDownloadCard(
                                 onClick = onAutoDetect,
                                 enabled = !isDetecting,
                                 modifier = Modifier.fillMaxWidth(),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)),
                             ) {
                                 Text(stringResource(id = R.string.auto_detect_again_button))
                             }
                             OutlinedButton(
                                 onClick = onPickFileManually,
                                 modifier = Modifier.fillMaxWidth(),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)),
                             ) {
                                 Text(stringResource(id = R.string.pick_file_manually_button))
                             }
@@ -179,6 +182,7 @@ fun PendingDownloadCard(
                     OutlinedButton(
                         onClick = onPickFileManually,
                         modifier = Modifier.fillMaxWidth(),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)),
                     ) {
                         Text(stringResource(id = R.string.pick_file_manually_button))
                     }
