@@ -59,6 +59,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.mikepenz.aboutlibraries.ui.compose.m3.LibrariesContainer
 import com.nihaltp.sbskip.BuildConfig
 import com.nihaltp.sbskip.R
 import com.nihaltp.sbskip.model.DownloaderType
@@ -729,65 +730,9 @@ fun SettingsScreen(
             onDismissRequest = { showLicensesDialog = false },
             title = { Text(stringResource(id = R.string.licenses_title)) },
             text = {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.height(300.dp),
-                ) {
-                    item {
-                        Column {
-                            Text("FFmpeg Kit (min-gpl / LTS 16kb)", fontWeight = FontWeight.Bold)
-                            Text("License: LGPL 3.0 / GPLv3", style = MaterialTheme.typography.bodySmall)
-                            Text("An actively maintained FFmpeg compilation for Android.", style = MaterialTheme.typography.bodySmall)
-                        }
-                    }
-                    item {
-                        Column {
-                            Text("Jetpack Compose & AndroidX Libraries", fontWeight = FontWeight.Bold)
-                            Text("License: Apache License 2.0", style = MaterialTheme.typography.bodySmall)
-                            Text(
-                                "Core UI frameworks, WorkManager orchestration, Room database, and Jetpack DataStore preferences.",
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                        }
-                    }
-                    item {
-                        Column {
-                            Text("Kotlin & Kotlinx Serialization / Coroutines", fontWeight = FontWeight.Bold)
-                            Text("License: Apache License 2.0", style = MaterialTheme.typography.bodySmall)
-                            Text(
-                                "Modern, reactive language runtime, JSON serializers, and asynchronous flows.",
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                        }
-                    }
-                    item {
-                        Column {
-                            Text("Dagger Hilt Dependency Injection", fontWeight = FontWeight.Bold)
-                            Text("License: Apache License 2.0", style = MaterialTheme.typography.bodySmall)
-                            Text("Google's compiled dependency injection standard for Android.", style = MaterialTheme.typography.bodySmall)
-                        }
-                    }
-                    item {
-                        Column {
-                            Text("OkHttp & Retrofit", fontWeight = FontWeight.Bold)
-                            Text("License: Apache License 2.0", style = MaterialTheme.typography.bodySmall)
-                            Text(
-                                "Square's robust, fast http client engine and type-safe HTTP clients.",
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                        }
-                    }
-                    item {
-                        Column {
-                            Text("Coil Image Loader", fontWeight = FontWeight.Bold)
-                            Text("License: Apache License 2.0", style = MaterialTheme.typography.bodySmall)
-                            Text(
-                                "Kotlin-first, fast image loading library for Jetpack Compose.",
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                        }
-                    }
-                }
+                LibrariesContainer(
+                    modifier = Modifier.fillMaxSize(),
+                )
             },
             confirmButton = {
                 Button(onClick = { showLicensesDialog = false }) {

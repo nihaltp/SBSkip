@@ -6,6 +6,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.dagger.hilt.android")
+    id("com.mikepenz.aboutlibraries.plugin")
 }
 
 import java.util.Properties
@@ -162,6 +163,7 @@ dependencies {
 
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
     implementation("io.github.jamaismagic.ffmpeg:ffmpeg-kit-lts-16kb:6.1.7")
+    implementation("com.mikepenz:aboutlibraries-compose-m3:11.2.3")
 
     testImplementation("junit:junit:4.13.2")
 
