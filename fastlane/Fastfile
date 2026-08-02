@@ -329,8 +329,22 @@ platform :android do
     # Push current branch and tag to GitHub
     current_branch = `git rev-parse --abbrev-ref HEAD`.strip
     puts "Pushing branch #{current_branch} and tag #{tag_name} to origin..."
-    sh("git push origin #{current_branch}")
-    sh("git push origin #{tag_name} --force")
+
+    push_attempt = 0
+    begin
+      push_attempt += 1
+      sh("git push origin #{current_branch}")
+      sh("git push origin #{tag_name} --force")
+    rescue => e
+      if push_attempt < 3
+        wait = push_attempt * 10
+        puts "Git push failed. Retrying in #{wait}s (Attempt #{push_attempt + 1}/3)..."
+        sleep(wait)
+        retry
+      else
+        raise e
+      end
+    end
 
     # Create GitHub Release using gh CLI and upload all release APKs as assets
     release_apk_dir = File.join(project_root, "app", "build", "outputs", "apk", "release")
