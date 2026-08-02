@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">SB Skip</string>
-    <string name="title_main">SB Skip</string>
+    <string name="app_name" translatable="false">SB Skip</string>
+    <string name="title_main" translatable="false">SB Skip</string>
 
     <string name="paste_youtube_link_prompt">Paste a YouTube link</string>
-    <string name="placeholder_url">https://www.youtube.com/watch?v=...</string>
+    <string name="placeholder_url" translatable="false">https://www.youtube.com/watch?v=...</string>
     <string name="clipboard_empty">Clipboard is empty</string>
     <string name="paste_button">Paste</string>
     <string name="add_to_queue">Add to queue</string>
@@ -77,9 +77,9 @@
 
     <string name="about_section">About</string>
     <string name="app_version">App version</string>
-    <string name="app_version_value">0.1.0</string>
-    <string name="app_github">github.com/nihaltp/SBSkip</string>
-    <string name="app_issues">github.com/nihaltp/SBSkip/issues</string>
+    <string name="app_version_value" translatable="false">0.1.0</string>
+    <string name="app_github" translatable="false">github.com/nihaltp/SBSkip</string>
+    <string name="app_issues" translatable="false">github.com/nihaltp/SBSkip/issues</string>
     <string name="app_licenses">Open source components</string>
     <string name="label_changelog">Changelog</string>
     <string name="app_changelog_desc">View latest changes</string>
@@ -110,12 +110,12 @@
     <string name="verbose_logging">Verbose logging</string>
     <string name="verbose_logging_desc">Capture detailed queue and processor logs.</string>
     <string name="concurrent_limit_value">1 (sequential)</string>
-    <string name="default_video_folder">Movies/SB Skip/</string>
-    <string name="default_audio_folder">Music/SB Skip/</string>
+    <string name="default_video_folder" translatable="false">Movies/SB Skip/</string>
+    <string name="default_audio_folder" translatable="false">Music/SB Skip/</string>
     <string name="default_temp_folder">App cache / SAF target</string>
     <string name="settings_global_categories_value">Sponsor, Intro, Outro, and more</string>
     <string name="settings_per_download_overrides_value">Enabled</string>
-    <string name="label_github">GitHub</string>
+    <string name="label_github" translatable="false">GitHub</string>
     <string name="label_issues">Issues</string>
     <string name="label_licenses">Licenses</string>
 
@@ -162,7 +162,7 @@
     <!-- Media Details Dialog -->
     <string name="media_details_title">Media Details</string>
     <string name="label_title">Title</string>
-    <string name="youtube_url_label">YouTube URL</string>
+    <string name="youtube_url_label" translatable="false">YouTube URL</string>
     <string name="duration_label">Duration</string>
     <string name="status_label">Status</string>
     <string name="imported_path_label">Imported Path</string>

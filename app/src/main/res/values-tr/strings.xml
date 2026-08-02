@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="paste_youtube_link_prompt">Bir YouTube bağlantısı yapıştırın</string>
+    <string name="clipboard_empty">Pano boş</string>
+    <string name="paste_button">Yapıştır</string>
+    <string name="add_to_queue">Sıraya ekle</string>
+
+    <string name="current_queue">Mevcut sıra</string>
+    <string name="no_downloads_yet_title">Henüz indirme yok</string>
+    <string name="no_downloads_yet_body">Sıraya ilk öğeyi eklemek için bir URL yapıştırın.</string>
+
+    <string name="duration_prefix">Süre: %1$s</string>
+
+    <string name="retry">Yeniden Dene</string>
+    <string name="remove">Kaldır</string>
+
+    <string name="status_queued">Sırada</string>
+    <string name="status_fetching_info">Bilgi alınıyor</string>
+    <string name="status_downloading">İndiriliyor</string>
+    <string name="status_completed">Tamamlandı</string>
+    <string name="status_ready">Hazır</string>
+    <string name="status_failed">Başarısız</string>
+
+    <string name="snackbar_paste_first">Önce bir YouTube URL\'si yapıştırın.</string>
+    <string name="snackbar_item_removed">Öğe kaldırıldı.</string>
+    <string name="snackbar_item_restored">Öğe geri yüklendi.</string>
+    <string name="undo">Geri al</string>
+
+    <string name="enter_valid_url">Geçerli bir YouTube URL\'si girin.</string>
+    <string name="queued_for_metadata_fetch">Meta veri alımı için sıraya alındı.</string>
+    <string name="retry_started">Yeniden deneme başlatıldı.</string>
+
+    <string name="fetching_metadata">Meta veriler alınıyor</string>
+    <string name="error_invalid_youtube_url">Geçersiz YouTube URL\'si</string>
+    <string name="yt_dlp_failed">yt-dlp meta verileri okuyamadı</string>
+    <string name="unable_fetch_metadata">Meta veriler alınamıyor</string>
+
+    <string name="download_missing_url">Eksik URL</string>
+    <string name="download_scaffold_message">Sıra ardışık düzeni iskeleti oluşturuldu; yerel indirici entegrasyonu sırada.</string>
+    <string name="download_started">İndirme başladı.</string>
+    <string name="download_item_not_ready">Öğe henüz hazır değil.</string>
+    <string name="download_completed">İndirme tamamlandı.</string>
+    <string name="download_failed_yt_dlp">yt-dlp indirmesi başarısız oldu</string>
+    <string name="download_failed_generic">İndirme başarısız oldu</string>
+    <string name="download_cancelled">İndirme iptal edildi.</string>
+    <string name="notification_channel_download_name">İndirilenler</string>
+    <string name="notification_channel_download_description">Aktif ve tamamlanan indirme bildirimleri.</string>
+    <string name="notification_download_in_progress">İndirme devam ediyor...</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Ayarlar</string>
+    <string name="settings_section_general">Genel</string>
+    <string name="settings_dynamic_color_title">Dinamik renk</string>
+    <string name="settings_dynamic_color_desc">Mümkün olduğunda sistem renklerini kullan.</string>
+    <string name="settings_notifications_title">Bildirimler</string>
+    <string name="settings_notifications_desc">Ön plan ve tamamlama güncellemelerini göster.</string>
+    <string name="settings_theme_mode">Tema modu</string>
+    <string name="settings_section_newpipe">NewPipe</string>
+    <string name="settings_downloader_title">İndirici</string>
+    <string name="settings_downloader_newpipe">NewPipe</string>
+
+    <string name="settings_section_downloads">İndirilenler</string>
+    <string name="settings_video_folder">Video klasörü</string>
+    <string name="settings_audio_folder">Ses klasörü</string>
+    <string name="settings_temp_folder">Geçici klasör</string>
+
+    <string name="settings_section_sponsorblock">SponsorBlock</string>
+    <string name="settings_global_categories">Küresel kategoriler</string>
+    <string name="settings_per_download_overrides">İndirme başına geçersiz kılmalar</string>
+
+    <string name="settings_section_advanced">Gelişmiş</string>
+    <string name="settings_concurrent_limit">Eşzamanlı sıra sınırı</string>
+
+    <string name="about_section">Hakkında</string>
+    <string name="app_version">Uygulama sürümü</string>
+    <string name="app_licenses">Açık kaynak bileşenler</string>
+    <string name="label_changelog">Değişiklik günlüğü</string>
+    <string name="app_changelog_desc">Son değişiklikleri görüntüle</string>
+    <string name="download_config_title">İndirme yapılandırması</string>
+    <string name="preview">Önizleme</string>
+    <string name="selected_video">Seçili video</string>
+    <string name="thumbnail_will_appear">Meta veri alımından sonra küçük resim görünecek.</string>
+    <string name="media_type">Medya türü</string>
+    <string name="label_video">Video</string>
+    <string name="label_audio">Ses</string>
+    <string name="use_global_sponsorblock_defaults">Küresel SponsorBlock varsayılanlarını kullan</string>
+    <string name="sponsorblock_override_desc">Bu indirme için kategorileri geçersiz kılmak için bunu kapatın.</string>
+    <string name="sponsorblock_categories">SponsorBlock kategorileri</string>
+    <string name="sponsorblock_categories_desc">Medyadan kırpılması gereken kategorileri etkinleştirin veya devre dışı bırakın.</string>
+    <string name="toggle">Geçiş</string>
+    <string name="start_download">İndirmeyi başlat</string>
+
+    <string name="category_sponsor">Sponsor</string>
+    <string name="category_self_promotion">Ücretsiz / Kendi Tanıtımı</string>
+    <string name="category_interaction_reminder">Etkileşim Hatırlatıcısı</string>
+    <string name="category_intro">Ara / Giriş Animasyonu</string>
+    <string name="category_outro">Bitiş Kartları / Jenerik</string>
+    <string name="category_preview_recap">Önizleme / Özet</string>
+    <string name="category_hook_greetings">Kanca / Selamlamalar</string>
+    <string name="category_filler_tangent">Gereksiz / Şakalar</string>
+    <string name="category_music_non_music_section">Müzik: Müzik Dışı Bölüm</string>
+
+    <string name="verbose_logging">Ayrıntılı günlükleme</string>
+    <string name="verbose_logging_desc">Ayrıntılı sıra ve işlemci günlüklerini yakala.</string>
+    <string name="concurrent_limit_value">1 (sıralı)</string>
+    <string name="default_temp_folder">Uygulama önbelleği / SAF hedefi</string>
+    <string name="settings_global_categories_value">Sponsor, Giriş, Bitiş ve daha fazlası</string>
+    <string name="settings_per_download_overrides_value">Etkin</string>
+    <string name="label_issues">Sorunlar</string>
+    <string name="label_licenses">Lisanslar</string>
+
+    <!-- Main Screen -->
+    <string name="select_local_file_title">Yerel Dosya Seç</string>
+    <string name="selected_file_label">Seçili Dosya</string>
+    <string name="import_media_file_label">Medya Dosyasını İçe Aktar</string>
+    <string name="imported_file_fallback">İçe Aktarılan Dosya</string>
+    <string name="detected_file_fallback">Tespit Edilen Dosya</string>
+    <string name="reauthorize">Yeniden yetkilendir</string>
+    <string name="permission_revoked_title">Klasör Erişimi Kaybedildi</string>
+    <string name="permission_revoked_message">İzlenen "%1$s" klasörüne erişim iptal edildi. Dosyaları otomatik olarak kaydetmeye devam etmek için lütfen yeniden yetkilendirin.</string>
+    <string name="no_media_selected">Hiçbir medya dosyası seçilmedi</string>
+    <string name="pick_file_button">Dosya Seç</string>
+    <string name="find_file_button">Dosya Bul</string>
+    <string name="remove_picked_file_button">Seçilen Dosyayı Kaldır</string>
+    <string name="paste_youtube_prompt">YouTube URL\'sini veya video kimliğini yapıştırın</string>
+    <string name="clean_media_button">Medyayı Temizle</string>
+    <string name="download_and_clean_button">İndir ve Temizle</string>
+    <string name="pending_downloads_title">Bekleyen İndirmeler</string>
+    <string name="waiting_for_download_title">İndirme Bekleniyor</string>
+    <string name="auto_detect_again_button">Tekrar Otomatik Algıla</string>
+    <string name="auto_detect_recent_download">[ Son indirmeyi otomatik algıla ]</string>
+    <string name="pick_file_manually_button">Dosyayı Manuel Seç</string>
+    <string name="confirm_this_file_prompt">Temizlemek istediğiniz dosya bu mu?</string>
+    <string name="clean_this_file_button">Bu Dosyayı Temizle</string>
+    <string name="detecting_recent_download">Son indirme algılanıyor...</string>
+    <string name="found_matching_file">✓ Eşleşen dosya bulundu (%%1$d güven)</string>
+    <string name="no_pending_download">Algılanacak bekleyen indirme yok.</string>
+    <string name="no_matching_download_found">Eşleşen dosya bulunamadı. Manuel olarak bir dosya seçebilirsiniz.</string>
+    <string name="newpipe_not_installed">NewPipe yüklü değil.</string>
+    <string name="newpipe_launch_failed">NewPipe başlatılamıyor.</string>
+    <string name="media_queue_title">Medya Temizleme Sırası</string>
+    <string name="no_jobs_title">Henüz temizleme işi yok</string>
+    <string name="no_jobs_body">SponsorBlock bölümlerini temizlemeye başlamak için yerel bir video/ses dosyası içe aktarın ve karşılık gelen YouTube bağlantısını yapıştırın.</string>
+
+    <!-- Error Details Dialog -->
+    <string name="error_details_title">Ardışık Düzen Hata Ayrıntıları</string>
+    <string name="error_details_intro">Temizleme ardışık düzeni bir hatayla karşılaştı:</string>
+    <string name="error_report_explanation">Bu hatayı GitHub sorun sayfasına bildirebilirsiniz. Yığın izleme ve dosya ayrıntılarını içeren biçimlendirilmiş bir rapor sizin için önceden doldurulacaktır.</string>
+    <string name="report_to_github">GitHub\'a Bildir</string>
+    <string name="dismiss">Kapat</string>
+
+    <!-- Media Details Dialog -->
+    <string name="media_details_title">Medya Ayrıntıları</string>
+    <string name="label_title">Başlık</string>
+    <string name="duration_label">Süre</string>
+    <string name="status_label">Durum</string>
+    <string name="imported_path_label">İçe Aktarılan Yol</string>
+    <string name="saved_location_label">Kaydedilen Konum</string>
+    <string name="copy_title">Başlığı Kopyala</string>
+    <string name="copy_url">URL\'yi Kopyala</string>
+    <string name="close">Kapat</string>
+    <string name="title_copied_toast">Başlık panoya kopyalandı</string>
+    <string name="url_copied_toast">URL panoya kopyalandı</string>
+    <string name="thumbnail_copied_toast">Küçük resim panoya kopyalandı</string>
+    <string name="error_click_to_expand_prefix">Hata (genişletmek için tıklayın): %1$s</string>
+    <string name="status_fetching_api">API Alınıyor</string>
+    <string name="status_cleaning">Temizleniyor...</string>
+
+    <!-- Settings Screen Updates -->
+    <string name="settings_cleaner_storage_title">Temizleyici Depolama Ayarları</string>
+    <string name="settings_video_to_audio_title">Videodan Sese Dönüştürme Ayarları</string>
+    <string name="settings_overwrite_files_title">Dosyaların Üzerine Yaz</string>
+    <string name="settings_overwrite_files_desc">Temizlenen dosyayı orijinal dosyanın üzerine yazarak doğrudan alındığı yere kaydedin.</string>
+    <string name="settings_auto_start_cleaning_title">Temizlemeyi Otomatik Başlat</string>
+    <string name="settings_auto_start_cleaning_desc">Bir indirme algılandığında temizlemeye otomatik başla</string>
+    <string name="settings_suffix_title">Temizlenen Dosya Soneki</string>
+    <string name="settings_section_sponsorblock_config">SponsorBlock Yapılandırması</string>
+    <string name="settings_sb_url_title">SponsorBlock Sunucusu API URL\'si</string>
+    <string name="settings_sb_categories_title">Aktif Atlama Kategorileri</string>
+    <string name="settings_categories_selected_format">%2$d tanesinden %1$d tanesi seçildi</string>
+    <string name="settings_view_logs_button">Günlükleri Görüntüle</string>
+    <string name="licenses_title">Açık Kaynak Lisansları</string>
+    <string name="logs_title">Uygulama Günlükleri</string>
+    <string name="logs_empty">Henüz kaydedilmiş günlük yok.</string>
+    <string name="logs_copied_toast">Günlükler panoya kopyalandı</string>
+    <string name="logs_cleared_toast">Günlükler temizlendi</string>
+    <string name="logs_export_button">Dışa Aktar</string>
+    <string name="logs_exported_toast">Günlükler dosyaya kaydedildi</string>
+    <string name="logs_export_failed_toast">Günlükler kaydedilemedi</string>
+    <string name="copy">Kopyala</string>
+    <string name="clear">Temizle</string>
+    <string name="cancel">İptal</string>
+    <string name="save">Kaydet</string>
+    <string name="done">Bitti</string>
+    <string name="select_all">Tümünü Seç</string>
+    <string name="theme_mode_light">Açık Mod</string>
+    <string name="theme_mode_dark">Koyu Mod</string>
+    <string name="theme_mode_system">Sistem Varsayılanı</string>
+    <string name="settings_sb_categories_dialog_title">Aktif Atlama Kategorileri</string>
+    <string name="settings_suffix_field_label">Sonek (ör. _temizlendi)</string>
+    <string name="settings_sb_url_field_label">Sunucu API Temel URL\'si</string>
+    <string name="settings_sb_status_url_title">SponsorBlock Durum Sayfası URL\'si</string>
+    <string name="settings_sb_status_url_field_label">Sunucu Durum Sayfası URL\'si</string>
+
+    <!-- Translation Section -->
+    <string name="settings_section_translation">Çeviri</string>
+    <string name="settings_request_translation">Dil İsteğinde Bulun</string>
+    <string name="settings_request_translation_desc">Yeni bir dil isteğinde bulunun veya SBSkip\'i çevirmeye yardımcı olun</string>
+
+    <!-- Worker and ViewModels -->
+    <string name="notification_copying_cache">Medya önbelleğe kopyalanıyor...</string>
+    <string name="notification_trimming_segments">SponsorBlock bölümleri kırpılıyor (%1$d%%)...</string>
+    <string name="notification_saving_media">Temizlenen medya kaydediliyor...</string>
+    <string name="error_item_not_found">Öğe bulunamadı</string>
+    <string name="snackbar_media_enqueued">Medya SponsorBlock temizlemesi için sıraya alındı!</string>
+
+    <!-- Duration Mismatch Dialog -->
+    <string name="dialog_duration_mismatch_title">Süre Uyuşmazlığı</string>
+    <string name="dialog_duration_mismatch_message">İçe aktarılan yerel dosya süresi (%1$s), YouTube video süresiyle (%2$s) eşleşmiyor.\n\n1 saniyelik bir fark bile büyüktür. Yine de devam etmek istiyor musunuz?</string>
+    <string name="dialog_duration_mismatch_proceed">Yine de Devam Et</string>
+    <string name="dialog_verifying_duration">Süre doğrulanıyor…</string>
+
+    <!-- Convert Video to Audio Option -->
+    <string name="convert_video_to_audio_title">Videoyu Sese Dönüştür</string>
+    <string name="convert_video_to_audio_desc">Ses akışını yüksek kaliteli bir M4A dosyasına ayıkla</string>
+    <string name="delete_original_video_title">Orijinal Videoyu Sil</string>
+    <string name="delete_original_video_desc">Başarılı ayıklamadan sonra kaynak video dosyasını sil</string>
+
+    <!-- Settings Defaults -->
+    <string name="settings_default_convert_video_to_audio_title">Videoyu Sese Dönüştür</string>
+    <string name="settings_default_convert_video_to_audio_desc">Video dosyalarını içe aktarırken dönüştürmeyi varsayılan olarak etkinleştir</string>
+    <string name="settings_default_delete_original_video_title">Orijinal Videoyu Sil</string>
+    <string name="settings_default_delete_original_video_desc">Dönüştürmeden sonra orijinalin silinmesini varsayılan olarak etkinleştir</string>
+
+    <!-- Direct Video to Audio Option -->
+    <string name="convert_to_audio_button">Sese Dönüştür</string>
+    <string name="convert_to_audio_only_notice">YouTube bağlantısı sağlanmadı. Bu video dosyasını doğrudan sese dönüştürün.</string>
+
+    <!-- Files Access Permissions -->
+    <string name="settings_permission_files_title">Dosyalar ve Medya İzni</string>
+    <string name="settings_permission_files_desc">SBSkip\'in cihazınızdaki medya indirmelerini aramasına izin verin.</string>
+    <string name="permission_status_granted">İzin Verildi</string>
+    <string name="permission_status_denied">Reddedildi (İzin vermek için dokunun)</string>
+    <string name="permission_files_rationale">SBSkip\'in medya indirmelerinizi otomatik olarak bulmak ve seçmek için dosyalara erişim iznine ihtiyacı var.</string>
+    <string name="settings_permissions_needed_title">İzinler Gerekli</string>
+    <string name="settings_permission_notifications_title">Bildirim İzni</string>
+    <!-- Converted Audio Save Location Settings -->
+    <string name="settings_audio_save_mode_title">Ses Kaydetme Konumu</string>
+    <string name="settings_audio_save_mode_preset">Önceden ayarlanmış klasör</string>
+    <string name="settings_audio_save_mode_picker">Çalışma zamanı klasör seçicisi</string>
+    <string name="settings_audio_save_mode_desc">Dönüştürülen ses dosyalarının nereye kaydedileceğini kontrol eder</string>
+
+    <!-- Conflict Dialog -->
+    <string name="dialog_conflict_title">Dosya Zaten Var</string>
+    <string name="dialog_conflict_message">Hedef klasörde \"%1$s\" adında bir dosya zaten var. Değiştirmek mi yoksa yeni bir dosya olarak kaydetmek mi istiyorsunuz?</string>
+    <string name="dialog_conflict_replace">Değiştir</string>
+    <string name="dialog_conflict_rename">Yeni Dosya Kaydet</string>
+
+    <!-- Duration Difference Tolerances -->
+    <string name="settings_allow_small_difference_title">Küçük Süre Farkına İzin Ver</string>
+    <string name="settings_allow_small_difference_desc">Süre farkı sınırın içindeyse uyarıyı atla ve otomatik olarak devam et.</string>
+    <string name="settings_max_difference_title">Maksimum Süre Farkı</string>
+    <string name="settings_max_difference_seconds_format">%1$d saniye</string>
+    <string name="settings_max_difference_field_label">Saniye cinsinden sınır</string>
+
+    <!-- Watchlist -->
+    <string name="settings_watchlist_title">İzleme Listesi Klasörleri</string>
+    <string name="settings_watchlist_desc">İndirilen dosyalar için bu özel klasörleri tara.</string>
+    <string name="settings_watchlist_add_button">Klasör Ekle</string>
+    <string name="settings_watchlist_empty">Henüz izleme listesi klasörü eklenmedi.</string>
+
+    <!-- Watchlist Prompt Dialog -->
+    <string name="dialog_watchlist_prompt_title">İzleme Listesi Klasörü Yok</string>
+    <string name="dialog_watchlist_prompt_message">İndirilen dosyaları otomatik olarak algılamak için, Ayarlar\'da izleme listenize en az bir klasör eklemelisiniz.</string>
+    <string name="dialog_watchlist_prompt_confirm">Ayarlara Git</string>
+
+    <!-- Runtime SponsorBlock Category Overrides -->
+    <string name="categories_btn_global">Bölümler: (%1$d seçildi)</string>
+    <string name="categories_btn_custom">SponsorBlock: Özel (%1$d seçildi)</string>
+    <string name="categories_dialog_title_runtime">SponsorBlock Kategorileri (Çalışma Zamanı)</string>
+    <string name="categories_dialog_reset">Küresele Sıfırla</string>
+
+    <!-- Download Options Dialog -->
+    <string name="dialog_download_options_title">İndirme Seçenekleri</string>
+    <string name="dialog_download_options_proceed">Devam Et</string>
+</resources>
