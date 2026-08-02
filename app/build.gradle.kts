@@ -4,6 +4,7 @@ plugins {
     id("org.jlleitschuh.gradle.ktlint")
     id("org.jetbrains.kotlin.kapt")
     id("org.jetbrains.kotlin.plugin.serialization")
+    id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.dagger.hilt.android")
 }
 
@@ -79,10 +80,6 @@ android {
         buildConfig = true
     }
 
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.8"
-    }
-
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -98,10 +95,10 @@ kotlin {
 
 configurations.all {
     resolutionStrategy.force(
-        "org.jetbrains.kotlin:kotlin-stdlib:1.9.22",
-        "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.22",
-        "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.22",
-        "org.jetbrains.kotlin:kotlin-reflect:1.9.22"
+        "org.jetbrains.kotlin:kotlin-stdlib:2.0.21",
+        "org.jetbrains.kotlin:kotlin-stdlib-jdk7:2.0.21",
+        "org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.0.21",
+        "org.jetbrains.kotlin:kotlin-reflect:2.0.21"
     )
 }
 ktlint {
