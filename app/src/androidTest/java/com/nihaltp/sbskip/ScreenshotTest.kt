@@ -1,8 +1,7 @@
 package com.nihaltp.sbskip
 
 import androidx.compose.ui.test.hasScrollToNodeAction
-import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -10,7 +9,10 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.printToLog
+import androidx.compose.ui.test.swipe
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.nihaltp.sbskip.data.local.entity.DownloadQueueEntity
@@ -85,9 +87,10 @@ class ScreenshotTest {
     @Test
     fun captureScreenshots() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        // Hide system status bar and navigation bar dynamically to get only the app screen
+        // Hide system status bar and navigation bar dynamically, and draw edge-to-edge
         composeTestRule.activity.runOnUiThread {
             val window = composeTestRule.activity.window
+            androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
             val controller = androidx.core.view.WindowCompat.getInsetsController(window, window.decorView)
             controller.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
             controller.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
@@ -124,12 +127,11 @@ class ScreenshotTest {
             Screengrab.screenshot(screenshotCounter.toString())
             screenshotCounter++
 
-            // Scroll down to show more settings (SponsorBlock Configuration)
-            composeTestRule.onNode(
-                hasScrollToNodeAction(),
-            ).performScrollToNode(hasText(context.getString(R.string.settings_section_sponsorblock_config)))
-            composeTestRule.waitForIdle()
-            Thread.sleep(1200)
+            scrollNodeToTop("cleanerStorageCard")
+            Screengrab.screenshot(screenshotCounter.toString())
+            screenshotCounter++
+
+            scrollNodeToTop("sponsorBlockCard")
             Screengrab.screenshot(screenshotCounter.toString())
             screenshotCounter++
 
@@ -169,12 +171,11 @@ class ScreenshotTest {
             Screengrab.screenshot(screenshotCounter.toString())
             screenshotCounter++
 
-            // Scroll down to show more settings (SponsorBlock Configuration)
-            composeTestRule.onNode(
-                hasScrollToNodeAction(),
-            ).performScrollToNode(hasText(context.getString(R.string.settings_section_sponsorblock_config)))
-            composeTestRule.waitForIdle()
-            Thread.sleep(1200)
+            scrollNodeToTop("cleanerStorageCard")
+            Screengrab.screenshot(screenshotCounter.toString())
+            screenshotCounter++
+
+            scrollNodeToTop("sponsorBlockCard")
             Screengrab.screenshot(screenshotCounter.toString())
             screenshotCounter++
         } catch (t: Throwable) {
@@ -193,5 +194,35 @@ class ScreenshotTest {
                 internalDir.copyRecursively(java.io.File(externalDir, "app_screengrab"), overwrite = true)
             }
         }
+    }
+
+    private fun scrollNodeToTop(testTag: String) {
+        val lazyList = composeTestRule.onNode(hasScrollToNodeAction())
+        lazyList.performScrollToNode(androidx.compose.ui.test.hasTestTag(testTag))
+        composeTestRule.waitForIdle()
+
+        val topAppBarBottom = composeTestRule.onNodeWithTag("settingsTopAppBar").fetchSemanticsNode().boundsInWindow.bottom
+        val gapPx = with(composeTestRule.density) { 16.dp.toPx() }
+        val targetY = topAppBarBottom + gapPx
+
+        repeat(5) {
+            val nodeTop = composeTestRule.onNodeWithTag(testTag).fetchSemanticsNode().boundsInWindow.top
+            val error = nodeTop - targetY
+
+            if (kotlin.math.abs(error) < 2f) {
+                Thread.sleep(1200) // Wait for fluid settled states
+                return
+            }
+
+            lazyList.performTouchInput {
+                swipe(
+                    start = center,
+                    end = center.copy(y = center.y - error * 0.8f),
+                    durationMillis = 300,
+                )
+            }
+            composeTestRule.waitForIdle()
+        }
+        Thread.sleep(1200)
     }
 }
