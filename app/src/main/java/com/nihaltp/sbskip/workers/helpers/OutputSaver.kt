@@ -36,7 +36,7 @@ class OutputSaver
                     } else {
                         taskTitle
                     }
-                val forceOverwrite = settings.overwriteBehavior || item.url.contains("overwrite=true")
+                val forceOverwrite = settings.overwriteBehavior || item.url.contains("overwrite=true") || item.deleteOriginalVideo
                 val savedUri =
                     downloadStorage.saveToPublicStorage(
                         tempFile = tempOutputFile,
@@ -58,7 +58,7 @@ class OutputSaver
                 }
 
                 savedUri
-            } else if (settings.overwriteBehavior || item.url.contains("overwrite=true")) {
+            } else if (settings.overwriteBehavior || item.url.contains("overwrite=true") || item.deleteOriginalVideo) {
                 val resolver = context.contentResolver
                 val targetUri = android.net.Uri.parse(item.localFileUri)
 
