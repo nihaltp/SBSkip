@@ -89,13 +89,22 @@ class AndroidDownloadStorage
                     } else {
                         settings.audioFolder.trimEnd('/')
                     }
+
+                var effectiveRelativePath = relativePath
+                if (!effectiveRelativePath.isNullOrEmpty() && customFolder.isNotEmpty()) {
+                    if (effectiveRelativePath.startsWith("$customFolder/")) {
+                        effectiveRelativePath = effectiveRelativePath.substringAfter("$customFolder/")
+                    } else if (effectiveRelativePath == customFolder) {
+                        effectiveRelativePath = ""
+                    }
+                }
                 if (folderUriStr.isNotEmpty() && folderUriStr.startsWith("content://")) {
                     try {
                         val folderUri = Uri.parse(folderUriStr)
                         var dirFile = DocumentFile.fromTreeUri(context, folderUri)
                         if (dirFile != null && dirFile.exists() && dirFile.isDirectory) {
-                            if (!relativePath.isNullOrEmpty()) {
-                                val parts = relativePath.split('/').filter { it.isNotEmpty() }
+                            if (!effectiveRelativePath.isNullOrEmpty()) {
+                                val parts = effectiveRelativePath.split('/').filter { it.isNotEmpty() }
                                 for (part in parts) {
                                     var subDir = dirFile?.findFile(part)
                                     if (subDir == null) {
@@ -189,13 +198,20 @@ class AndroidDownloadStorage
                         MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
                     }
 
+                val trueFinalFolder =
+                    if (!effectiveRelativePath.isNullOrEmpty()) {
+                        "$finalFolder/$effectiveRelativePath"
+                    } else {
+                        finalFolder
+                    }
+
                 val tmpFilename = "$filename.tmp"
                 val contentValues =
                     ContentValues().apply {
                         put(MediaStore.MediaColumns.DISPLAY_NAME, tmpFilename)
                         put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                            put(MediaStore.MediaColumns.RELATIVE_PATH, finalFolder)
+                            put(MediaStore.MediaColumns.RELATIVE_PATH, trueFinalFolder)
                         }
                     }
 
@@ -216,7 +232,7 @@ class AndroidDownloadStorage
                         val selectionArgs: Array<String>
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                             selection = "${MediaStore.MediaColumns.DISPLAY_NAME} = ? AND ${MediaStore.MediaColumns.RELATIVE_PATH} = ?"
-                            selectionArgs = arrayOf(filename, finalFolder + "/")
+                            selectionArgs = arrayOf(filename, trueFinalFolder + "/")
                         } else {
                             selection = "${MediaStore.MediaColumns.DISPLAY_NAME} = ?"
                             selectionArgs = arrayOf(filename)
