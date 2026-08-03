@@ -1130,7 +1130,9 @@ class MainViewModel
                                         if (file.isDirectory) {
                                             val dirName = file.name
                                             if (dirName != null) {
-                                                queue.add(Pair(file, "$currentRelPath$dirName/"))
+                                                val nextRelPath = "$currentRelPath$dirName/"
+                                                AppLogger.metadata("AutoDetect: Scanning directory: $nextRelPath")
+                                                queue.add(Pair(file, nextRelPath))
                                             }
                                         } else if (file.isFile && file.name != null) {
                                             fileCount++
@@ -1149,10 +1151,12 @@ class MainViewModel
                                                     settings = settings,
                                                 )
 
-                                            AppLogger.metadata(
-                                                "AutoDetect: Scored SAF watchlist file " +
-                                                    "displayName='$displayName' uri=${file.uri} score=$score",
-                                            )
+                                            if (score > 50) {
+                                                AppLogger.metadata(
+                                                    "AutoDetect: Scored SAF watchlist file " +
+                                                        "displayName='$displayName' uri=${file.uri} score=$score",
+                                                )
+                                            }
                                             candidates.add(
                                                 DetectedCandidate(
                                                     uri = file.uri.toString(),
@@ -1227,13 +1231,15 @@ class MainViewModel
 
             val finalScore = score.coerceIn(0, 100)
 
-            AppLogger.metadata(
-                "AutoDetect: Scored candidate displayName='$displayName' path='$relativePath' " +
-                    "finalScore=$finalScore [Breakdown: titleSim=$titleSim " +
-                    "videoIdBonus=${if (hasVideoId) 20 else 0} " +
-                    "folderBonus=${if (folderMatched) 18 else 0} " +
-                    "ageBonus=$ageBonus durationBonus=$durationBonus]",
-            )
+            if (finalScore > 50) {
+                AppLogger.metadata(
+                    "AutoDetect: Scored candidate displayName='$displayName' path='$relativePath' " +
+                        "finalScore=$finalScore [Breakdown: titleSim=$titleSim " +
+                        "videoIdBonus=${if (hasVideoId) 20 else 0} " +
+                        "folderBonus=${if (folderMatched) 18 else 0} " +
+                        "ageBonus=$ageBonus durationBonus=$durationBonus]",
+                )
+            }
 
             return finalScore
         }
