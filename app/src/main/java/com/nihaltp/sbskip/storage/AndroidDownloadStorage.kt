@@ -200,7 +200,9 @@ class AndroidDownloadStorage
                                 }
                             }
                             if (dirFile != null && dirFile.exists() && dirFile.isDirectory) {
-                                val tmpFilename = "$filename.tmp"
+                                // Use a unique tmp name to avoid any MIME-based renaming collisions
+                                val tmpId = System.currentTimeMillis()
+                                val tmpFilename = "sbskip_tmp_$tmpId.tmp"
                                 val existingTmp = dirFile.findFile(tmpFilename)
                                 existingTmp?.delete()
 
@@ -214,9 +216,14 @@ class AndroidDownloadStorage
                                     }
                                 } ?: throw IOException("Failed to open SAF output stream")
 
-                                val existingFile = dirFile.findFile(filename)
-                                if (existingFile != null && (overwrite || settings.overwriteBehavior)) {
-                                    existingFile.delete()
+                                // Only delete the existing file AFTER tmp is written successfully,
+                                // but BEFORE rename to prevent Android appending (1)
+                                if (overwrite || settings.overwriteBehavior) {
+                                    val existingFile = dirFile.findFile(filename)
+                                    if (existingFile != null) {
+                                        existingFile.delete()
+                                        AppLogger.worker("Deleted existing file before rename: $filename")
+                                    }
                                 }
 
                                 val renamed = newFile.renameTo(filename)
