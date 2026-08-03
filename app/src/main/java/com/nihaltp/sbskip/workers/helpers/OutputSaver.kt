@@ -61,11 +61,31 @@ class OutputSaver
             } else if (settings.overwriteBehavior || item.url.contains("overwrite=true")) {
                 val resolver = context.contentResolver
                 val targetUri = android.net.Uri.parse(item.localFileUri)
-                resolver.openOutputStream(targetUri, "w")?.use { output ->
+
+                val tempOutputSize = tempOutputFile.length()
+                val stat = android.os.StatFs(context.cacheDir.path)
+                val availableBytes = stat.availableBytes
+                if (tempOutputSize > availableBytes) {
+                    throw IOException(
+                        "Insufficient storage to safely overwrite file. Need $tempOutputSize bytes, have $availableBytes bytes.",
+                    )
+                }
+
+                val safeTempFile = File(context.cacheDir, "overwrite_safe_${System.currentTimeMillis()}.tmp")
+                try {
                     java.io.FileInputStream(tempOutputFile).use { input ->
-                        input.copyTo(output)
+                        safeTempFile.outputStream().use { output ->
+                            input.copyTo(output)
+                        }
                     }
-                } ?: throw IOException("Failed to open output stream for source file to overwrite")
+                    resolver.openOutputStream(targetUri, "wt")?.use { output ->
+                        java.io.FileInputStream(safeTempFile).use { input ->
+                            input.copyTo(output)
+                        }
+                    } ?: throw IOException("Failed to open output stream for source file to overwrite")
+                } finally {
+                    safeTempFile.delete()
+                }
                 AppLogger.worker("Successfully overwrote the original file where it was picked from: ${item.localFileUri}")
                 item.localFileUri
             } else {
@@ -82,10 +102,9 @@ class OutputSaver
                     extension = localMetadata.extension,
                     mediaType = item.mediaType,
                     customFolderUri =
-                        if (item.mediaType == MediaType.AUDIO) {
-                            item.audioOutputDirUri
-                        } else {
-                            null
+                        when (item.mediaType) {
+                            MediaType.AUDIO -> item.audioOutputDirUri
+                            MediaType.VIDEO -> item.videoOutputDirUri
                         },
                     overwrite = false,
                     relativePath = item.relativePath,

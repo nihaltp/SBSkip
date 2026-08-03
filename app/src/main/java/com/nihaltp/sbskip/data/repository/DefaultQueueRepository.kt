@@ -39,6 +39,7 @@ class DefaultQueueRepository
             convertVideoToAudio: Boolean,
             deleteOriginalVideo: Boolean,
             audioOutputDirUri: String?,
+            videoOutputDirUri: String?,
             relativePath: String?,
         ): QueueActionResult {
             val videoId =
@@ -90,6 +91,7 @@ class DefaultQueueRepository
                     convertVideoToAudio = convertVideoToAudio,
                     deleteOriginalVideo = deleteOriginalVideo,
                     audioOutputDirUri = audioOutputDirUri,
+                    videoOutputDirUri = videoOutputDirUri,
                     relativePath = relativePath,
                 )
 
@@ -220,6 +222,7 @@ class DefaultQueueRepository
                 convertVideoToAudio = convertVideoToAudio,
                 deleteOriginalVideo = deleteOriginalVideo,
                 audioOutputDirUri = audioOutputDirUri,
+                videoOutputDirUri = videoOutputDirUri,
                 relativePath = relativePath,
             )
         }

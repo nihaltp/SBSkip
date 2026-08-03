@@ -195,9 +195,11 @@ class QueueModelsTest {
                 convertVideoToAudio = true,
                 deleteOriginalVideo = true,
                 audioOutputDirUri = "content://com.android.externalstorage.documents/tree/primary%3AMusic",
+                videoOutputDirUri = "content://com.android.externalstorage.documents/tree/primary%3AMovies",
             )
 
         assertEquals("content://com.android.externalstorage.documents/tree/primary%3AMusic", item.audioOutputDirUri)
+        assertEquals("content://com.android.externalstorage.documents/tree/primary%3AMovies", item.videoOutputDirUri)
         assertTrue(item.convertVideoToAudio)
     }
 

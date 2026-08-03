@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import android.provider.OpenableColumns
+import android.webkit.MimeTypeMap
 import androidx.documentfile.provider.DocumentFile
 import com.nihaltp.sbskip.data.repository.SettingsRepository
 import com.nihaltp.sbskip.model.MediaType
@@ -66,7 +67,9 @@ class AndroidDownloadStorage
         ): String =
             withContext(Dispatchers.IO) {
                 val filename = "$title.$extension"
-                val mimeType = if (mediaType == MediaType.VIDEO) "video/$extension" else "audio/$extension"
+                val mimeType =
+                    MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension.lowercase())
+                        ?: if (mediaType == MediaType.VIDEO) "video/$extension" else "audio/$extension"
 
                 val settings = settingsRepository.settings.first()
                 val folderUriStr =
@@ -102,10 +105,6 @@ class AndroidDownloadStorage
                                 }
                             }
                             if (dirFile != null && dirFile.exists() && dirFile.isDirectory) {
-                                val existingFile = dirFile.findFile(filename)
-                                if (existingFile != null && (overwrite || settings.overwriteBehavior)) {
-                                    existingFile.delete()
-                                }
                                 val tmpFilename = "$filename.tmp"
                                 val existingTmp = dirFile.findFile(tmpFilename)
                                 existingTmp?.delete()
@@ -120,10 +119,22 @@ class AndroidDownloadStorage
                                     }
                                 } ?: throw IOException("Failed to open SAF output stream")
 
-                                newFile.renameTo(filename)
+                                val existingFile = dirFile.findFile(filename)
+                                if (existingFile != null && (overwrite || settings.overwriteBehavior)) {
+                                    existingFile.delete()
+                                }
+
+                                val renamed = newFile.renameTo(filename)
+                                if (!renamed) {
+                                    throw IOException("Failed to rename temporary file to final filename: $filename")
+                                }
+
+                                val finalFile =
+                                    dirFile.findFile(filename)
+                                        ?: throw IOException("Failed to find renamed file: $filename")
 
                                 AppLogger.worker("Successfully saved clean file to custom SAF directory: $filename")
-                                return@withContext newFile.uri.toString()
+                                return@withContext finalFile.uri.toString()
                             }
                         }
                     } catch (e: Exception) {
@@ -178,9 +189,10 @@ class AndroidDownloadStorage
                         MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
                     }
 
+                val tmpFilename = "$filename.tmp"
                 val contentValues =
                     ContentValues().apply {
-                        put(MediaStore.MediaColumns.DISPLAY_NAME, filename)
+                        put(MediaStore.MediaColumns.DISPLAY_NAME, tmpFilename)
                         put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                             put(MediaStore.MediaColumns.RELATIVE_PATH, finalFolder)
@@ -188,17 +200,6 @@ class AndroidDownloadStorage
                     }
 
                 val resolver = context.contentResolver
-                if (overwrite || settings.overwriteBehavior) {
-                    val selection = "${MediaStore.MediaColumns.DISPLAY_NAME} = ?"
-                    val selectionArgs = arrayOf(filename)
-                    try {
-                        val deletedCount = resolver.delete(contentUri, selection, selectionArgs)
-                        AppLogger.worker("Deleted existing MediaStore entry for overwrite: $filename count=$deletedCount")
-                    } catch (e: Exception) {
-                        AppLogger.error("Storage", e, "Failed to delete existing MediaStore entry for overwrite")
-                    }
-                }
-
                 val uri =
                     resolver.insert(contentUri, contentValues)
                         ?: throw IOException("Failed to insert media entry into MediaStore")
@@ -209,6 +210,31 @@ class AndroidDownloadStorage
                             input.copyTo(output)
                         }
                     } ?: throw IOException("Failed to open MediaStore output stream")
+
+                    if (overwrite || settings.overwriteBehavior) {
+                        val selection: String
+                        val selectionArgs: Array<String>
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            selection = "${MediaStore.MediaColumns.DISPLAY_NAME} = ? AND ${MediaStore.MediaColumns.RELATIVE_PATH} = ?"
+                            selectionArgs = arrayOf(filename, finalFolder + "/")
+                        } else {
+                            selection = "${MediaStore.MediaColumns.DISPLAY_NAME} = ?"
+                            selectionArgs = arrayOf(filename)
+                        }
+                        try {
+                            val deletedCount = resolver.delete(contentUri, selection, selectionArgs)
+                            AppLogger.worker("Deleted existing MediaStore entry for overwrite: $filename count=$deletedCount")
+                        } catch (e: Exception) {
+                            AppLogger.error("Storage", e, "Failed to delete existing MediaStore entry for overwrite")
+                        }
+                    }
+
+                    val updateValues =
+                        ContentValues().apply {
+                            put(MediaStore.MediaColumns.DISPLAY_NAME, filename)
+                        }
+                    resolver.update(uri, updateValues, null, null)
+
                     AppLogger.worker("Saved clean file to MediaStore: $finalFolder/$filename")
                     uri.toString()
                 } catch (e: Exception) {

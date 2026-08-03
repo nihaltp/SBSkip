@@ -358,7 +358,8 @@ class MainViewModel
                     mediaType = mediaType,
                     convertVideoToAudio = convertVideoToAudio,
                     deleteOriginalVideo = deleteOriginalVideo,
-                    audioOutputDirUri = finalFolderUri,
+                    audioOutputDirUri = if (mediaType == MediaType.AUDIO) finalFolderUri else null,
+                    videoOutputDirUri = if (mediaType == MediaType.VIDEO) finalFolderUri else null,
                     relativePath = relativePath,
                 )
 
@@ -476,6 +477,7 @@ class MainViewModel
                         convertVideoToAudio = item.convertVideoToAudio,
                         deleteOriginalVideo = item.deleteOriginalVideo,
                         audioOutputDirUri = item.audioOutputDirUri,
+                        videoOutputDirUri = item.videoOutputDirUri,
                         relativePath = item.relativePath,
                     )
                 if (result.success) {
@@ -553,7 +555,8 @@ class MainViewModel
                         mediaType = pending.mediaType,
                         convertVideoToAudio = pending.convertVideoToAudio,
                         deleteOriginalVideo = pending.deleteOriginalVideo,
-                        audioOutputDirUri = pending.customFolderUri,
+                        audioOutputDirUri = if (pending.mediaType == MediaType.AUDIO) pending.customFolderUri else null,
+                        videoOutputDirUri = if (pending.mediaType == MediaType.VIDEO) pending.customFolderUri else null,
                     )
 
                 _uiState.update { state ->
@@ -624,7 +627,8 @@ class MainViewModel
                         mediaType = pending.mediaType,
                         convertVideoToAudio = pending.convertVideoToAudio,
                         deleteOriginalVideo = pending.deleteOriginalVideo,
-                        audioOutputDirUri = pending.customFolderUri,
+                        audioOutputDirUri = if (pending.mediaType == MediaType.AUDIO) pending.customFolderUri else null,
+                        videoOutputDirUri = if (pending.mediaType == MediaType.VIDEO) pending.customFolderUri else null,
                     )
 
                 _uiState.update { state ->
@@ -845,7 +849,8 @@ class MainViewModel
                     mediaType = mediaType,
                     convertVideoToAudio = if (isConvertOnly) true else state.convertVideoToAudio,
                     deleteOriginalVideo = state.deleteOriginalVideo,
-                    audioOutputDirUri = finalFolderUri,
+                    audioOutputDirUri = if (mediaType == MediaType.AUDIO) finalFolderUri else null,
+                    videoOutputDirUri = if (mediaType == MediaType.VIDEO) finalFolderUri else null,
                     relativePath = relativePath,
                 )
 
