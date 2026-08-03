@@ -12,6 +12,7 @@ import androidx.documentfile.provider.DocumentFile
 import com.nihaltp.sbskip.data.repository.SettingsRepository
 import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.util.AppLogger
+import com.nihaltp.sbskip.util.FilenameSanitizer
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -22,6 +23,89 @@ import java.io.FileOutputStream
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
+
+data class StoragePaths(
+    val effectiveRelativePath: String?,
+    val mediaStoreFolder: String,
+    val useDownloadsUri: Boolean,
+)
+
+internal fun computeStoragePaths(
+    mediaType: MediaType,
+    customFolderUri: String?,
+    resolvedCustomFolderName: String?,
+    videoFolderSetting: String,
+    audioFolderSetting: String,
+    relativePath: String?,
+): StoragePaths {
+    val customFolder =
+        if (!customFolderUri.isNullOrEmpty()) {
+            resolvedCustomFolderName?.trimEnd('/') ?: ""
+        } else if (mediaType == MediaType.VIDEO) {
+            videoFolderSetting.trimEnd('/')
+        } else {
+            audioFolderSetting.trimEnd('/')
+        }
+
+    var effectiveRelativePath = relativePath
+    if (!effectiveRelativePath.isNullOrEmpty() && customFolder.isNotEmpty()) {
+        if (effectiveRelativePath.startsWith("$customFolder/")) {
+            effectiveRelativePath = effectiveRelativePath.substringAfter("$customFolder/")
+        } else if (effectiveRelativePath == customFolder) {
+            effectiveRelativePath = ""
+        }
+    }
+
+    val allowedAudioDirs = setOf("Music", "Podcasts", "Ringtones", "Alarms", "Notifications", "Audiobooks", "Recordings")
+    val allowedVideoDirs = setOf("Movies", "Pictures", "DCIM")
+    val audioDirsMap = allowedAudioDirs.associateBy { it.lowercase() }
+    val videoDirsMap = allowedVideoDirs.associateBy { it.lowercase() }
+
+    val firstSegment = customFolder.split('/').firstOrNull()?.trim() ?: ""
+    val lowerSegment = firstSegment.lowercase()
+
+    val finalFolder: String
+    var useDownloadsUri = false
+
+    if (mediaType == MediaType.VIDEO) {
+        if (videoDirsMap.containsKey(lowerSegment)) {
+            val normalizedFirst = videoDirsMap[lowerSegment]!!
+            val restOfPath = customFolder.substringAfter('/', "")
+            finalFolder = if (restOfPath.isNotEmpty()) "$normalizedFirst/$restOfPath" else normalizedFirst
+        } else if (lowerSegment == "download" || lowerSegment == "downloads") {
+            useDownloadsUri = true
+            val restOfPath = customFolder.substringAfter('/', "")
+            finalFolder = if (restOfPath.isNotEmpty()) "Download/$restOfPath" else "Download"
+        } else {
+            finalFolder = "Movies/SB Skip"
+        }
+    } else {
+        if (audioDirsMap.containsKey(lowerSegment)) {
+            val normalizedFirst = audioDirsMap[lowerSegment]!!
+            val restOfPath = customFolder.substringAfter('/', "")
+            finalFolder = if (restOfPath.isNotEmpty()) "$normalizedFirst/$restOfPath" else normalizedFirst
+        } else if (lowerSegment == "download" || lowerSegment == "downloads") {
+            useDownloadsUri = true
+            val restOfPath = customFolder.substringAfter('/', "")
+            finalFolder = if (restOfPath.isNotEmpty()) "Download/$restOfPath" else "Download"
+        } else {
+            finalFolder = "Music/SB Skip"
+        }
+    }
+
+    val trueFinalFolder =
+        if (!effectiveRelativePath.isNullOrEmpty()) {
+            "$finalFolder/$effectiveRelativePath"
+        } else {
+            finalFolder
+        }
+
+    return StoragePaths(
+        effectiveRelativePath = effectiveRelativePath,
+        mediaStoreFolder = trueFinalFolder,
+        useDownloadsUri = useDownloadsUri,
+    )
+}
 
 @Singleton
 class AndroidDownloadStorage
@@ -66,7 +150,8 @@ class AndroidDownloadStorage
             relativePath: String?,
         ): String =
             withContext(Dispatchers.IO) {
-                val filename = "$title.$extension"
+                val sanitizedTitle = FilenameSanitizer.sanitize(title)
+                val filename = "$sanitizedTitle.$extension"
                 val mimeType =
                     MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension.lowercase())
                         ?: if (mediaType == MediaType.VIDEO) "video/$extension" else "audio/$extension"
@@ -81,23 +166,24 @@ class AndroidDownloadStorage
                         settings.audioFolderUri
                     }
 
-                val customFolder =
+                val resolvedCustomFolderName =
                     if (!customFolderUri.isNullOrEmpty()) {
-                        resolveRelativePathFromUri(context, Uri.parse(customFolderUri)).trimEnd('/')
-                    } else if (mediaType == MediaType.VIDEO) {
-                        settings.videoFolder.trimEnd('/')
+                        resolveRelativePathFromUri(context, Uri.parse(customFolderUri))
                     } else {
-                        settings.audioFolder.trimEnd('/')
+                        null
                     }
 
-                var effectiveRelativePath = relativePath
-                if (!effectiveRelativePath.isNullOrEmpty() && customFolder.isNotEmpty()) {
-                    if (effectiveRelativePath.startsWith("$customFolder/")) {
-                        effectiveRelativePath = effectiveRelativePath.substringAfter("$customFolder/")
-                    } else if (effectiveRelativePath == customFolder) {
-                        effectiveRelativePath = ""
-                    }
-                }
+                val paths =
+                    computeStoragePaths(
+                        mediaType = mediaType,
+                        customFolderUri = customFolderUri,
+                        resolvedCustomFolderName = resolvedCustomFolderName,
+                        videoFolderSetting = settings.videoFolder,
+                        audioFolderSetting = settings.audioFolder,
+                        relativePath = relativePath,
+                    )
+                val effectiveRelativePath = paths.effectiveRelativePath
+
                 if (folderUriStr.isNotEmpty() && folderUriStr.startsWith("content://")) {
                     try {
                         val folderUri = Uri.parse(folderUriStr)
@@ -138,12 +224,8 @@ class AndroidDownloadStorage
                                     throw IOException("Failed to rename temporary file to final filename: $filename")
                                 }
 
-                                val finalFile =
-                                    dirFile.findFile(filename)
-                                        ?: throw IOException("Failed to find renamed file: $filename")
-
-                                AppLogger.worker("Successfully saved clean file to custom SAF directory: $filename")
-                                return@withContext finalFile.uri.toString()
+                                AppLogger.worker("Successfully saved clean file to custom SAF directory: ${newFile.name ?: filename}")
+                                return@withContext newFile.uri.toString()
                             }
                         }
                     } catch (e: Exception) {
@@ -152,43 +234,8 @@ class AndroidDownloadStorage
                 }
 
                 // 2. Failsafe Fallback: Standard MediaStore or Legacy storage
-                val allowedAudioDirs = setOf("Music", "Podcasts", "Ringtones", "Alarms", "Notifications", "Audiobooks", "Recordings")
-                val allowedVideoDirs = setOf("Movies", "Pictures", "DCIM")
-                val audioDirsMap = allowedAudioDirs.associateBy { it.lowercase() }
-                val videoDirsMap = allowedVideoDirs.associateBy { it.lowercase() }
-
-                val firstSegment = customFolder.split('/').firstOrNull()?.trim() ?: ""
-                val lowerSegment = firstSegment.lowercase()
-
-                val finalFolder: String
-                var useDownloadsUri = false
-
-                if (mediaType == MediaType.VIDEO) {
-                    if (videoDirsMap.containsKey(lowerSegment)) {
-                        val normalizedFirst = videoDirsMap[lowerSegment]!!
-                        val restOfPath = customFolder.substringAfter('/', "")
-                        finalFolder = if (restOfPath.isNotEmpty()) "$normalizedFirst/$restOfPath" else normalizedFirst
-                    } else if (lowerSegment == "download" || lowerSegment == "downloads") {
-                        useDownloadsUri = true
-                        val restOfPath = customFolder.substringAfter('/', "")
-                        finalFolder = if (restOfPath.isNotEmpty()) "Download/$restOfPath" else "Download"
-                    } else {
-                        finalFolder = "Movies/SB Skip"
-                    }
-                } else {
-                    if (audioDirsMap.containsKey(lowerSegment)) {
-                        val normalizedFirst = audioDirsMap[lowerSegment]!!
-                        val restOfPath = customFolder.substringAfter('/', "")
-                        finalFolder = if (restOfPath.isNotEmpty()) "$normalizedFirst/$restOfPath" else normalizedFirst
-                    } else if (lowerSegment == "download" || lowerSegment == "downloads") {
-                        useDownloadsUri = true
-                        val restOfPath = customFolder.substringAfter('/', "")
-                        finalFolder = if (restOfPath.isNotEmpty()) "Download/$restOfPath" else "Download"
-                    } else {
-                        finalFolder = "Music/SB Skip"
-                    }
-                }
-
+                val trueFinalFolder = paths.mediaStoreFolder
+                val useDownloadsUri = paths.useDownloadsUri
                 val contentUri =
                     if (useDownloadsUri) {
                         MediaStore.Downloads.EXTERNAL_CONTENT_URI
@@ -196,13 +243,6 @@ class AndroidDownloadStorage
                         MediaStore.Video.Media.EXTERNAL_CONTENT_URI
                     } else {
                         MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-                    }
-
-                val trueFinalFolder =
-                    if (!effectiveRelativePath.isNullOrEmpty()) {
-                        "$finalFolder/$effectiveRelativePath"
-                    } else {
-                        finalFolder
                     }
 
                 val tmpFilename = "$filename.tmp"
@@ -251,7 +291,7 @@ class AndroidDownloadStorage
                         }
                     resolver.update(uri, updateValues, null, null)
 
-                    AppLogger.worker("Saved clean file to MediaStore: $finalFolder/$filename")
+                    AppLogger.worker("Saved clean file to MediaStore: $trueFinalFolder/$filename")
                     uri.toString()
                 } catch (e: Exception) {
                     // Cleanup inserted failed record
