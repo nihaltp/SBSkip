@@ -60,10 +60,6 @@ fun AppNavGraph(
                 onRenameConflict = viewModel::proceedConflictRename,
                 onDismissWatchlistPrompt = viewModel::dismissWatchlistPromptDialog,
                 onCustomCategoriesChanged = viewModel::onCustomCategoriesChanged,
-                onDownloadOptionsConvertChanged = viewModel::onDownloadOptionsConvertChanged,
-                onDownloadOptionsDeleteChanged = viewModel::onDownloadOptionsDeleteChanged,
-                onConfirmDownloadOptions = viewModel::confirmDownloadOptions,
-                onDismissDownloadOptions = viewModel::dismissDownloadOptionsDialog,
                 onDismissPermissionRevokedDialog = viewModel::dismissPermissionRevokedDialog,
                 onSearchNow = viewModel::triggerAutoDetectNow,
             )

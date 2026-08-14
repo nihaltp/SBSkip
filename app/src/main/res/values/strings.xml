@@ -296,4 +296,5 @@
     <!-- Download Options Dialog -->
     <string name="dialog_download_options_title">Download Options</string>
     <string name="dialog_download_options_proceed">Proceed</string>
+    <string name="options_button">Options</string>
 </resources>

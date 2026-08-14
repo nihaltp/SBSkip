@@ -5,6 +5,7 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -23,6 +24,8 @@ import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.KeyboardDoubleArrowDown
+import androidx.compose.material.icons.filled.KeyboardDoubleArrowUp
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
@@ -71,7 +74,6 @@ import com.nihaltp.sbskip.ui.main.components.cards.PendingDownloadCard
 import com.nihaltp.sbskip.ui.main.components.cards.QueueItemCard
 import com.nihaltp.sbskip.ui.main.components.common.EmptyStateCard
 import com.nihaltp.sbskip.ui.main.components.common.SectionHeader
-import com.nihaltp.sbskip.ui.main.dialogs.DownloadOptionsDialog
 import com.nihaltp.sbskip.ui.main.dialogs.DurationMismatchDialog
 import com.nihaltp.sbskip.ui.main.dialogs.ErrorDetailsDialog
 import com.nihaltp.sbskip.ui.main.dialogs.MediaConflictDialog
@@ -110,10 +112,6 @@ fun MainScreen(
     onRenameConflict: () -> Unit,
     onDismissWatchlistPrompt: () -> Unit,
     onCustomCategoriesChanged: (Set<SponsorBlockCategory>?) -> Unit,
-    onDownloadOptionsConvertChanged: (Boolean) -> Unit,
-    onDownloadOptionsDeleteChanged: (Boolean) -> Unit,
-    onConfirmDownloadOptions: () -> Unit,
-    onDismissDownloadOptions: () -> Unit,
     onDismissPermissionRevokedDialog: () -> Unit,
     onSearchNow: (PendingDownload) -> Unit,
 ) {
@@ -151,6 +149,7 @@ fun MainScreen(
     var detailsDialogItem by remember { mutableStateOf<DownloadQueueItem?>(null) }
     var detailsPendingDownloadItem by remember { mutableStateOf<PendingDownload?>(null) }
     var showCategoriesDialog by remember { mutableStateOf(false) }
+    var isOptionsExpanded by remember { mutableStateOf(false) }
     val showLocalCleanButton = uiState.selectedFileUri != null && uiState.urlInput.isNotBlank()
     val showDownloadAndCleanButton = uiState.selectedFileUri == null && uiState.isNewPipeInstalled && uiState.urlInput.isNotBlank()
     val isVideoFile = uiState.selectedFileMediaType == MediaType.VIDEO
@@ -314,6 +313,80 @@ fun MainScreen(
                                         },
                                 )
                             }
+                        }
+
+                        if (isOptionsExpanded) {
+                            HorizontalDivider()
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = stringResource(id = R.string.convert_video_to_audio_title),
+                                        fontWeight = FontWeight.Medium,
+                                    )
+                                    Text(
+                                        text = stringResource(id = R.string.convert_video_to_audio_desc),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color.Gray,
+                                    )
+                                }
+                                Switch(
+                                    checked = uiState.convertVideoToAudio,
+                                    onCheckedChange = onConvertVideoToAudioChange,
+                                )
+                            }
+                            if (uiState.convertVideoToAudio) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = stringResource(id = R.string.delete_original_video_title),
+                                            fontWeight = FontWeight.Medium,
+                                        )
+                                        Text(
+                                            text = stringResource(id = R.string.delete_original_video_desc),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = Color.Gray,
+                                        )
+                                    }
+                                    Switch(
+                                        checked = uiState.deleteOriginalVideo,
+                                        onCheckedChange = onDeleteOriginalVideoChange,
+                                    )
+                                }
+                            }
+                        }
+
+                        Row(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable { isOptionsExpanded = !isOptionsExpanded }
+                                    .padding(vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = stringResource(id = R.string.options_button),
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                            Icon(
+                                imageVector =
+                                    if (isOptionsExpanded) {
+                                        Icons.Filled.KeyboardDoubleArrowUp
+                                    } else {
+                                        Icons.Filled.KeyboardDoubleArrowDown
+                                    },
+                                contentDescription = stringResource(id = R.string.options_button),
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
                         }
                     }
                 }
@@ -610,16 +683,6 @@ fun MainScreen(
             onReset = { onCustomCategoriesChanged(null) },
         )
     }
-
-    DownloadOptionsDialog(
-        show = uiState.showDownloadOptionsDialog,
-        convertToAudio = uiState.downloadOptionsConvertToAudio,
-        deleteOriginal = uiState.downloadOptionsDeleteOriginal,
-        onConvertToAudioChange = onDownloadOptionsConvertChanged,
-        onDeleteOriginalChange = onDownloadOptionsDeleteChanged,
-        onConfirm = onConfirmDownloadOptions,
-        onDismiss = onDismissDownloadOptions,
-    )
 
     if (uiState.showPermissionRevokedDialog && uiState.revokedWatchlistFolder != null) {
         com.nihaltp.sbskip.ui.main.dialogs.RevokedPermissionDialog(

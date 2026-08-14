@@ -121,10 +121,6 @@ data class MainUiState(
     val globalSponsorBlockCategories: Set<SponsorBlockCategory> = emptySet(),
     val customSponsorBlockCategories: Set<SponsorBlockCategory>? = null,
     // Download options dialog (shown before Download & Clean / Find File)
-    val showDownloadOptionsDialog: Boolean = false,
-    val downloadOptionsForFindFile: Boolean = false,
-    val downloadOptionsConvertToAudio: Boolean = false,
-    val downloadOptionsDeleteOriginal: Boolean = true,
     val showPermissionRevokedDialog: Boolean = false,
     val revokedWatchlistFolder: com.nihaltp.sbskip.model.WatchlistFolder? = null,
 )

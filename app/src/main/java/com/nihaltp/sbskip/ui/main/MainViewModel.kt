@@ -68,6 +68,13 @@ class MainViewModel
                 }
             }
             viewModelScope.launch {
+                val initialSettings = settingsRepository.settings.first()
+                _uiState.update {
+                    it.copy(
+                        convertVideoToAudio = initialSettings.defaultConvertVideoToAudio,
+                        deleteOriginalVideo = initialSettings.defaultDeleteOriginalVideo,
+                    )
+                }
                 settingsRepository.settings.collect { settings ->
                     _uiState.update {
                         it.copy(globalSponsorBlockCategories = settings.sponsorBlockSettings.categories)
@@ -118,14 +125,11 @@ class MainViewModel
                     } else {
                         MediaType.VIDEO
                     }
-                val settings = settingsRepository.settings.first()
                 _uiState.update {
                     it.copy(
                         selectedFileUri = uri.toString(),
                         selectedFileName = name,
                         selectedFileMediaType = mediaType,
-                        convertVideoToAudio = settings.defaultConvertVideoToAudio,
-                        deleteOriginalVideo = settings.defaultDeleteOriginalVideo,
                     )
                 }
             }
@@ -159,71 +163,20 @@ class MainViewModel
 
         fun startDownloadAndClean() {
             viewModelScope.launch {
-                showDownloadOptionsDialogInternal(forFindFile = false)
+                val state = uiState.value
+                startDownloadAndCleanInternal(state.convertVideoToAudio, state.deleteOriginalVideo)
             }
         }
 
         fun findFileForUrl() {
             viewModelScope.launch {
-                showDownloadOptionsDialogInternal(forFindFile = true)
+                val state = uiState.value
+                findFileForUrlInternal(state.convertVideoToAudio, state.deleteOriginalVideo)
             }
-        }
-
-        private suspend fun showDownloadOptionsDialogInternal(forFindFile: Boolean) {
-            val state = uiState.value
-            val inputUrl = state.urlInput.trim()
-            val videoId = YouTubeUrlParser.extractVideoId(inputUrl)
-
-            if (inputUrl.isBlank() || videoId.isNullOrBlank()) {
-                showToast(context.getString(R.string.enter_valid_url))
-                return
-            }
-
-            if (!forFindFile && !state.isNewPipeInstalled) {
-                showToast(context.getString(R.string.newpipe_not_installed))
-                return
-            }
-
-            val settings = settingsRepository.settings.first()
-            _uiState.update {
-                it.copy(
-                    showDownloadOptionsDialog = true,
-                    downloadOptionsForFindFile = forFindFile,
-                    downloadOptionsConvertToAudio = settings.defaultConvertVideoToAudio,
-                    downloadOptionsDeleteOriginal = settings.defaultDeleteOriginalVideo,
-                )
-            }
-        }
-
-        fun onDownloadOptionsConvertChanged(value: Boolean) {
-            _uiState.update { it.copy(downloadOptionsConvertToAudio = value) }
-        }
-
-        fun onDownloadOptionsDeleteChanged(value: Boolean) {
-            _uiState.update { it.copy(downloadOptionsDeleteOriginal = value) }
-        }
-
-        fun dismissDownloadOptionsDialog() {
-            _uiState.update { it.copy(showDownloadOptionsDialog = false) }
         }
 
         fun dismissPermissionRevokedDialog() {
             _uiState.update { it.copy(showPermissionRevokedDialog = false, revokedWatchlistFolder = null) }
-        }
-
-        fun confirmDownloadOptions() {
-            val state = uiState.value
-            val forFindFile = state.downloadOptionsForFindFile
-            val convertToAudio = state.downloadOptionsConvertToAudio
-            val deleteOriginal = state.downloadOptionsDeleteOriginal
-            _uiState.update { it.copy(showDownloadOptionsDialog = false) }
-            viewModelScope.launch {
-                if (forFindFile) {
-                    findFileForUrlInternal(convertToAudio, deleteOriginal)
-                } else {
-                    startDownloadAndCleanInternal(convertToAudio, deleteOriginal)
-                }
-            }
         }
 
         fun autoDetectAndClean(pendingDownload: PendingDownload) {
@@ -716,7 +669,7 @@ class MainViewModel
                     return
                 }
 
-                showDownloadOptionsDialogInternal(forFindFile = false)
+                startDownloadAndCleanInternal(state.convertVideoToAudio, state.deleteOriginalVideo)
                 return
             }
 
