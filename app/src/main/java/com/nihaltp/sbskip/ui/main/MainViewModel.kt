@@ -363,18 +363,19 @@ class MainViewModel
                     relativePath = relativePath,
                 )
 
+            val toast =
+                com.nihaltp.sbskip.model.ToastMessage(
+                    message = if (result.success) context.getString(R.string.snackbar_media_enqueued) else result.message,
+                )
+            scheduleToastDismiss(toast.id)
             _uiState.update { state ->
                 if (result.success) {
                     state.copy(
                         pendingDownloads = state.pendingDownloads.filter { it.videoId != pendingDownload.videoId },
-                        toastMessages =
-                            state.toastMessages +
-                                com.nihaltp.sbskip.model.ToastMessage(
-                                    message = context.getString(R.string.snackbar_media_enqueued),
-                                ),
+                        toastMessages = state.toastMessages + toast,
                     )
                 } else {
-                    state.copy(toastMessages = state.toastMessages + com.nihaltp.sbskip.model.ToastMessage(message = result.message))
+                    state.copy(toastMessages = state.toastMessages + toast)
                 }
             }
         }
@@ -559,6 +560,12 @@ class MainViewModel
                         videoOutputDirUri = if (pending.mediaType == MediaType.VIDEO) pending.customFolderUri else null,
                     )
 
+                val successToast =
+                    com.nihaltp.sbskip.model.ToastMessage(
+                        message = context.getString(R.string.snackbar_media_enqueued),
+                    )
+                val failureToast = com.nihaltp.sbskip.model.ToastMessage(message = result.message)
+                if (result.success) scheduleToastDismiss(successToast.id) else scheduleToastDismiss(failureToast.id)
                 _uiState.update { state ->
                     val filteredPending =
                         if (pending.pendingDownload != null) {
@@ -577,14 +584,10 @@ class MainViewModel
                             pendingDownloads = filteredPending,
                             showDurationMismatchDialog = false,
                             customSponsorBlockCategories = null,
-                            toastMessages =
-                                state.toastMessages +
-                                    com.nihaltp.sbskip.model.ToastMessage(
-                                        message = context.getString(R.string.snackbar_media_enqueued),
-                                    ),
+                            toastMessages = state.toastMessages + successToast,
                         )
                     } else {
-                        state.copy(toastMessages = state.toastMessages + com.nihaltp.sbskip.model.ToastMessage(message = result.message))
+                        state.copy(toastMessages = state.toastMessages + failureToast)
                     }
                 }
             }
@@ -631,6 +634,12 @@ class MainViewModel
                         videoOutputDirUri = if (pending.mediaType == MediaType.VIDEO) pending.customFolderUri else null,
                     )
 
+                val successToast =
+                    com.nihaltp.sbskip.model.ToastMessage(
+                        message = context.getString(R.string.snackbar_media_enqueued),
+                    )
+                val failureToast = com.nihaltp.sbskip.model.ToastMessage(message = result.message)
+                if (result.success) scheduleToastDismiss(successToast.id) else scheduleToastDismiss(failureToast.id)
                 _uiState.update { state ->
                     val filteredPending =
                         if (pending.pendingDownload != null) {
@@ -649,14 +658,10 @@ class MainViewModel
                             pendingDownloads = filteredPending,
                             showDurationMismatchDialog = false,
                             customSponsorBlockCategories = null,
-                            toastMessages =
-                                state.toastMessages +
-                                    com.nihaltp.sbskip.model.ToastMessage(
-                                        message = context.getString(R.string.snackbar_media_enqueued),
-                                    ),
+                            toastMessages = state.toastMessages + successToast,
                         )
                     } else {
-                        state.copy(toastMessages = state.toastMessages + com.nihaltp.sbskip.model.ToastMessage(message = result.message))
+                        state.copy(toastMessages = state.toastMessages + failureToast)
                     }
                 }
             }
@@ -854,6 +859,12 @@ class MainViewModel
                     relativePath = relativePath,
                 )
 
+            val successToast =
+                com.nihaltp.sbskip.model.ToastMessage(
+                    message = context.getString(R.string.snackbar_media_enqueued),
+                )
+            val failureToast = com.nihaltp.sbskip.model.ToastMessage(message = result.message)
+            if (result.success) scheduleToastDismiss(successToast.id) else scheduleToastDismiss(failureToast.id)
             _uiState.update { state ->
                 if (result.success) {
                     state.copy(
@@ -867,14 +878,10 @@ class MainViewModel
                         showDurationMismatchDialog = false,
                         pendingEnqueueData = null,
                         customSponsorBlockCategories = null,
-                        toastMessages =
-                            state.toastMessages +
-                                com.nihaltp.sbskip.model.ToastMessage(
-                                    message = context.getString(R.string.snackbar_media_enqueued),
-                                ),
+                        toastMessages = state.toastMessages + successToast,
                     )
                 } else {
-                    state.copy(toastMessages = state.toastMessages + com.nihaltp.sbskip.model.ToastMessage(message = result.message))
+                    state.copy(toastMessages = state.toastMessages + failureToast)
                 }
             }
         }
@@ -976,17 +983,18 @@ class MainViewModel
                         "(best candidate: ${bestCandidate?.let { "score=${it.score} uri=${it.uri}" } ?: "none"}) " +
                         "for videoId=${pendingDownload.videoId}",
                 )
+                val noMatchToast =
+                    com.nihaltp.sbskip.model.ToastMessage(
+                        message = context.getString(R.string.no_matching_download_found),
+                    )
+                scheduleToastDismiss(noMatchToast.id)
                 _uiState.update { state ->
                     state.copy(
                         pendingDownloads =
                             state.pendingDownloads.map {
                                 if (it.videoId == pendingDownload.videoId) it.copy(isDetectingFile = false) else it
                             },
-                        toastMessages =
-                            state.toastMessages +
-                                com.nihaltp.sbskip.model.ToastMessage(
-                                    message = context.getString(R.string.no_matching_download_found),
-                                ),
+                        toastMessages = state.toastMessages + noMatchToast,
                     )
                 }
                 return
@@ -1002,6 +1010,11 @@ class MainViewModel
                     "name='$detectedName' uri=${bestCandidate.uri} " +
                     "for videoId=${pendingDownload.videoId}",
             )
+            val matchToast =
+                com.nihaltp.sbskip.model.ToastMessage(
+                    message = context.getString(R.string.found_matching_file, bestCandidate.score),
+                )
+            scheduleToastDismiss(matchToast.id)
             _uiState.update { state ->
                 state.copy(
                     pendingDownloads =
@@ -1022,11 +1035,7 @@ class MainViewModel
                                 it
                             }
                         },
-                    toastMessages =
-                        state.toastMessages +
-                            com.nihaltp.sbskip.model.ToastMessage(
-                                message = context.getString(R.string.found_matching_file, bestCandidate.score),
-                            ),
+                    toastMessages = state.toastMessages + matchToast,
                 )
             }
 
@@ -1086,14 +1095,13 @@ class MainViewModel
             runCatching {
                 context.startActivity(intent)
             }.onFailure {
-                _uiState.update { state ->
-                    state.copy(
-                        toastMessages =
-                            state.toastMessages +
-                                com.nihaltp.sbskip.model.ToastMessage(
-                                    message = context.getString(R.string.newpipe_launch_failed),
-                                ),
+                val failToast =
+                    com.nihaltp.sbskip.model.ToastMessage(
+                        message = context.getString(R.string.newpipe_launch_failed),
                     )
+                scheduleToastDismiss(failToast.id)
+                _uiState.update { state ->
+                    state.copy(toastMessages = state.toastMessages + failToast)
                 }
             }
         }
@@ -1334,9 +1342,13 @@ class MainViewModel
         ) {
             val toast = com.nihaltp.sbskip.model.ToastMessage(message = message, actionLabel = actionLabel, itemToRestore = itemToRestore)
             _uiState.update { it.copy(toastMessages = it.toastMessages + toast) }
+            scheduleToastDismiss(toast.id)
+        }
+
+        private fun scheduleToastDismiss(id: String) {
             viewModelScope.launch {
                 kotlinx.coroutines.delay(4000)
-                dismissToast(toast.id)
+                dismissToast(id)
             }
         }
 
