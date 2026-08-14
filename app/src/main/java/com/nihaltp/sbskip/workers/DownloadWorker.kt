@@ -217,8 +217,16 @@ class DownloadWorker
                         processingContext = context,
                     )
 
+                // Calculate output duration
+                val outputDurationSeconds =
+                    if (plan.keepRanges.isNotEmpty()) {
+                        plan.keepRanges.sumOf { (start, end) -> end - start }.toLong()
+                    } else {
+                        fileDuration
+                    }
+
                 // 4. Mark as COMPLETED
-                queueRepository.markCompleted(queueItemId, savedUriString)
+                queueRepository.markCompleted(queueItemId, savedUriString, outputDurationSeconds)
                 notificationManager.showCompletion(notificationId, taskTitle)
 
                 Result.success(

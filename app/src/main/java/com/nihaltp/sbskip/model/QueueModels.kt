@@ -21,6 +21,7 @@ data class DownloadQueueItem(
     val updatedAtEpochMillis: Long,
     val errorMessage: String?,
     val outputPath: String? = null,
+    val outputDurationSeconds: Long? = null,
     val convertVideoToAudio: Boolean = false,
     val deleteOriginalVideo: Boolean = true,
     val audioOutputDirUri: String? = null,
@@ -28,17 +29,26 @@ data class DownloadQueueItem(
     val relativePath: String? = null,
 ) {
     val displayDuration: String
-        get() =
-            durationSeconds?.let { seconds ->
-                val hours = seconds / 3600
-                val minutes = (seconds % 3600) / 60
-                val remainingSeconds = seconds % 60
-                if (hours > 0) {
-                    "%d:%02d:%02d".format(hours, minutes, remainingSeconds)
-                } else {
-                    "%d:%02d".format(minutes, remainingSeconds)
-                }
-            } ?: "--:--"
+        get() {
+            val original = durationSeconds?.takeIf { it > 0 }?.let { formatSeconds(it) } ?: "--:--"
+            val output = outputDurationSeconds?.takeIf { it > 0 }?.let { formatSeconds(it) }
+            return if (output != null && output != original) {
+                "$original ($output)"
+            } else {
+                original
+            }
+        }
+
+    private fun formatSeconds(seconds: Long): String {
+        val hours = seconds / 3600
+        val minutes = (seconds % 3600) / 60
+        val remainingSeconds = seconds % 60
+        return if (hours > 0) {
+            "%d:%02d:%02d".format(hours, minutes, remainingSeconds)
+        } else {
+            "%d:%02d".format(minutes, remainingSeconds)
+        }
+    }
 
     val cleanUrl: String
         get() = if (url.startsWith("sbskip://")) "" else url.substringBefore("?bypassDurationCheck").substringBefore("&bypassDurationCheck")

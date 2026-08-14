@@ -95,6 +95,7 @@ interface DownloadQueueDao {
         UPDATE download_queue
         SET status = 'COMPLETED',
             outputPath = :outputPath,
+            outputDurationSeconds = :outputDurationSeconds,
             errorMessage = NULL,
             updatedAtEpochMillis = :updatedAtEpochMillis
         WHERE id = :id
@@ -103,6 +104,7 @@ interface DownloadQueueDao {
     suspend fun markCompleted(
         id: Long,
         outputPath: String,
+        outputDurationSeconds: Long?,
         updatedAtEpochMillis: Long,
     )
 

@@ -36,6 +36,7 @@ interface QueueRepository {
     suspend fun markCompleted(
         itemId: Long,
         outputPath: String,
+        outputDurationSeconds: Long? = null,
     )
 
     suspend fun markFailed(

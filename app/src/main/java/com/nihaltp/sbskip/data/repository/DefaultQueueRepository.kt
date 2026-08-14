@@ -166,11 +166,13 @@ class DefaultQueueRepository
         override suspend fun markCompleted(
             itemId: Long,
             outputPath: String,
+            outputDurationSeconds: Long?,
         ) {
-            AppLogger.queue("completed id=$itemId outputPath=$outputPath")
+            AppLogger.queue("completed id=$itemId outputPath=$outputPath outputDuration=$outputDurationSeconds")
             dao.markCompleted(
                 id = itemId,
                 outputPath = outputPath,
+                outputDurationSeconds = outputDurationSeconds,
                 updatedAtEpochMillis = System.currentTimeMillis(),
             )
         }
@@ -219,6 +221,7 @@ class DefaultQueueRepository
                 updatedAtEpochMillis = updatedAtEpochMillis,
                 errorMessage = errorMessage,
                 outputPath = outputPath,
+                outputDurationSeconds = outputDurationSeconds,
                 convertVideoToAudio = convertVideoToAudio,
                 deleteOriginalVideo = deleteOriginalVideo,
                 audioOutputDirUri = audioOutputDirUri,
