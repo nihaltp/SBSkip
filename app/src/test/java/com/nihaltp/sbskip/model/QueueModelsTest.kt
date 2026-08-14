@@ -226,4 +226,47 @@ class QueueModelsTest {
 
         assertEquals("", item.cleanUrl)
     }
+
+    @Test
+    fun testDisplayDuration() {
+        val baseItem =
+            DownloadQueueItem(
+                id = 1L,
+                url = "https://youtube.com/watch?v=123",
+                title = "Test",
+                localFileUri = "content://media/external/video/1",
+                mediaType = MediaType.VIDEO,
+                thumbnailUrl = null,
+                durationSeconds = null,
+                status = DownloadQueueStatus.QUEUED,
+                createdAtEpochMillis = 1000L,
+                updatedAtEpochMillis = 1000L,
+                errorMessage = null,
+                outputPath = null,
+                outputDurationSeconds = null,
+                convertVideoToAudio = false,
+                deleteOriginalVideo = false,
+            )
+
+        // 1. Both null -> "--:--"
+        assertEquals("--:--", baseItem.copy(durationSeconds = null, outputDurationSeconds = null).displayDuration)
+
+        // 2. Both zero -> "--:--"
+        assertEquals("--:--", baseItem.copy(durationSeconds = 0L, outputDurationSeconds = 0L).displayDuration)
+
+        // 3. Original only -> "3:50"
+        assertEquals("3:50", baseItem.copy(durationSeconds = 230L, outputDurationSeconds = null).displayDuration)
+
+        // 4. Original and Output same -> "3:50"
+        assertEquals("3:50", baseItem.copy(durationSeconds = 230L, outputDurationSeconds = 230L).displayDuration)
+
+        // 5. Output less than original -> "3:50 (2:50)"
+        assertEquals("3:50 (2:50)", baseItem.copy(durationSeconds = 230L, outputDurationSeconds = 170L).displayDuration)
+
+        // 6. Original with 0 output duration -> "3:50"
+        assertEquals("3:50", baseItem.copy(durationSeconds = 230L, outputDurationSeconds = 0L).displayDuration)
+
+        // 7. Hours format
+        assertEquals("1:00:50 (0:50)", baseItem.copy(durationSeconds = 3650L, outputDurationSeconds = 50L).displayDuration)
+    }
 }
