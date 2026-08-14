@@ -115,6 +115,7 @@ fun MainScreen(
     onConfirmDownloadOptions: () -> Unit,
     onDismissDownloadOptions: () -> Unit,
     onDismissPermissionRevokedDialog: () -> Unit,
+    onSearchNow: (PendingDownload) -> Unit,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val clipboardManager = LocalClipboardManager.current
@@ -499,9 +500,17 @@ fun MainScreen(
                         detectedFileName = pending.detectedFileName,
                         detectedFile = pending.detectedFile,
                         isDetecting = pending.isDetectingFile,
+                        estimatedReadyAtEpochMillis = pending.estimatedReadyAtEpochMillis,
                         onAutoDetect = {
                             if (PermissionHelper.hasFilesPermission(context)) {
                                 onAutoDetectPending(pending)
+                            } else {
+                                requestFilesPermissionWithRationale()
+                            }
+                        },
+                        onSearchNow = {
+                            if (PermissionHelper.hasFilesPermission(context)) {
+                                onSearchNow(pending)
                             } else {
                                 requestFilesPermissionWithRationale()
                             }

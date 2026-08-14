@@ -24,7 +24,12 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,6 +44,7 @@ import coil.compose.AsyncImage
 import com.nihaltp.sbskip.R
 import com.nihaltp.sbskip.model.DetectedFile
 import com.nihaltp.sbskip.util.ClipboardHelper
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
@@ -48,7 +54,9 @@ fun PendingDownloadCard(
     detectedFileName: String?,
     detectedFile: DetectedFile?,
     isDetecting: Boolean,
+    estimatedReadyAtEpochMillis: Long?,
     onAutoDetect: () -> Unit,
+    onSearchNow: () -> Unit,
     onPickFileManually: () -> Unit,
     onCancel: () -> Unit,
     onConfirmDetectedFile: () -> Unit,
@@ -57,6 +65,27 @@ fun PendingDownloadCard(
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+
+    // Remaining milliseconds until auto-detect fires; 0 when countdown has elapsed
+    var remainingMillis by remember(estimatedReadyAtEpochMillis) {
+        val remaining =
+            estimatedReadyAtEpochMillis?.let {
+                (it - System.currentTimeMillis()).coerceAtLeast(0L)
+            } ?: 0L
+        mutableLongStateOf(remaining)
+    }
+
+    // Tick every second while there is time remaining
+    LaunchedEffect(estimatedReadyAtEpochMillis) {
+        if (estimatedReadyAtEpochMillis == null) return@LaunchedEffect
+        while (remainingMillis > 0L) {
+            delay(500L)
+            remainingMillis = (estimatedReadyAtEpochMillis - System.currentTimeMillis()).coerceAtLeast(0L)
+        }
+    }
+
+    val isCountingDown = estimatedReadyAtEpochMillis != null && remainingMillis > 0L
+
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         modifier =
@@ -114,16 +143,50 @@ fun PendingDownloadCard(
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(stringResource(id = R.string.waiting_for_download_title), fontWeight = FontWeight.Bold)
                     Text(pendingDownloadTitle, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    if (isDetecting) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                            CircularProgressIndicator(modifier = Modifier.width(18.dp).height(18.dp), strokeWidth = 2.dp)
-                            Text(stringResource(id = R.string.detecting_recent_download))
+                    when {
+                        isCountingDown -> {
+                            // Show countdown
+                            val totalSeconds = remainingMillis / 1000L
+                            val minutes = totalSeconds / 60
+                            val seconds = totalSeconds % 60
+                            val countdownText = "%d:%02d".format(minutes, seconds)
+                            Text(
+                                text = stringResource(R.string.waiting_for_newpipe_download, countdownText),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        isDetecting -> {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                CircularProgressIndicator(modifier = Modifier.width(18.dp).height(18.dp), strokeWidth = 2.dp)
+                                Text(stringResource(id = R.string.detecting_recent_download))
+                            }
                         }
                     }
                 }
             }
 
-            if (detectedFile != null) {
+            if (isCountingDown) {
+                // Countdown mode — only offer "Search now" and Cancel
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    OutlinedButton(
+                        onClick = onSearchNow,
+                        modifier = Modifier.fillMaxWidth(),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)),
+                    ) {
+                        Text(stringResource(id = R.string.search_now_button))
+                    }
+                    TextButton(
+                        onClick = onCancel,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(id = R.string.cancel))
+                    }
+                }
+            } else if (detectedFile != null) {
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                     Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(stringResource(id = R.string.found_matching_file, detectedFile.score), fontWeight = FontWeight.Bold)

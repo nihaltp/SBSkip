@@ -24,6 +24,7 @@ import com.nihaltp.sbskip.util.YouTubeUrlParser
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -55,6 +56,10 @@ class MainViewModel
 
         private val _uiState = MutableStateFlow(MainUiState())
         val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
+
+        // Tracks the delayed auto-detect coroutine for each pending download (keyed by videoId).
+        // Cancelling the job allows the user to trigger detection early via "Search now".
+        private val pendingDetectJobs = mutableMapOf<String, kotlinx.coroutines.Job>()
 
         init {
             viewModelScope.launch {
@@ -224,6 +229,31 @@ class MainViewModel
         fun autoDetectAndClean(pendingDownload: PendingDownload) {
             viewModelScope.launch {
                 autoDetectAndCleanInternal(pendingDownload)
+            }
+        }
+
+        /**
+         * Called when the user taps "Search now" on a PendingDownloadCard.
+         * Cancels the ongoing delay (if any) and runs auto-detect immediately.
+         */
+        fun triggerAutoDetectNow(pendingDownload: PendingDownload) {
+            // Cancel the scheduled delay job, if it exists
+            pendingDetectJobs.remove(pendingDownload.videoId)?.cancel()
+            // Clear the countdown so the card stops showing the timer
+            _uiState.update { state ->
+                state.copy(
+                    pendingDownloads =
+                        state.pendingDownloads.map {
+                            if (it.videoId == pendingDownload.videoId) {
+                                it.copy(estimatedReadyAtEpochMillis = null)
+                            } else {
+                                it
+                            }
+                        },
+                )
+            }
+            viewModelScope.launch {
+                autoDetectAndCleanInternal(pendingDownload.copy(estimatedReadyAtEpochMillis = null))
             }
         }
 
@@ -915,20 +945,48 @@ class MainViewModel
                     normalizedUrl
                 }
 
-            val metadata =
-                runCatching { fetchYouTubeOEmbed(normalizedUrl) }.getOrElse {
-                    YouTubeMetadata(title = state.urlInput.ifBlank { videoId }, authorName = null, authorUrl = null, thumbnailUrl = null)
+            // Fetch metadata and video duration concurrently
+            val metadataDeferred =
+                viewModelScope.async {
+                    runCatching { fetchYouTubeOEmbed(normalizedUrl) }.getOrElse {
+                        YouTubeMetadata(
+                            title = state.urlInput.ifBlank { videoId },
+                            authorName = null,
+                            authorUrl = null,
+                            thumbnailUrl = null,
+                        )
+                    }
+                }
+            val durationDeferred =
+                viewModelScope.async {
+                    com.nihaltp.sbskip.util.YouTubeDurationFetcher.fetchDuration(videoId)
                 }
 
+            val metadata = metadataDeferred.await()
+            val durationSeconds = durationDeferred.await()
+
+            // Compute how long to wait before scanning:
+            // clamp(duration * WAIT_FACTOR, MIN_WAIT, MAX_WAIT)
+            val waitSeconds: Long =
+                if (durationSeconds != null && durationSeconds > 0) {
+                    (durationSeconds * DOWNLOAD_WAIT_FACTOR)
+                        .toLong()
+                        .coerceIn(MIN_DOWNLOAD_WAIT_SECONDS, MAX_DOWNLOAD_WAIT_SECONDS)
+                } else {
+                    DEFAULT_DOWNLOAD_WAIT_SECONDS
+                }
+
+            val now = System.currentTimeMillis()
             val pendingDownload =
                 PendingDownload(
                     videoId = videoId,
                     url = finalUrl,
                     title = metadata.title.orEmpty().ifBlank { videoId },
                     thumbnailUrl = metadata.thumbnailUrl,
-                    createdAtEpochMillis = System.currentTimeMillis(),
+                    createdAtEpochMillis = now,
                     convertVideoToAudio = convertVideoToAudio,
                     deleteOriginalVideo = deleteOriginalVideo,
+                    estimatedReadyAtEpochMillis = now + waitSeconds * 1000L,
                 )
 
             val showPrompt = settingsRepository.settings.first().watchlist.isEmpty()
@@ -943,7 +1001,28 @@ class MainViewModel
             }
 
             launchNewPipe(normalizedUrl)
-            autoDetectAndCleanInternal(pendingDownload)
+
+            // Delay auto-detect until the estimated download time has elapsed.
+            // Store the Job so it can be cancelled if the user taps "Search now".
+            val detectJob =
+                viewModelScope.launch {
+                    kotlinx.coroutines.delay(waitSeconds * 1000L)
+                    // Clear the countdown before running detection
+                    _uiState.update { st ->
+                        st.copy(
+                            pendingDownloads =
+                                st.pendingDownloads.map {
+                                    if (it.videoId == pendingDownload.videoId) {
+                                        it.copy(estimatedReadyAtEpochMillis = null)
+                                    } else {
+                                        it
+                                    }
+                                },
+                        )
+                    }
+                    autoDetectAndCleanInternal(pendingDownload.copy(estimatedReadyAtEpochMillis = null))
+                }
+            pendingDetectJobs[videoId] = detectJob
         }
 
         private suspend fun autoDetectAndCleanInternal(pendingDownload: PendingDownload) {
@@ -1362,5 +1441,12 @@ class MainViewModel
             private const val MIN_CONFIDENCE_SCORE = 55
             private const val MAX_SCAN_RESULTS_PER_COLLECTION = 100
             private val WORD_SPLIT_REGEX = Regex("[^a-z0-9]+")
+
+            // How long to wait for a NewPipe download before running auto-detect.
+            // Wait = clamp(videoDurationSeconds * FACTOR, MIN, MAX)
+            private const val DOWNLOAD_WAIT_FACTOR = 0.15
+            private const val MIN_DOWNLOAD_WAIT_SECONDS = 30L
+            private const val MAX_DOWNLOAD_WAIT_SECONDS = 300L
+            private const val DEFAULT_DOWNLOAD_WAIT_SECONDS = 60L // fallback if duration unknown
         }
     }

@@ -55,6 +55,9 @@ data class PendingDownload(
     val isDetectingFile: Boolean = false,
     val convertVideoToAudio: Boolean = false,
     val deleteOriginalVideo: Boolean = true,
+    // Non-null when we launched NewPipe and need to wait for the download to finish
+    // before running auto-detect. Null means run auto-detect immediately.
+    val estimatedReadyAtEpochMillis: Long? = null,
 )
 
 data class DetectedFile(

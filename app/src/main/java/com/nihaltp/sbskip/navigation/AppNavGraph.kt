@@ -65,6 +65,7 @@ fun AppNavGraph(
                 onConfirmDownloadOptions = viewModel::confirmDownloadOptions,
                 onDismissDownloadOptions = viewModel::dismissDownloadOptionsDialog,
                 onDismissPermissionRevokedDialog = viewModel::dismissPermissionRevokedDialog,
+                onSearchNow = viewModel::triggerAutoDetectNow,
             )
         }
 

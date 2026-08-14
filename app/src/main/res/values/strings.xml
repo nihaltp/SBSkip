@@ -143,6 +143,8 @@
     <string name="confirm_this_file_prompt">Is this the file you want to clean?</string>
     <string name="clean_this_file_button">Clean This File</string>
     <string name="detecting_recent_download">Detecting recent download...</string>
+    <string name="waiting_for_newpipe_download">Waiting for download to finish… (%1$s left)</string>
+    <string name="search_now_button">Search now</string>
     <string name="found_matching_file">✓ Found matching file (%1$d%% confidence)</string>
     <string name="no_pending_download">No pending download to detect.</string>
     <string name="no_matching_download_found">No matching file found. You can pick a file manually.</string>
