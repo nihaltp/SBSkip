@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.ContentPaste
@@ -42,7 +41,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -405,33 +403,24 @@ fun MainScreen(
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Text(stringResource(id = R.string.select_local_file_title), fontWeight = FontWeight.SemiBold)
+                        Text(
+                            stringResource(
+                                id =
+                                    if (uiState.selectedFileUri != null) {
+                                        R.string.selected_file_label
+                                    } else {
+                                        R.string.select_local_file_title
+                                    },
+                            ),
+                            fontWeight = FontWeight.SemiBold,
+                        )
 
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = Color.Black.copy(alpha = 0.05f),
+                        Column(
                             modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
-                            Column(
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .padding(12.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp),
-                            ) {
-                                Column(modifier = Modifier.fillMaxWidth()) {
-                                    Text(
-                                        text =
-                                            if (uiState.selectedFileUri != null) {
-                                                stringResource(
-                                                    id = R.string.selected_file_label,
-                                                )
-                                            } else {
-                                                stringResource(id = R.string.import_media_file_label)
-                                            },
-                                        fontWeight = FontWeight.Medium,
-                                        color = Color.Gray,
-                                    )
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                if (uiState.selectedFileUri != null) {
                                     Text(
                                         text = uiState.selectedFileName.ifBlank { stringResource(id = R.string.no_media_selected) },
                                         fontWeight = FontWeight.SemiBold,
@@ -439,52 +428,52 @@ fun MainScreen(
                                         overflow = TextOverflow.Ellipsis,
                                     )
                                 }
-                                if (uiState.selectedFileUri == null) {
-                                    Column(
+                            }
+                            if (uiState.selectedFileUri == null) {
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    ElevatedButton(
+                                        onClick = {
+                                            if (PermissionHelper.hasFilesPermission(context)) {
+                                                filePickerLauncher.launch(
+                                                    arrayOf("video/*", "audio/*"),
+                                                )
+                                            } else {
+                                                requestFilesPermissionWithRationale()
+                                            }
+                                        },
                                         modifier = Modifier.fillMaxWidth(),
-                                        verticalArrangement = Arrangement.spacedBy(8.dp),
                                     ) {
-                                        ElevatedButton(
+                                        Icon(Icons.Filled.FolderOpen, contentDescription = null)
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(stringResource(id = R.string.pick_file_button))
+                                    }
+
+                                    if (uiState.urlInput.isNotBlank()) {
+                                        val isLoading = uiState.isFetchingMetadata || uiState.isDetectingFile
+                                        OutlinedButton(
                                             onClick = {
                                                 if (PermissionHelper.hasFilesPermission(context)) {
-                                                    filePickerLauncher.launch(
-                                                        arrayOf("video/*", "audio/*"),
-                                                    )
+                                                    onFindFile()
                                                 } else {
                                                     requestFilesPermissionWithRationale()
                                                 }
                                             },
+                                            enabled = !isLoading,
                                             modifier = Modifier.fillMaxWidth(),
                                         ) {
-                                            Icon(Icons.Filled.FolderOpen, contentDescription = null)
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Text(stringResource(id = R.string.pick_file_button))
-                                        }
-
-                                        if (uiState.urlInput.isNotBlank()) {
-                                            val isLoading = uiState.isFetchingMetadata || uiState.isDetectingFile
-                                            OutlinedButton(
-                                                onClick = {
-                                                    if (PermissionHelper.hasFilesPermission(context)) {
-                                                        onFindFile()
-                                                    } else {
-                                                        requestFilesPermissionWithRationale()
-                                                    }
-                                                },
-                                                enabled = !isLoading,
-                                                modifier = Modifier.fillMaxWidth(),
-                                            ) {
-                                                if (isLoading) {
-                                                    CircularProgressIndicator(
-                                                        modifier = Modifier.height(18.dp).width(18.dp),
-                                                        strokeWidth = 2.dp,
-                                                    )
-                                                } else {
-                                                    Icon(Icons.Filled.Search, contentDescription = null)
-                                                }
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                Text(stringResource(id = R.string.find_file_button))
+                                            if (isLoading) {
+                                                CircularProgressIndicator(
+                                                    modifier = Modifier.height(18.dp).width(18.dp),
+                                                    strokeWidth = 2.dp,
+                                                )
+                                            } else {
+                                                Icon(Icons.Filled.Search, contentDescription = null)
                                             }
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(stringResource(id = R.string.find_file_button))
                                         }
                                     }
                                 }
