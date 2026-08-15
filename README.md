@@ -1,14 +1,20 @@
 # SB Skip
 
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE) [![Platform: Android](https://img.shields.io/badge/Platform-Android-green.svg)](#tech-stack)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](LICENSE) [![Platform: Android](https://img.shields.io/badge/Platform-Android-green.svg?style=for-the-badge)](#tech-stack)
 
-**SB Skip** is a focused, premium, privacy-respecting Android utility designed to remove SponsorBlock-marked segments from media files you already have on your device.
+**SB Skip** is a focused, privacy-respecting Android utility designed to remove SponsorBlock-marked segments from media files you already have on your device.
 
-Unlike streaming players or fully fledged YouTube replacements, **SB Skip** has one specialized job: accept a media file (or URL), fetch SponsorBlock community-sourced skips, trim the unwanted segments, and output a clean file with zero user friction.
+It is designed to work perfectly alongside **[NewPipe](https://newpipe.net/)**. While NewPipe excels at downloading videos and entire playlists, **SB Skip** takes those downloaded files, fetches SponsorBlock community-sourced skips, and trims out the unwanted segments (sponsors, intros, etc.)—leaving you with a clean file and zero friction.
 
 ---
 
 ## Download
+
+### 1. GitHub Releases (Latest)
+
+Download the latest APK directly from the [GitHub Releases](https://github.com/nihaltp/SBSkip/releases/latest) page.
+
+### 2. F-Droid Repository
 
 Available on my F-Droid repository:
 
@@ -26,14 +32,13 @@ https://nihaltp.github.io/fdroid/repo/
 
 ## 🚀 Key Features
 
+* **Companion to NewPipe**: Built to seamlessly process individual videos or batch-process entire downloaded playlists from NewPipe.
 * **SponsorBlock Integration**: Fetch skip segments directly using the public community-maintained SponsorBlock API.
 * **Broad Media Support**: Processes any audio or video file format supported by FFmpeg (e.g., MP4, MP3, Opus, WebM, MKV, etc.).
 * **Background Queue**: Clean files asynchronously using standard Android `WorkManager` workers, even when the app is in the background.
-* **Paste & Share Integration**: Intake URLs via manual copy-pasting or directly from other apps (e.g. NewPipe, browser) using the Android system Share sheet.
+* **Paste & Share Integration**: Intake video or playlist URLs via manual copy-pasting or directly from other apps using the Android system Share sheet. SB Skip automatically detects the corresponding downloaded media files (with manual selection as a fallback).
 * **Modern Customization**: Support for HSL-curated color systems, Dynamic Material You colors, Dark/Light modes, and monochrome/adaptive system icons.
 * **Precise Control**: Fine-grained configuration to choose which categories to remove (Sponsors, Self-promotion, Intros/Outros, Interaction reminders, Filler content, etc.).
-* **Obfuscation Ready**: Full code shrinking and obfuscation optimization setup via Proguard/R8.
-* **Fastlane Automated Bumps**: Complete versioning, building, and screenshot capture pipelines powered by Fastlane.
 
 ---
 
@@ -50,25 +55,41 @@ SB Skip is built using modern Android development best practices and robust libr
 
 ---
 
-![Alt](https://repobeats.axiom.co/api/embed/2a0950bc5f7135d197c9c1230942928e2e242bf6.svg "Repobeats analytics image")
-
----
-
 ## 📖 How It Works
 
 ```mermaid
 graph TD
-    A[Share Video File or Paste YouTube URL] --> B[Retrieve SponsorBlock Segment Data]
-    B --> C[Configure categories to skip e.g. Sponsors]
-    C --> D[Process via Background WorkManager]
-    D --> E[Trimming segments using FFmpeg-kit]
-    E --> F[Saved Cleaned Media to Destination Folder]
+    A[Paste Link in App] --> C{How to get Media File?}
+    B[Share URL to SB Skip] --> C
+    C --> |Download via NewPipe| D[Download Video/Playlist using NewPipe]
+    C --> |Already Downloaded| E[Manually Select Downloaded Media Files]
+    D --> F{Auto-Detect Downloaded Media Files}
+    E --> H{Check Duration Difference with picked file and Youtube Video}
+    H --> |Difference > Set Threshold| RE[Retry]
+    H --> |Difference < Set Threshold| G[Configure categories to skip]
+    F --> |Found| H
+    F --> |Not Found| E
+    G --> I[Retrieve SponsorBlock Segment Data]
+    I --> J[Process via Background WorkManager]
+    J --> K[Trimming segments using FFmpeg-kit]
+    K --> L{Convert to Audio}
+    L --> |Yes| M[Convert to Audio using FFmpeg-kit]
+    L --> |No| O{Overwrite Files?}
+    M --> O
+    O --> |Yes| N[Save Cleaned Media to Destination Folder]
+    O --> |No| P[Add suffix to filename]
+    N --> P
+    P --> Q{Delete Original File?}
+    Q --> |Yes| R[Delete Original File]
+    Q --> |No| DONE[Done!]
+    R --> DONE
 ```
 
-1. **Intake**: Paste a YouTube URL or select an existing audio/video file.
-2. **SponsorBlock Query**: SB Skip queries the server for timestamps of community-submitted segments.
-3. **Execution**: A background worker takes the local file, coordinates with the `FFmpeg-kit` compile, and cuts the unwanted chunks.
-4. **Completion**: A clean file is written to your selected directory, and a system notification is shown.
+1. **Intake & Acquisition**: Share a video/playlist URL to SB Skip (or paste it in-app). From here, you can download the media using NewPipe (which SB Skip will try to auto-detect), or manually select media you've already downloaded.
+2. **Configuration & Query**: Select the categories you wish to remove (e.g., Sponsors, Intros). SB Skip will fetch the required segment timestamps from the SponsorBlock API.
+3. **Execution**: A background worker coordinates with `FFmpeg-kit` to seamlessly cut out the unwanted segments from your media files.
+4. **Post-Processing**: Depending on your settings, SB Skip can convert the resulting video to audio and append a suffix to the final filename.
+5. **Completion**: The finalized clean file is saved to your destination folder, and you have the option to automatically delete the original unedited file.
 
 ---
 
@@ -93,16 +114,6 @@ To run local Kotlin unit tests:
 ```bash
 ./gradlew test
 ```
-
-### Fastlane Lanes
-
-Fastlane is fully integrated to automate versioning and screenshots:
-
-* **Version info**: `bundle exec fastlane android version`
-* **Version code bump**: `bundle exec fastlane android increment_version_code`
-* **Minor version bump**: `bundle exec fastlane android increment_minor`
-* **Major version bump**: `bundle exec fastlane android increment_major`
-* **Screenshots capture**: `bundle exec fastlane android screenshots` (runs instrumented test capture automatically)
 
 ---
 
