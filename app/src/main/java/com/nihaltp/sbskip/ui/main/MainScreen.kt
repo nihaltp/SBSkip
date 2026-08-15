@@ -641,11 +641,14 @@ fun MainScreen(
                 }
             }
 
+            val activeItems = uiState.queueItems.filter { it.status != com.nihaltp.sbskip.model.DownloadQueueStatus.COMPLETED }
+            val completedItems = uiState.queueItems.filter { it.status == com.nihaltp.sbskip.model.DownloadQueueStatus.COMPLETED }
+
             item {
                 SectionHeader(title = stringResource(id = R.string.media_queue_title))
             }
 
-            if (uiState.queueItems.isEmpty()) {
+            if (activeItems.isEmpty()) {
                 item {
                     EmptyStateCard(
                         title = stringResource(id = R.string.no_jobs_title),
@@ -653,7 +656,27 @@ fun MainScreen(
                     )
                 }
             } else {
-                items(uiState.queueItems, key = { it.id }) { queueItem ->
+                items(activeItems, key = { it.id }) { queueItem ->
+                    QueueItemCard(
+                        item = queueItem,
+                        onRetry = { id -> onRetryQueueItem(id, false) },
+                        onRemove = { itemId ->
+                            val item = uiState.queueItems.find { it.id == itemId }
+                            item?.let {
+                                onRemoveQueueItem(it)
+                            }
+                        },
+                        onErrorClick = { errorDialogItem = it },
+                        onCardClick = { detailsDialogItem = it },
+                    )
+                }
+            }
+
+            if (completedItems.isNotEmpty()) {
+                item {
+                    SectionHeader(title = stringResource(id = R.string.processed_media_title))
+                }
+                items(completedItems, key = { it.id }) { queueItem ->
                     QueueItemCard(
                         item = queueItem,
                         onRetry = { id -> onRetryQueueItem(id, false) },

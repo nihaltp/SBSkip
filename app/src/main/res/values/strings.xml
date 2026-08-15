@@ -152,6 +152,7 @@
     <string name="newpipe_not_installed">NewPipe is not installed.</string>
     <string name="newpipe_launch_failed">Unable to launch NewPipe.</string>
     <string name="media_queue_title">Media Cleaning Queue</string>
+    <string name="processed_media_title">Processed Media</string>
     <string name="no_jobs_title">No cleaning jobs yet</string>
     <string name="no_jobs_body">Import a local video/audio file and paste its corresponding YouTube link to start cleaning SponsorBlock segments.</string>
 
