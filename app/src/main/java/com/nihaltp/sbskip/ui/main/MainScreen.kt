@@ -633,11 +633,13 @@ fun MainScreen(
             val activeItems = uiState.queueItems.filter { it.status != com.nihaltp.sbskip.model.DownloadQueueStatus.COMPLETED }
             val completedItems = uiState.queueItems.filter { it.status == com.nihaltp.sbskip.model.DownloadQueueStatus.COMPLETED }
 
-            item {
-                SectionHeader(title = stringResource(id = R.string.media_queue_title))
+            if (activeItems.isNotEmpty() || completedItems.isEmpty()) {
+                item {
+                    SectionHeader(title = stringResource(id = R.string.media_queue_title))
+                }
             }
 
-            if (activeItems.isEmpty()) {
+            if (activeItems.isEmpty() && completedItems.isEmpty()) {
                 item {
                     EmptyStateCard(
                         title = stringResource(id = R.string.no_jobs_title),
