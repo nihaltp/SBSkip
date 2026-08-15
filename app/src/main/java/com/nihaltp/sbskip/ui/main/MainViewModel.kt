@@ -250,6 +250,11 @@ class MainViewModel
 
             // Spawn pending download
             val now = System.currentTimeMillis()
+            val maxExistingTimer = state.pendingDownloads.mapNotNull { it.estimatedReadyAtEpochMillis }.maxOrNull() ?: now
+            val startFrom = maxOf(now, maxExistingTimer)
+            val waitMillis = DEFAULT_DOWNLOAD_WAIT_SECONDS * 1000L
+            val estimatedReady = startFrom + waitMillis
+
             val pendingDownload =
                 PendingDownload(
                     videoId = currentVideo.videoId,
@@ -259,7 +264,7 @@ class MainViewModel
                     createdAtEpochMillis = now,
                     convertVideoToAudio = plState.convertVideoToAudio,
                     deleteOriginalVideo = plState.deleteOriginalVideo,
-                    estimatedReadyAtEpochMillis = now + DEFAULT_DOWNLOAD_WAIT_SECONDS * 1000L,
+                    estimatedReadyAtEpochMillis = estimatedReady,
                 )
 
             _uiState.update { st ->
@@ -279,7 +284,10 @@ class MainViewModel
             // Auto detect job
             val detectJob =
                 viewModelScope.launch {
-                    kotlinx.coroutines.delay(DEFAULT_DOWNLOAD_WAIT_SECONDS * 1000L)
+                    val delayMillis = estimatedReady - System.currentTimeMillis()
+                    if (delayMillis > 0) {
+                        kotlinx.coroutines.delay(delayMillis)
+                    }
                     _uiState.update { st ->
                         st.copy(
                             pendingDownloads =
@@ -1102,6 +1110,11 @@ class MainViewModel
                 }
 
             val now = System.currentTimeMillis()
+            val maxExistingTimer = uiState.value.pendingDownloads.mapNotNull { it.estimatedReadyAtEpochMillis }.maxOrNull() ?: now
+            val startFrom = maxOf(now, maxExistingTimer)
+            val waitMillis = waitSeconds * 1000L
+            val estimatedReady = startFrom + waitMillis
+
             val pendingDownload =
                 PendingDownload(
                     videoId = videoId,
@@ -1111,7 +1124,7 @@ class MainViewModel
                     createdAtEpochMillis = now,
                     convertVideoToAudio = convertVideoToAudio,
                     deleteOriginalVideo = deleteOriginalVideo,
-                    estimatedReadyAtEpochMillis = now + waitSeconds * 1000L,
+                    estimatedReadyAtEpochMillis = estimatedReady,
                 )
 
             val showPrompt = settingsRepository.settings.first().watchlist.isEmpty()
@@ -1131,7 +1144,10 @@ class MainViewModel
             // Store the Job so it can be cancelled if the user taps "Search now".
             val detectJob =
                 viewModelScope.launch {
-                    kotlinx.coroutines.delay(waitSeconds * 1000L)
+                    val delayMillis = estimatedReady - System.currentTimeMillis()
+                    if (delayMillis > 0) {
+                        kotlinx.coroutines.delay(delayMillis)
+                    }
                     // Clear the countdown before running detection
                     _uiState.update { st ->
                         st.copy(
