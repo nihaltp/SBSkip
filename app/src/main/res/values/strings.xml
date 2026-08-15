@@ -96,6 +96,7 @@
     <string name="sponsorblock_categories_desc">Enable or disable categories that should be trimmed from the media.</string>
     <string name="toggle">Toggle</string>
     <string name="start_download">Start download</string>
+    <string name="retry_download">Retry download</string>
 
     <string name="category_sponsor">Sponsor</string>
     <string name="category_self_promotion">Unpaid / Self Promotion</string>

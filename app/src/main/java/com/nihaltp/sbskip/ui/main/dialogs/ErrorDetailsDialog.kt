@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -35,6 +36,7 @@ fun ErrorDetailsDialog(
     item: DownloadQueueItem?,
     onDismiss: () -> Unit,
     onRetryQueueItem: (Long, Boolean) -> Unit,
+    onDownload: (DownloadQueueItem) -> Unit,
 ) {
     if (item == null) return
 
@@ -63,9 +65,6 @@ fun ErrorDetailsDialog(
         AlertDialog(
             onDismissRequest = onDismiss,
             title = { Text(stringResource(id = R.string.dialog_duration_mismatch_title)) },
-            text = {
-                Text(stringResource(id = R.string.dialog_duration_mismatch_message, fileDurationStr, youtubeDurationStr))
-            },
             confirmButton = {
                 Button(
                     onClick = {
@@ -79,6 +78,24 @@ fun ErrorDetailsDialog(
             dismissButton = {
                 TextButton(onClick = onDismiss) {
                     Text(stringResource(id = R.string.cancel))
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(stringResource(id = R.string.dialog_duration_mismatch_message, fileDurationStr, youtubeDurationStr))
+                    if (item.durationSeconds == null || item.durationSeconds == 0L) {
+                        Button(
+                            onClick = {
+                                onDownload(item)
+                                onDismiss()
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Icon(Icons.Filled.Download, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(stringResource(id = R.string.retry_download))
+                        }
+                    }
                 }
             },
         )

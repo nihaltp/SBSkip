@@ -102,6 +102,7 @@ fun MainScreen(
     onOpenSettings: () -> Unit,
     onRemoveQueueItem: (DownloadQueueItem) -> Unit,
     onUndoRemoveQueueItem: (DownloadQueueItem) -> Unit,
+    onDownloadQueueItem: (DownloadQueueItem) -> Unit,
     onDismissToast: (String) -> Unit,
     onRetryQueueItem: (Long, Boolean) -> Unit,
     onSnackbarShown: () -> Unit,
@@ -674,6 +675,7 @@ fun MainScreen(
         item = errorDialogItem,
         onDismiss = { errorDialogItem = null },
         onRetryQueueItem = onRetryQueueItem,
+        onDownload = onDownloadQueueItem,
     )
 
     MediaDetailsDialog(

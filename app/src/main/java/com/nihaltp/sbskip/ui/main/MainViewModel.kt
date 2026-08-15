@@ -566,6 +566,15 @@ class MainViewModel
             }
         }
 
+        fun downloadQueueItemViaNewPipe(item: com.nihaltp.sbskip.model.DownloadQueueItem) {
+            if (!uiState.value.isNewPipeInstalled) {
+                showToast(context.getString(R.string.newpipe_not_installed))
+                return
+            }
+            val normalizedUrl = com.nihaltp.sbskip.util.YouTubeUrlParser.normalize(item.url) ?: item.url
+            launchNewPipe(normalizedUrl)
+        }
+
         fun removeQueueItem(item: com.nihaltp.sbskip.model.DownloadQueueItem) {
             viewModelScope.launch {
                 queueRepository.remove(item.id)

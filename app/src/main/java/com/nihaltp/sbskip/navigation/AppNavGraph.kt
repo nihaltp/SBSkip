@@ -49,6 +49,7 @@ fun AppNavGraph(
                 onOpenSettings = { navController.navigate(Destination.Settings.route) },
                 onRemoveQueueItem = viewModel::removeQueueItem,
                 onUndoRemoveQueueItem = viewModel::undoRemoveQueueItem,
+                onDownloadQueueItem = viewModel::downloadQueueItemViaNewPipe,
                 onDismissToast = viewModel::dismissToast,
                 onRetryQueueItem = { id, bypass -> viewModel.retryQueueItem(id, bypass) },
                 onSnackbarShown = viewModel::consumeSnackbarMessage,
