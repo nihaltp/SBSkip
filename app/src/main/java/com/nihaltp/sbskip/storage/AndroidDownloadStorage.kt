@@ -244,7 +244,7 @@ class AndroidDownloadStorage
                 val trueFinalFolder = paths.mediaStoreFolder
                 val useDownloadsUri = paths.useDownloadsUri
                 val contentUri =
-                    if (useDownloadsUri) {
+                    if (useDownloadsUri && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                         MediaStore.Downloads.EXTERNAL_CONTENT_URI
                     } else if (mediaType == MediaType.VIDEO) {
                         MediaStore.Video.Media.EXTERNAL_CONTENT_URI
