@@ -91,6 +91,7 @@
     <string name="toggle">Geçiş</string>
     <string name="start_download">İndirmeyi başlat</string>
 
+    <string name="retry_download">İndirmeyi yeniden dene</string>
     <string name="category_sponsor">Sponsor</string>
     <string name="category_self_promotion">Ücretsiz / Kendi Tanıtımı</string>
     <string name="category_interaction_reminder">Etkileşim Hatırlatıcısı</string>
@@ -134,12 +135,14 @@
     <string name="confirm_this_file_prompt">Temizlemek istediğiniz dosya bu mu?</string>
     <string name="clean_this_file_button">Bu Dosyayı Temizle</string>
     <string name="detecting_recent_download">Son indirme algılanıyor...</string>
+    <string name="search_now_button">Şimdi ara</string>
     <string name="found_matching_file">✓ Eşleşen dosya bulundu (%%1$d güven)</string>
     <string name="no_pending_download">Algılanacak bekleyen indirme yok.</string>
     <string name="no_matching_download_found">Eşleşen dosya bulunamadı. Manuel olarak bir dosya seçebilirsiniz.</string>
     <string name="newpipe_not_installed">NewPipe yüklü değil.</string>
     <string name="newpipe_launch_failed">NewPipe başlatılamıyor.</string>
     <string name="media_queue_title">Medya Temizleme Sırası</string>
+    <string name="processed_media_title">İşlenen Medya</string>
     <string name="no_jobs_title">Henüz temizleme işi yok</string>
     <string name="no_jobs_body">SponsorBlock bölümlerini temizlemeye başlamak için yerel bir video/ses dosyası içe aktarın ve karşılık gelen YouTube bağlantısını yapıştırın.</string>
 
@@ -284,4 +287,6 @@
     <!-- Download Options Dialog -->
     <string name="dialog_download_options_title">İndirme Seçenekleri</string>
     <string name="dialog_download_options_proceed">Devam Et</string>
+    <string name="waiting_for_newpipe_download">İndirmenin tamamlanması bekleniyor… (%1$s kaldı)</string>
+    <string name="options_button">Seçenekler</string>
 </resources>
