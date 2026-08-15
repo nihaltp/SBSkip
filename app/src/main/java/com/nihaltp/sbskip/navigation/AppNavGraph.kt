@@ -62,6 +62,11 @@ fun AppNavGraph(
                 onCustomCategoriesChanged = viewModel::onCustomCategoriesChanged,
                 onDismissPermissionRevokedDialog = viewModel::dismissPermissionRevokedDialog,
                 onSearchNow = viewModel::triggerAutoDetectNow,
+                onSkipPlaylistVideo = viewModel::skipPlaylistVideo,
+                onDownloadPlaylistVideo = viewModel::downloadPlaylistVideo,
+                onCancelPlaylistDownload = viewModel::cancelPlaylistDownload,
+                onPlaylistConvertVideoToAudioChanged = viewModel::setPlaylistConvertVideoToAudio,
+                onPlaylistDeleteOriginalVideoChanged = viewModel::setPlaylistDeleteOriginalVideo,
             )
         }
 

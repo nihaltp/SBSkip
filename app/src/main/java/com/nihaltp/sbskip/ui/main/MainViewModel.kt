@@ -218,6 +218,105 @@ class MainViewModel
             }
         }
 
+        fun skipPlaylistVideo() {
+            _uiState.update { state ->
+                val plState = state.playlistDownloadState ?: return@update state
+                if (plState.currentIndex + 1 < plState.videos.size) {
+                    state.copy(
+                        playlistDownloadState = plState.copy(currentIndex = plState.currentIndex + 1),
+                    )
+                } else {
+                    // Playlist finished
+                    state.copy(playlistDownloadState = null)
+                }
+            }
+        }
+
+        fun downloadPlaylistVideo() {
+            val state = uiState.value
+            val plState = state.playlistDownloadState ?: return
+            val currentVideo = plState.videos[plState.currentIndex]
+
+            // Launch NewPipe
+            val normalizedUrl = Constants.buildYouTubeWatchUrl(currentVideo.videoId)
+            val customCategories = state.customSponsorBlockCategories
+            val finalUrl =
+                if (customCategories != null) {
+                    "$normalizedUrl&categories=" + customCategories.joinToString(",") { it.name }
+                } else {
+                    normalizedUrl
+                }
+            launchNewPipe(normalizedUrl)
+
+            // Spawn pending download
+            val now = System.currentTimeMillis()
+            val pendingDownload =
+                PendingDownload(
+                    videoId = currentVideo.videoId,
+                    url = finalUrl,
+                    title = currentVideo.title,
+                    thumbnailUrl = currentVideo.thumbnailUrl,
+                    createdAtEpochMillis = now,
+                    convertVideoToAudio = plState.convertVideoToAudio,
+                    deleteOriginalVideo = plState.deleteOriginalVideo,
+                    estimatedReadyAtEpochMillis = now + DEFAULT_DOWNLOAD_WAIT_SECONDS * 1000L,
+                )
+
+            _uiState.update { st ->
+                val nextIndex = plState.currentIndex + 1
+                val newPlState =
+                    if (nextIndex < plState.videos.size) {
+                        plState.copy(currentIndex = nextIndex)
+                    } else {
+                        null
+                    }
+                st.copy(
+                    pendingDownloads = st.pendingDownloads + pendingDownload,
+                    playlistDownloadState = newPlState,
+                )
+            }
+
+            // Auto detect job
+            val detectJob =
+                viewModelScope.launch {
+                    kotlinx.coroutines.delay(DEFAULT_DOWNLOAD_WAIT_SECONDS * 1000L)
+                    _uiState.update { st ->
+                        st.copy(
+                            pendingDownloads =
+                                st.pendingDownloads.map {
+                                    if (it.videoId == pendingDownload.videoId) {
+                                        it.copy(estimatedReadyAtEpochMillis = null)
+                                    } else {
+                                        it
+                                    }
+                                },
+                        )
+                    }
+                    autoDetectAndCleanInternal(pendingDownload.copy(estimatedReadyAtEpochMillis = null))
+                }
+            pendingDetectJobs[currentVideo.videoId] = detectJob
+        }
+
+        fun cancelPlaylistDownload() {
+            _uiState.update { it.copy(playlistDownloadState = null) }
+        }
+
+        fun setPlaylistConvertVideoToAudio(value: Boolean) {
+            _uiState.update { state ->
+                state.playlistDownloadState?.let { pl ->
+                    state.copy(playlistDownloadState = pl.copy(convertVideoToAudio = value))
+                } ?: state
+            }
+        }
+
+        fun setPlaylistDeleteOriginalVideo(value: Boolean) {
+            _uiState.update { state ->
+                state.playlistDownloadState?.let { pl ->
+                    state.copy(playlistDownloadState = pl.copy(deleteOriginalVideo = value))
+                } ?: state
+            }
+        }
+
         fun cancelPendingDownload(pendingDownload: PendingDownload) {
             _uiState.update { state ->
                 state.copy(
@@ -370,6 +469,12 @@ class MainViewModel
             val state = uiState.value
             val inputUrl = state.urlInput.trim()
             val videoId = YouTubeUrlParser.extractVideoId(inputUrl)
+            val playlistId = YouTubeUrlParser.extractPlaylistId(inputUrl)
+
+            if (!playlistId.isNullOrBlank() && videoId.isNullOrBlank()) {
+                showToast("Find File is not currently supported for playlists.")
+                return
+            }
 
             if (inputUrl.isBlank() || videoId.isNullOrBlank()) {
                 showToast(context.getString(R.string.enter_valid_url))
@@ -876,8 +981,9 @@ class MainViewModel
             val state = uiState.value
             val inputUrl = state.urlInput.trim()
             val videoId = YouTubeUrlParser.extractVideoId(inputUrl)
+            val playlistId = YouTubeUrlParser.extractPlaylistId(inputUrl)
 
-            if (inputUrl.isBlank() || videoId.isNullOrBlank()) {
+            if (inputUrl.isBlank() || (videoId.isNullOrBlank() && playlistId.isNullOrBlank())) {
                 showToast(context.getString(R.string.enter_valid_url))
                 return
             }
@@ -889,7 +995,42 @@ class MainViewModel
 
             _uiState.update { it.copy(isFetchingMetadata = true) }
 
-            val normalizedUrl = Constants.buildYouTubeWatchUrl(videoId)
+            // If it has a playlist ID and no video ID, or if we decide to handle playlists primarily
+            if (!playlistId.isNullOrBlank() && videoId.isNullOrBlank()) {
+                viewModelScope.launch {
+                    try {
+                        val videos = com.nihaltp.sbskip.util.YouTubePlaylistFetcher.fetchPlaylistVideos(playlistId)
+                        if (videos.isEmpty()) {
+                            showToast("No videos found in playlist or playlist is private")
+                            _uiState.update { it.copy(isFetchingMetadata = false) }
+                            return@launch
+                        }
+
+                        _uiState.update { st ->
+                            st.copy(
+                                urlInput = "",
+                                isFetchingMetadata = false,
+                                customSponsorBlockCategories = null,
+                                playlistDownloadState =
+                                    com.nihaltp.sbskip.model.PlaylistDownloadState(
+                                        playlistId = playlistId,
+                                        title = "Playlist",
+                                        videos = videos,
+                                        currentIndex = 0,
+                                        convertVideoToAudio = convertVideoToAudio,
+                                        deleteOriginalVideo = deleteOriginalVideo,
+                                    ),
+                            )
+                        }
+                    } catch (e: Exception) {
+                        showToast("Failed to fetch playlist")
+                        _uiState.update { it.copy(isFetchingMetadata = false) }
+                    }
+                }
+                return
+            }
+
+            val normalizedUrl = Constants.buildYouTubeWatchUrl(videoId!!)
             val customCategories = state.customSponsorBlockCategories
             val finalUrl =
                 if (customCategories != null) {

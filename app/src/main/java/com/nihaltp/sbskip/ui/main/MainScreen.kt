@@ -71,6 +71,7 @@ import com.nihaltp.sbskip.model.PendingDownload
 import com.nihaltp.sbskip.model.SponsorBlockCategory
 import com.nihaltp.sbskip.ui.components.SponsorBlockCategoryPickerDialog
 import com.nihaltp.sbskip.ui.main.components.cards.PendingDownloadCard
+import com.nihaltp.sbskip.ui.main.components.cards.PlaylistDownloadCard
 import com.nihaltp.sbskip.ui.main.components.cards.QueueItemCard
 import com.nihaltp.sbskip.ui.main.components.common.EmptyStateCard
 import com.nihaltp.sbskip.ui.main.components.common.SectionHeader
@@ -114,6 +115,11 @@ fun MainScreen(
     onCustomCategoriesChanged: (Set<SponsorBlockCategory>?) -> Unit,
     onDismissPermissionRevokedDialog: () -> Unit,
     onSearchNow: (PendingDownload) -> Unit,
+    onSkipPlaylistVideo: () -> Unit,
+    onDownloadPlaylistVideo: () -> Unit,
+    onCancelPlaylistDownload: () -> Unit,
+    onPlaylistConvertVideoToAudioChanged: (Boolean) -> Unit,
+    onPlaylistDeleteOriginalVideoChanged: (Boolean) -> Unit,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val clipboardManager = LocalClipboardManager.current
@@ -559,6 +565,37 @@ fun MainScreen(
                             }
                         }
                     }
+                }
+            }
+
+            if (uiState.playlistDownloadState != null) {
+                item {
+                    SectionHeader(title = "Playlist Download")
+                }
+                item {
+                    val downloadedCount =
+                        uiState.playlistDownloadState.videos.count { v ->
+                            uiState.queueItems.any { it.title.contains(v.title, ignoreCase = true) }
+                        }
+                    val processingCount =
+                        uiState.playlistDownloadState.videos.count { v ->
+                            uiState.queueItems.any {
+                                it.title.contains(
+                                    v.title,
+                                    ignoreCase = true,
+                                ) && it.status == com.nihaltp.sbskip.model.DownloadQueueStatus.COMPLETED
+                            }
+                        }
+                    PlaylistDownloadCard(
+                        state = uiState.playlistDownloadState,
+                        downloadedCount = downloadedCount,
+                        processingCount = processingCount,
+                        onDownload = onDownloadPlaylistVideo,
+                        onSkip = onSkipPlaylistVideo,
+                        onCancel = onCancelPlaylistDownload,
+                        onConvertVideoToAudioChanged = onPlaylistConvertVideoToAudioChanged,
+                        onDeleteOriginalVideoChanged = onPlaylistDeleteOriginalVideoChanged,
+                    )
                 }
             }
 

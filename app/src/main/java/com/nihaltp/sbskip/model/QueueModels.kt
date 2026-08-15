@@ -77,6 +77,21 @@ data class DetectedFile(
     val folderUri: String? = null,
 )
 
+data class PlaylistVideo(
+    val videoId: String,
+    val title: String,
+    val thumbnailUrl: String?,
+)
+
+data class PlaylistDownloadState(
+    val playlistId: String,
+    val title: String,
+    val videos: List<PlaylistVideo>,
+    val currentIndex: Int = 0,
+    val convertVideoToAudio: Boolean = false,
+    val deleteOriginalVideo: Boolean = true,
+)
+
 data class PendingEnqueueData(
     val fileUri: String,
     val title: String,
@@ -114,6 +129,7 @@ data class MainUiState(
     val mismatchYoutubeDuration: Long = 0L,
     val pendingEnqueueData: PendingEnqueueData? = null,
     val pendingDownloads: List<PendingDownload> = emptyList(),
+    val playlistDownloadState: PlaylistDownloadState? = null,
     val pendingDownloadForFilePicker: PendingDownload? = null,
     val queueItems: List<DownloadQueueItem> = emptyList(),
     val toastMessages: List<ToastMessage> = emptyList(),

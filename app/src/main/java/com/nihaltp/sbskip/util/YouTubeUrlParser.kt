@@ -31,7 +31,16 @@ object YouTubeUrlParser {
         }
     }
 
-    fun isYouTubeUrl(rawInput: String): Boolean = normalize(rawInput) != null
+    fun extractPlaylistId(rawInput: String): String? {
+        val url = extractCandidateUrl(rawInput) ?: return null
+        val uri = runCatching { Uri.parse(url) }.getOrNull() ?: return null
+        val host = uri.host?.lowercase() ?: return null
+        if (host !in supportedHosts) return null
+
+        return uri.getQueryParameter("list")
+    }
+
+    fun isYouTubeUrl(rawInput: String): Boolean = normalize(rawInput) != null || extractPlaylistId(rawInput) != null
 
     private fun extractCandidateUrl(rawInput: String): String? {
         val trimmed = rawInput.trim().trim('"', '\'', '(', ')', '[', ']', ',', '.', ';')
