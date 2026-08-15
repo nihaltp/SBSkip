@@ -8,7 +8,6 @@ import com.nihaltp.sbskip.di.TestEntryPoint
 import com.nihaltp.sbskip.model.DownloadQueueItem
 import com.nihaltp.sbskip.model.DownloadQueueStatus
 import com.nihaltp.sbskip.model.MediaType
-import com.nihaltp.sbskip.model.ProcessingPlan
 import com.nihaltp.sbskip.storage.DownloadStorage
 import com.nihaltp.sbskip.storage.MediaFileMetadata
 import dagger.hilt.EntryPoints
@@ -82,16 +81,27 @@ class OutputSaverTest {
                     title = "Test",
                     extension = "mp4",
                     durationSeconds = 100,
-                    sizeBytes = 1000,
                 )
             val plan =
                 ProcessingPlan(
-                    ffmpegCommand = "",
+                    keepRanges = emptyList(),
+                    convertVideoToAudio = false,
                     outputExtension = "mp4",
-                    estimatedSize = 1000,
-                    requiresConversion = false,
                 )
-            val processingContext = ProcessingContext(item, metadata, plan)
+            val processingContext =
+                ProcessingContext(
+                    queueItem = item,
+                    localMetadata = metadata,
+                    videoId = null,
+                    oembedTitle = null,
+                    authorName = null,
+                    authorUrl = null,
+                    thumbnailUrl = null,
+                    sbSkipSegments = "",
+                    categories = emptySet(),
+                    segments = null,
+                    plan = plan,
+                )
 
             // Execute save
             val resultUri = outputSaver.save(tempOutputFile, processingContext)

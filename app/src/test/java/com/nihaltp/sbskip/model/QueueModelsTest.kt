@@ -269,4 +269,98 @@ class QueueModelsTest {
         // 7. Hours format
         assertEquals("1:00:50 (0:50)", baseItem.copy(durationSeconds = 3650L, outputDurationSeconds = 50L).displayDuration)
     }
+
+    // ── feat: separate active and completed queue items (504b4282) ────────────
+
+    private fun makeItem(
+        id: Long,
+        status: DownloadQueueStatus,
+    ) = DownloadQueueItem(
+        id = id,
+        url = "https://youtube.com/watch?v=$id",
+        title = "Item $id",
+        localFileUri = "content://media/$id",
+        mediaType = MediaType.VIDEO,
+        thumbnailUrl = null,
+        durationSeconds = null,
+        status = status,
+        createdAtEpochMillis = id * 1000L,
+        updatedAtEpochMillis = id * 1000L,
+        errorMessage = null,
+    )
+
+    @Test
+    fun `active items include QUEUED FETCHING_SEGMENTS PROCESSING and FAILED statuses`() {
+        val allItems =
+            listOf(
+                makeItem(1, DownloadQueueStatus.QUEUED),
+                makeItem(2, DownloadQueueStatus.FETCHING_SEGMENTS),
+                makeItem(3, DownloadQueueStatus.PROCESSING),
+                makeItem(4, DownloadQueueStatus.FAILED),
+                makeItem(5, DownloadQueueStatus.COMPLETED),
+            )
+
+        val activeItems = allItems.filter { it.status != DownloadQueueStatus.COMPLETED }
+        val completedItems = allItems.filter { it.status == DownloadQueueStatus.COMPLETED }
+
+        assertEquals(4, activeItems.size)
+        assertEquals(1, completedItems.size)
+        assertTrue(activeItems.all { it.status != DownloadQueueStatus.COMPLETED })
+        assertEquals(DownloadQueueStatus.COMPLETED, completedItems.first().status)
+    }
+
+    @Test
+    fun `completed items only include COMPLETED status`() {
+        val allItems =
+            listOf(
+                makeItem(1, DownloadQueueStatus.COMPLETED),
+                makeItem(2, DownloadQueueStatus.COMPLETED),
+                makeItem(3, DownloadQueueStatus.FAILED),
+            )
+
+        val completedItems = allItems.filter { it.status == DownloadQueueStatus.COMPLETED }
+
+        assertEquals(2, completedItems.size)
+        assertTrue(completedItems.all { it.status == DownloadQueueStatus.COMPLETED })
+    }
+
+    @Test
+    fun `empty queue has no active or completed items`() {
+        val allItems = emptyList<DownloadQueueItem>()
+        assertTrue(allItems.filter { it.status != DownloadQueueStatus.COMPLETED }.isEmpty())
+        assertTrue(allItems.filter { it.status == DownloadQueueStatus.COMPLETED }.isEmpty())
+    }
+
+    // ── feat: PendingDownload estimatedReadyAtEpochMillis (b3190779) ──────────
+
+    @Test
+    fun `PendingDownload estimatedReadyAtEpochMillis defaults to null`() {
+        val pending =
+            PendingDownload(
+                videoId = "abc",
+                url = "https://youtube.com/watch?v=abc",
+                title = "Title",
+                thumbnailUrl = null,
+                createdAtEpochMillis = 1000L,
+            )
+        assertNull(pending.estimatedReadyAtEpochMillis)
+    }
+
+    @Test
+    fun `PendingDownload copy can set and clear estimatedReadyAtEpochMillis`() {
+        val pending =
+            PendingDownload(
+                videoId = "abc",
+                url = "https://youtube.com/watch?v=abc",
+                title = "Title",
+                thumbnailUrl = null,
+                createdAtEpochMillis = 1000L,
+            )
+
+        val withTimer = pending.copy(estimatedReadyAtEpochMillis = 9999L)
+        assertEquals(9999L, withTimer.estimatedReadyAtEpochMillis)
+
+        val withoutTimer = withTimer.copy(estimatedReadyAtEpochMillis = null)
+        assertNull(withoutTimer.estimatedReadyAtEpochMillis)
+    }
 }
