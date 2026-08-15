@@ -1,0 +1,24 @@
+SB Skip v1.9.0 (2026-08-15)
+
+Commits included in this release:
+- 8a26260  fix: update MainScreen to conditionally display section header based on active and completed items
+- 9f43416  feat: add CI workflow for automated testing and builds
+- b319077  feat: implement countdown for auto-detect in PendingDownloadCard and add "Search now" functionality
+- 40b6233  feat: add outputDurationSeconds to DownloadQueueEntity and related methods
+- c705a60  feat: implement playlist download functionality with video management and UI components
+- 6f33611  feat: add updateLocalFileUri method to QueueRepository and implement in MainViewModel for URI updates
+- f870657  feat: add download functionality for queue items with retry option in ErrorDetailsDialog
+- 504b428  feat: update MainScreen to separate active and completed queue items, add processed media section
+- 8419b1a  feat: improve download timing logic in MainViewModel for better accuracy
+- fe8d430  style: simplify selected file display logic in MainScreen
+- 13124c0  refactor: streamline toast message handling in MainViewModel
+- 0bb7593  refactor: remove DownloadOptionsDialog and streamline download options handling in MainScreen and MainViewModel
+- b5e3ce4  refactor: update download progress indicators in PlaylistDownloadCard for improved clarity and performance
+- bfcc901  test: add testDisplayDuration method to validate duration display logic in DownloadQueueItem
+- e0e6c10  test: add RealPlaylistTest and YouTubePlaylistFetcherTest for playlist functionality
+- 223f88b  test: add unit tests for ErrorDetailsDialog and MainViewModel functionality
+- 06a3ad3  test: add unit tests for DefaultQueueRepository and enhance MainViewModelTest
+- 12577c0  chore: bump org.jetbrains.kotlinx:kotlinx-serialization-json in /app
+- 6f6aec9  chore: bump androidx.test.ext:junit from 1.1.5 to 1.3.0
+- 6eb50eb  chore: downgrade kotlinx-serialization-json to version 1.7.3
+- 470d500  translate: add translations for turkish
