@@ -565,15 +565,14 @@ fun MainScreen(
                 item {
                     val downloadedCount =
                         uiState.playlistDownloadState.videos.count { v ->
-                            uiState.queueItems.any { it.title.contains(v.title, ignoreCase = true) }
+                            uiState.queueItems.any { it.url.contains(v.videoId, ignoreCase = true) } ||
+                                uiState.pendingDownloads.any { it.videoId == v.videoId }
                         }
                     val processingCount =
                         uiState.playlistDownloadState.videos.count { v ->
                             uiState.queueItems.any {
-                                it.title.contains(
-                                    v.title,
-                                    ignoreCase = true,
-                                ) && it.status == com.nihaltp.sbskip.model.DownloadQueueStatus.COMPLETED
+                                it.url.contains(v.videoId, ignoreCase = true) &&
+                                    it.status == com.nihaltp.sbskip.model.DownloadQueueStatus.COMPLETED
                             }
                         }
                     PlaylistDownloadCard(

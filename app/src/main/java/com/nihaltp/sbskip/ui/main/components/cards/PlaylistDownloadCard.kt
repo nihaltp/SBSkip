@@ -73,46 +73,22 @@ fun PlaylistDownloadCard(
                     val downloadedProgress = if (totalVideos > 0) downloadedCount.toFloat() / totalVideos else 0f
                     val processingProgress = if (totalVideos > 0) processingCount.toFloat() / totalVideos else 0f
 
-                    Box(contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(
-                            progress = { 1f },
-                            modifier = Modifier.size(24.dp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f),
-                            strokeWidth = 3.dp,
-                        )
-                        CircularProgressIndicator(
-                            progress = { downloadedProgress },
-                            modifier = Modifier.size(24.dp),
-                            color = MaterialTheme.colorScheme.primary,
-                            strokeWidth = 3.dp,
-                            strokeCap = StrokeCap.Round,
-                        )
-                    }
-                    Text(
-                        text = "$downloadedCount dl",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    CircularProgressIndicator(
+                        progress = { downloadedProgress },
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f),
+                        strokeWidth = 3.dp,
+                        strokeCap = StrokeCap.Round,
                     )
 
-                    Box(contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(
-                            progress = { 1f },
-                            modifier = Modifier.size(24.dp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f),
-                            strokeWidth = 3.dp,
-                        )
-                        CircularProgressIndicator(
-                            progress = { processingProgress },
-                            modifier = Modifier.size(24.dp),
-                            color = MaterialTheme.colorScheme.secondary,
-                            strokeWidth = 3.dp,
-                            strokeCap = StrokeCap.Round,
-                        )
-                    }
-                    Text(
-                        text = "$processingCount pr",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    CircularProgressIndicator(
+                        progress = { processingProgress },
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.secondary,
+                        trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f),
+                        strokeWidth = 3.dp,
+                        strokeCap = StrokeCap.Round,
                     )
                 }
             }
