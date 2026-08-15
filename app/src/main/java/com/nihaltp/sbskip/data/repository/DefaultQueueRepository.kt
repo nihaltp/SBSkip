@@ -190,6 +190,20 @@ class DefaultQueueRepository
             )
         }
 
+        override suspend fun updateLocalFileUri(
+            itemId: Long,
+            localFileUri: String,
+            relativePath: String?,
+        ) {
+            AppLogger.queue("updateLocalFileUri id=$itemId uri=$localFileUri")
+            dao.updateLocalFileUri(
+                id = itemId,
+                localFileUri = localFileUri,
+                relativePath = relativePath,
+                updatedAtEpochMillis = System.currentTimeMillis(),
+            )
+        }
+
         override suspend fun updateMetadata(
             itemId: Long,
             title: String,

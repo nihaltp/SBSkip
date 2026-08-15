@@ -44,6 +44,12 @@ interface QueueRepository {
         errorMessage: String,
     )
 
+    suspend fun updateLocalFileUri(
+        itemId: Long,
+        localFileUri: String,
+        relativePath: String?,
+    )
+
     suspend fun updateMetadata(
         itemId: Long,
         title: String,

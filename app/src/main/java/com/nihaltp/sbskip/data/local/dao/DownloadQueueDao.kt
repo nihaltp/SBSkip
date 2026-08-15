@@ -60,6 +60,22 @@ interface DownloadQueueDao {
     @Query(
         """
         UPDATE download_queue
+        SET localFileUri = :localFileUri,
+            relativePath = :relativePath,
+            updatedAtEpochMillis = :updatedAtEpochMillis
+        WHERE id = :id
+        """,
+    )
+    suspend fun updateLocalFileUri(
+        id: Long,
+        localFileUri: String,
+        relativePath: String?,
+        updatedAtEpochMillis: Long,
+    )
+
+    @Query(
+        """
+        UPDATE download_queue
         SET title = :title,
             thumbnailUrl = :thumbnailUrl,
             durationSeconds = :durationSeconds,

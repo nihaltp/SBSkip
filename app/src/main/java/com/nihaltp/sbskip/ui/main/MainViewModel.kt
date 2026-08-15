@@ -539,8 +539,30 @@ class MainViewModel
             bypassDurationCheck: Boolean = false,
         ) {
             viewModelScope.launch {
-                val result = queueRepository.retry(id, bypassDurationCheck)
-                showToast(result.message)
+                showToast(context.getString(R.string.retry_started))
+
+                if (!bypassDurationCheck) {
+                    val item = queueRepository.findItemById(id)
+                    if (item != null) {
+                        val settings = settingsRepository.settings.first()
+                        val pending =
+                            com.nihaltp.sbskip.model.PendingDownload(
+                                videoId = com.nihaltp.sbskip.util.YouTubeUrlParser.extractVideoId(item.url) ?: "",
+                                url = item.url,
+                                title = item.title,
+                                thumbnailUrl = item.thumbnailUrl,
+                                createdAtEpochMillis = item.createdAtEpochMillis,
+                            )
+                        val candidates = collectRecentCandidates(pending, settings)
+                        val bestCandidate = candidates.maxByOrNull { it.score }
+                        if (bestCandidate != null && bestCandidate.score > 50 && bestCandidate.uri != item.localFileUri) {
+                            queueRepository.updateLocalFileUri(id, bestCandidate.uri, bestCandidate.relativePath)
+                            AppLogger.metadata("Retry: Updated local file URI for id=$id to ${bestCandidate.uri}")
+                        }
+                    }
+                }
+
+                queueRepository.retry(id, bypassDurationCheck)
             }
         }
 
