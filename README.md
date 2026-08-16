@@ -1,6 +1,6 @@
 # SB Skip
 
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](LICENSE) [![Platform: Android](https://img.shields.io/badge/Platform-Android-green.svg?style=for-the-badge)](#tech-stack)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](LICENSE) [![Platform: Android](https://img.shields.io/badge/Platform-Android-green.svg?style=for-the-badge)](#tech-stack) [![Total Github Downloads (All Assets)](https://img.shields.io/github/downloads/nihaltp/SBSkip/total?style=for-the-badge&logo=github)](https://github.com/nihaltp/SBSkip/releases/latest)
 
 **SB Skip** is a focused, privacy-respecting Android utility designed to remove SponsorBlock-marked segments from media files you already have on your device.
 
