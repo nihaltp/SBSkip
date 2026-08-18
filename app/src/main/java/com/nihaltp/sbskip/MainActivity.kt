@@ -22,6 +22,7 @@ import com.nihaltp.sbskip.navigation.ShareIntentEvent
 import com.nihaltp.sbskip.ui.theme.SBSkipTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 
@@ -45,16 +46,16 @@ class MainActivity : AppCompatActivity() {
             }
         }
         shareEvent = intent.toShareIntentEvent()
+        val initialSettings = runBlocking { settingsRepository.settings.first() }
         setContent {
-            val settingsState by settingsRepository.settings.collectAsState(initial = null)
-            val state = settingsState ?: return@setContent
+            val settingsState by settingsRepository.settings.collectAsState(initial = initialSettings)
             val darkTheme =
-                when (state.themeMode) {
+                when (settingsState.themeMode) {
                     ThemeMode.LIGHT -> false
                     ThemeMode.DARK -> true
                     else -> isSystemInDarkTheme()
                 }
-            val dynamicColor = state.dynamicColor
+            val dynamicColor = settingsState.dynamicColor
 
             SBSkipTheme(
                 darkTheme = darkTheme,
