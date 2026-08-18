@@ -42,6 +42,8 @@ class MainViewModelTest {
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
+        io.mockk.mockkObject(com.nihaltp.sbskip.util.YouTubeDurationFetcher)
+        coEvery { com.nihaltp.sbskip.util.YouTubeDurationFetcher.fetchDuration(any()) } returns 100L
 
         // Use a mock context so context.getString() never throws Resources$NotFoundException.
         val packageManager = mockk<PackageManager>(relaxed = true)
@@ -69,6 +71,7 @@ class MainViewModelTest {
 
     @After
     fun tearDown() {
+        io.mockk.unmockkObject(com.nihaltp.sbskip.util.YouTubeDurationFetcher)
         Dispatchers.resetMain()
     }
 
@@ -135,6 +138,76 @@ class MainViewModelTest {
             // Verify it retries with bypass = true
             coVerify { queueRepository.retry(itemId, true) }
         }
+
+    @Test
+    fun `scoreCandidate with duration match calculates bonus points correctly`() {
+        val method =
+            MainViewModel::class.java.getDeclaredMethod(
+                "scoreCandidate",
+                com.nihaltp.sbskip.model.PendingDownload::class.java,
+                String::class.java,
+                String::class.java,
+                Long::class.javaObjectType,
+                Long::class.java,
+                com.nihaltp.sbskip.model.AppSettings::class.java,
+                Long::class.javaObjectType,
+            ).apply { isAccessible = true }
+
+        val pending =
+            com.nihaltp.sbskip.model.PendingDownload(
+                videoId = "123",
+                url = "https://youtube.com/watch?v=123",
+                title = "Test Video",
+                thumbnailUrl = null,
+                createdAtEpochMillis = 0L,
+            )
+        val settings = AppSettings(maxDurationDifferenceSeconds = 5)
+
+        // Exact match
+        val scoreExact = method.invoke(viewModel, pending, "Test Video.mp4", "Test Video.mp4", 100L, 0L, settings, 100L) as Int
+        // 3 seconds diff out of 5 allowed => 30 * (5 - 3) / 5 = 12 points
+        val scoreClose = method.invoke(viewModel, pending, "Test Video.mp4", "Test Video.mp4", 103L, 0L, settings, 100L) as Int
+        // 10 seconds diff => > 5s allowed => 0 points (or fallback logic)
+        val scoreFar = method.invoke(viewModel, pending, "Test Video.mp4", "Test Video.mp4", 110L, 0L, settings, 100L) as Int
+
+        assert(scoreExact > scoreClose)
+        assert(scoreClose > scoreFar)
+    }
+
+    @Test
+    fun `scoreCandidate uses 5 second fallback when settings allowed difference is small`() {
+        val method =
+            MainViewModel::class.java.getDeclaredMethod(
+                "scoreCandidate",
+                com.nihaltp.sbskip.model.PendingDownload::class.java,
+                String::class.java,
+                String::class.java,
+                Long::class.javaObjectType,
+                Long::class.java,
+                com.nihaltp.sbskip.model.AppSettings::class.java,
+                Long::class.javaObjectType,
+            ).apply { isAccessible = true }
+
+        val pending =
+            com.nihaltp.sbskip.model.PendingDownload(
+                videoId = "123",
+                url = "https://youtube.com/watch?v=123",
+                title = "Test Video",
+                thumbnailUrl = null,
+                createdAtEpochMillis = 0L,
+            )
+        // Default settings has maxDurationDifferenceSeconds = 1
+        val defaultSettings = AppSettings()
+
+        // Exact match
+        val scoreExact = method.invoke(viewModel, pending, "Test Video.mp4", "Test Video.mp4", 100L, 0L, defaultSettings, 100L) as Int
+        // 3 seconds diff should still be within the 5 second fallback allowance
+        val scoreClose = method.invoke(viewModel, pending, "Test Video.mp4", "Test Video.mp4", 103L, 0L, defaultSettings, 100L) as Int
+
+        // Assert that even with default settings (1s diff allowed), the 5s fallback kicks in and awards bonus points
+        assert(scoreClose > 0)
+        assert(scoreExact > scoreClose)
+    }
 
     // ── feat: add download functionality for queue items via NewPipe (f870657) ─
 
