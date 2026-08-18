@@ -124,7 +124,7 @@ def prepare_release_commit(version_name:, version_code:)
     end
   end
 
-  types_order = ["fix", "feat", "style", "refactor", "docs", "perf", "test", "build", "ci", "chore", "revert"]
+  types_order = ["feat", "fix", "refactor", "style", "test", "docs", "perf", "build", "ci", "chore", "revert"]
 
   type_to_section = {
     "fix" => "### Fixed",
