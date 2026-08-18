@@ -562,7 +562,8 @@ class MainViewModel
                                 thumbnailUrl = item.thumbnailUrl,
                                 createdAtEpochMillis = item.createdAtEpochMillis,
                             )
-                        val candidates = collectRecentCandidates(pending, settings)
+                        val youtubeDuration = com.nihaltp.sbskip.util.YouTubeDurationFetcher.fetchDuration(pending.videoId)
+                        val candidates = collectRecentCandidates(pending, settings, youtubeDuration)
                         val bestCandidate = candidates.maxByOrNull { it.score }
                         if (bestCandidate != null && bestCandidate.score > 50 && bestCandidate.uri != item.localFileUri) {
                             queueRepository.updateLocalFileUri(id, bestCandidate.uri, bestCandidate.relativePath)
@@ -1193,7 +1194,8 @@ class MainViewModel
             val settings = settingsRepository.settings.first()
             val candidates =
                 withContext(Dispatchers.IO) {
-                    collectRecentCandidates(pendingDownload, settings)
+                    val youtubeDuration = com.nihaltp.sbskip.util.YouTubeDurationFetcher.fetchDuration(pendingDownload.videoId)
+                    collectRecentCandidates(pendingDownload, settings, youtubeDuration)
                 }
             val bestCandidate = candidates.maxByOrNull { it.score }
 
@@ -1330,6 +1332,7 @@ class MainViewModel
         private suspend fun collectRecentCandidates(
             pendingDownload: PendingDownload,
             settings: com.nihaltp.sbskip.model.AppSettings,
+            youtubeDuration: Long?,
         ): List<DetectedCandidate> =
             withContext(Dispatchers.IO) {
                 val now = System.currentTimeMillis()
@@ -1370,7 +1373,7 @@ class MainViewModel
 
                                             val actualRelPath = "$relativePathHint$currentRelPath"
 
-                                            val score =
+                                            val baseScore =
                                                 scoreCandidate(
                                                     pendingDownload = pendingDownload,
                                                     displayName = displayName,
@@ -1378,7 +1381,30 @@ class MainViewModel
                                                     durationSeconds = null,
                                                     timestampMillis = if (timestampMillis > 0) timestampMillis else now,
                                                     settings = settings,
+                                                    youtubeDuration = null,
                                                 )
+
+                                            var score = baseScore
+                                            var finalDuration: Long? = null
+
+                                            if (baseScore > 0 && youtubeDuration != null) {
+                                                val ext = displayName.substringAfterLast('.', "").lowercase()
+                                                if (ext in listOf("mp4", "m4a", "webm", "mkv", "mp3", "opus")) {
+                                                    finalDuration = downloadStorage.queryMetadata(file.uri.toString())?.durationSeconds
+                                                    if (finalDuration != null) {
+                                                        score =
+                                                            scoreCandidate(
+                                                                pendingDownload = pendingDownload,
+                                                                displayName = displayName,
+                                                                relativePath = actualRelPath,
+                                                                durationSeconds = finalDuration,
+                                                                timestampMillis = if (timestampMillis > 0) timestampMillis else now,
+                                                                settings = settings,
+                                                                youtubeDuration = youtubeDuration,
+                                                            )
+                                                    }
+                                                }
+                                            }
 
                                             if (score > 50) {
                                                 AppLogger.metadata(
@@ -1418,6 +1444,7 @@ class MainViewModel
             durationSeconds: Long?,
             timestampMillis: Long,
             settings: com.nihaltp.sbskip.model.AppSettings,
+            youtubeDuration: Long?,
         ): Int {
             val normalizedTitle = normalizeText(pendingDownload.title)
             val normalizedCandidate = normalizeText(stripExtension(displayName))
@@ -1450,8 +1477,16 @@ class MainViewModel
             score += ageBonus
 
             var durationBonus = 0
-            if (durationSeconds != null && pendingDownload.title.isNotBlank()) {
-                // We do not have the exact expected duration from oEmbed, but very short files are unlikely to match long YouTube titles.
+            if (durationSeconds != null && youtubeDuration != null) {
+                // If the user has set a max duration difference, use that; otherwise, default to 5 seconds.
+                val maxAllowedDifference = kotlin.math.max(5, settings.maxDurationDifferenceSeconds).toLong()
+                val difference = kotlin.math.abs(durationSeconds - youtubeDuration)
+                if (difference <= maxAllowedDifference) {
+                    val points = (30L * (maxAllowedDifference - difference) / maxAllowedDifference).toInt()
+                    score += points
+                    durationBonus = points
+                }
+            } else if (durationSeconds != null && pendingDownload.title.isNotBlank()) {
                 if (durationSeconds >= 30L) {
                     score += 4
                     durationBonus = 4
