@@ -151,15 +151,15 @@ def prepare_release_commit(version_name:, version_code:)
   end
 
   # Flat list for version-code changelog file
-  flat_changelog = sorted_commits.map { |c| "- #{c[:sha]}  #{c[:msg]}" }.join("\n")
+  flat_changelog = sorted_commits.map { |c| "  <li>#{c[:sha]}  #{c[:msg]}</li>" }.join("\n")
 
   current_date = Time.now.strftime("%Y-%m-%d")
 
   # Format full metadata changelog text
   metadata_changelog = "#{get_app_name} v#{version_name} (#{current_date})\n\n"
-  metadata_changelog += "Commits included in this release:\n"
+  metadata_changelog += "Commits included in this release:\n<ul>\n"
   metadata_changelog += flat_changelog
-  metadata_changelog += "\n"
+  metadata_changelog += "\n</ul>\n"
 
   # Save metadata changelog to versionCode.txt (e.g. 3.txt)
   require 'fileutils'
