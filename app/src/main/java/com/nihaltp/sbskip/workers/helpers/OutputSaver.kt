@@ -50,8 +50,23 @@ class OutputSaver
 
                 if (item.deleteOriginalVideo) {
                     if (tempOutputFile.length() > 0L) {
-                        val deleted = downloadStorage.deleteUri(item.localFileUri)
-                        AppLogger.worker("Deleted original video file: ${item.localFileUri} status=$deleted")
+                        val originalDoc =
+                            androidx.documentfile.provider.DocumentFile.fromSingleUri(
+                                context,
+                                android.net.Uri.parse(item.localFileUri),
+                            )
+                        val newDoc = androidx.documentfile.provider.DocumentFile.fromSingleUri(context, android.net.Uri.parse(savedUri))
+
+                        if (originalDoc != null && newDoc != null &&
+                            originalDoc.exists() && newDoc.exists() &&
+                            originalDoc.length() == newDoc.length() &&
+                            originalDoc.name == newDoc.name
+                        ) {
+                            AppLogger.worker("Skipping deletion of original video: SAF resolved old URI to the newly saved file")
+                        } else {
+                            val deleted = downloadStorage.deleteUri(item.localFileUri)
+                            AppLogger.worker("Deleted original video file: ${item.localFileUri} status=$deleted")
+                        }
                     } else {
                         AppLogger.worker("Skipping deletion of original video: generated audio file is 0 bytes")
                     }
