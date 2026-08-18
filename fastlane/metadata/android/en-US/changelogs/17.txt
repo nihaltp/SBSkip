@@ -1,0 +1,11 @@
+SB Skip v1.9.2 (2026-08-19)
+
+Commits included in this release:
+<ul>
+  <li>f28635a  fix: update theme handling and improve dynamic color support</li>
+  <li>953f22a  fix: update ArrowBack icon import to use automirrored variant</li>
+  <li>fc59eda  fix: handle new Intent.EXTRA_STREAM retrieval for video and audio types</li>
+  <li>d3184ab  fix: retrieve initial settings synchronously for theme handling</li>
+  <li>60b3af6  fix: add configChanges attribute for MainActivity to handle locale and layout direction changes without tearing the screen</li>
+  <li>b9de3f7  ci: bump actions/checkout from 4 to 7</li>
+</ul>

@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [1.9.2] - 2026-08-19
+
+### Fixed
+
+- f28635a  fix: update theme handling and improve dynamic color support
+- 953f22a  fix: update ArrowBack icon import to use automirrored variant
+- fc59eda  fix: handle new Intent.EXTRA_STREAM retrieval for video and audio types
+- d3184ab  fix: retrieve initial settings synchronously for theme handling
+- 60b3af6  fix: add configChanges attribute for MainActivity to handle locale and layout direction changes without tearing the screen
+
+### CI/CD
+
+- b9de3f7  ci: bump actions/checkout from 4 to 7
+
 ## [1.9.1] - 2026-08-18
 
 ### Added
