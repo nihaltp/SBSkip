@@ -42,17 +42,17 @@ android {
         versionName = "1.9.0"
 
         val changelogsDir = rootProject.file("fastlane/metadata/android/en-US/changelogs")
-        var latestChangelog = ""
+        var allChangelogs = ""
         if (changelogsDir.exists() && changelogsDir.isDirectory) {
-            val latestFile = changelogsDir.listFiles()
+            val changelogFiles = changelogsDir.listFiles()
                 ?.filter { it.extension == "txt" && it.nameWithoutExtension.toIntOrNull() != null }
-                ?.maxByOrNull { it.nameWithoutExtension.toInt() }
-            if (latestFile != null && latestFile.exists()) {
-                val text = latestFile.readText().replace("\\", "\\\\").replace("\"", "\\\"").replace("\r", "").replace("\n", "\\n")
-                latestChangelog = text
+                ?.sortedByDescending { it.nameWithoutExtension.toInt() }
+            if (changelogFiles != null && changelogFiles.isNotEmpty()) {
+                val combinedText = changelogFiles.joinToString("\n\n") { it.readText().trim() }
+                allChangelogs = combinedText.replace("\\", "\\\\").replace("\"", "\\\"").replace("\r", "").replace("\n", "\\n")
             }
         }
-        buildConfigField("String", "CHANGELOG", "\"$latestChangelog\"")
+        buildConfigField("String", "CHANGELOG", "\"$allChangelogs\"")
 
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a")
