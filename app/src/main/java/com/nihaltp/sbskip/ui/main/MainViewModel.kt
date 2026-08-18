@@ -68,6 +68,7 @@ class MainViewModel
                 }
             }
             viewModelScope.launch {
+                queueRepository.resumeStuckItems()
                 val initialSettings = settingsRepository.settings.first()
                 _uiState.update {
                     it.copy(

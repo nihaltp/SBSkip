@@ -57,13 +57,17 @@ class DownloadWorker
             var taskTitle = item.title.ifBlank { "Clean Media" }
 
             // Set up foreground notification
-            setForeground(
-                notificationManager.createForegroundInfo(
-                    id = notificationId,
-                    title = taskTitle,
-                    message = applicationContext.getString(R.string.status_fetching_info),
-                ),
-            )
+            try {
+                setForeground(
+                    notificationManager.createForegroundInfo(
+                        id = notificationId,
+                        title = taskTitle,
+                        message = applicationContext.getString(R.string.status_fetching_info),
+                    ),
+                )
+            } catch (e: Exception) {
+                AppLogger.worker("Worker is in background, cannot set foreground service: ${e.message}")
+            }
             notificationManager.showActive(
                 id = notificationId,
                 title = taskTitle,

@@ -135,6 +135,16 @@ class DefaultQueueRepository
             return QueueActionResult(success = true, message = context.getString(R.string.retry_started))
         }
 
+        override suspend fun resumeStuckItems() {
+            val activeItems = dao.findActiveItems()
+            if (activeItems.isNotEmpty()) {
+                AppLogger.queue("Found ${activeItems.size} active/stuck items, resuming via WorkManager...")
+                activeItems.forEach {
+                    workScheduler.schedule(it.id)
+                }
+            }
+        }
+
         override suspend fun remove(itemId: Long) {
             dao.deleteById(itemId)
             AppLogger.queue("removed item id=$itemId")

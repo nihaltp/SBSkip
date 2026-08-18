@@ -23,9 +23,18 @@ class WorkManagerDownloadScheduler
             val workRequest =
                 OneTimeWorkRequestBuilder<DownloadWorker>()
                     .setInputData(workDataOf(DownloadWorker.KEY_QUEUE_ITEM_ID to queueItemId))
+                    .setBackoffCriteria(
+                        BackoffPolicy.EXPONENTIAL,
+                        10,
+                        TimeUnit.SECONDS,
+                    )
                     .build()
 
-            WorkManager.getInstance(context).enqueue(workRequest)
+            WorkManager.getInstance(context).enqueueUniqueWork(
+                "CleanMedia_$queueItemId",
+                ExistingWorkPolicy.KEEP,
+                workRequest,
+            )
         }
 
         override fun scheduleSponsorBlockStatusCheck() {

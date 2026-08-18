@@ -25,6 +25,8 @@ interface QueueRepository {
         bypassDurationCheck: Boolean = false,
     ): QueueActionResult
 
+    suspend fun resumeStuckItems()
+
     suspend fun remove(itemId: Long)
 
     suspend fun findItemById(itemId: Long): DownloadQueueItem?
