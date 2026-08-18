@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.SBSkip" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <item name="android:windowBackground">@color/ic_launcher_background</item>
+        <item name="android:windowBackground">?android:colorBackground</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/black</item>
+    </style>
+
+    <style name="Theme.SBSkip.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/ic_launcher_background</item>
+        <item name="postSplashScreenTheme">@style/Theme.SBSkip</item>
     </style>
 </resources>

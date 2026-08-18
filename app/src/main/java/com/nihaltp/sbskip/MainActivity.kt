@@ -14,6 +14,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.nihaltp.sbskip.data.repository.SettingsRepository
 import com.nihaltp.sbskip.model.ThemeMode
 import com.nihaltp.sbskip.navigation.AppNavGraph
@@ -32,6 +33,7 @@ class MainActivity : AppCompatActivity() {
     private var shareEvent by mutableStateOf<ShareIntentEvent?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         if (BuildConfig.DEBUG) {
             runBlocking(Dispatchers.IO) {
@@ -45,13 +47,14 @@ class MainActivity : AppCompatActivity() {
         shareEvent = intent.toShareIntentEvent()
         setContent {
             val settingsState by settingsRepository.settings.collectAsState(initial = null)
+            val state = settingsState ?: return@setContent
             val darkTheme =
-                when (settingsState?.themeMode) {
+                when (state.themeMode) {
                     ThemeMode.LIGHT -> false
                     ThemeMode.DARK -> true
                     else -> isSystemInDarkTheme()
                 }
-            val dynamicColor = settingsState?.dynamicColor ?: true
+            val dynamicColor = state.dynamicColor
 
             SBSkipTheme(
                 darkTheme = darkTheme,
