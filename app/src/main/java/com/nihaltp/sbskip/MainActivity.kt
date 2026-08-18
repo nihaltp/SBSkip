@@ -86,7 +86,12 @@ private fun Intent.toShareIntentEvent(): ShareIntentEvent? {
         val text = getStringExtra(Intent.EXTRA_TEXT)?.trim().orEmpty()
         if (text.isBlank()) null else ShareIntentEvent(text = text, token = SystemClock.elapsedRealtimeNanos())
     } else if (currentType.startsWith("video/") || currentType.startsWith("audio/")) {
-        val fileUri = getParcelableExtra<android.os.Parcelable>(Intent.EXTRA_STREAM) as? Uri
+        val fileUri =
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
+            } else {
+                getParcelableExtra<android.os.Parcelable>(Intent.EXTRA_STREAM) as? Uri
+            }
         if (fileUri == null) null else ShareIntentEvent(fileUri = fileUri, token = SystemClock.elapsedRealtimeNanos())
     } else {
         null
