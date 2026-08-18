@@ -1,9 +1,11 @@
 SB Skip v1.6.0 (2026-07-13)
 
 Commits included in this release:
-- a9e58e3  feat: add relativePath support and permission revoked dialog for folder access
-- 217e4a7  feat: add auto start cleaning feature with corresponding settings
-- e048dcb  feat: enhance screenshot tests with scrolling functionality for settings section
-- c1f549d  docs: update README to include download instructions and repository URL
-- 67feab5  chore: remove x86 apk build
-- 85530bc  chore: add dependabot and mergify configuration files
+<ul>
+  <li>a9e58e3  feat: add relativePath support and permission revoked dialog for folder access</li>
+  <li>217e4a7  feat: add auto start cleaning feature with corresponding settings</li>
+  <li>e048dcb  feat: enhance screenshot tests with scrolling functionality for settings section</li>
+  <li>c1f549d  docs: update README to include download instructions and repository URL</li>
+  <li>67feab5  chore: remove x86 apk build</li>
+  <li>85530bc  chore: add dependabot and mergify configuration files</li>
+</ul>

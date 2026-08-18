@@ -1,5 +1,7 @@
 SB Skip v1.5.0 (2026-07-04)
 
 Commits included in this release:
-- 0762ecd  fix: expand supported media formats and update FFmpeg error handling
-- 765b648  fix: add check for non-empty output file before deleting original video
+<ul>
+  <li>0762ecd  fix: expand supported media formats and update FFmpeg error handling</li>
+  <li>765b648  fix: add check for non-empty output file before deleting original video</li>
+</ul>

@@ -1,12 +1,14 @@
 SB Skip v1.7.0 (2026-07-28)
 
 Commits included in this release:
-- a9b126b  feat: optimize media processing by handling empty keep ranges and improving processing plan validation
-- 71ebf08  feat: implement stacked toast notifications for user feedback and restore actions
-- 807b3b3  feat: conditionally hide report button in error details dialog based on error type
-- d981664  feat: allow dismissing notifications by swiping
-- 6ccdfbf  feat: update YouTube thumbnail URL handling to use custom thumbnails when available
-- 73a3def  feat: centralize URL handling by introducing Constants for YouTube and SponsorBlock URLs
-- d831c60  refactor: simplify log viewing button in settings screen
-- 0593ad5  refactor: improve audio conversion logic in ProcessingPlanBuilder
-- 8eae0eb  chore: update JVM arguments for Gradle and Kotlin daemon to optimize memory usage
+<ul>
+  <li>a9b126b  feat: optimize media processing by handling empty keep ranges and improving processing plan validation</li>
+  <li>71ebf08  feat: implement stacked toast notifications for user feedback and restore actions</li>
+  <li>807b3b3  feat: conditionally hide report button in error details dialog based on error type</li>
+  <li>d981664  feat: allow dismissing notifications by swiping</li>
+  <li>6ccdfbf  feat: update YouTube thumbnail URL handling to use custom thumbnails when available</li>
+  <li>73a3def  feat: centralize URL handling by introducing Constants for YouTube and SponsorBlock URLs</li>
+  <li>d831c60  refactor: simplify log viewing button in settings screen</li>
+  <li>0593ad5  refactor: improve audio conversion logic in ProcessingPlanBuilder</li>
+  <li>8eae0eb  chore: update JVM arguments for Gradle and Kotlin daemon to optimize memory usage</li>
+</ul>

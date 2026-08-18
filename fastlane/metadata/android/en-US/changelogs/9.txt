@@ -1,6 +1,8 @@
 SB Skip v1.4.0 (2026-06-30)
 
 Commits included in this release:
-- 641b03b  feat: add options when downloading a video
-- 54830f1  chore: use html in fastlane files
-- 90cc43f  chore: add repobeats
+<ul>
+  <li>641b03b  feat: add options when downloading a video</li>
+  <li>54830f1  chore: use html in fastlane files</li>
+  <li>90cc43f  chore: add repobeats</li>
+</ul>
