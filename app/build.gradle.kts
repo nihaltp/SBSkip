@@ -49,7 +49,12 @@ android {
                 ?.sortedByDescending { it.nameWithoutExtension.toInt() }
             if (changelogFiles != null && changelogFiles.isNotEmpty()) {
                 val combinedText = changelogFiles.joinToString("\n\n") { it.readText().trim() }
-                allChangelogs = combinedText.replace("\\", "\\\\").replace("\"", "\\\"").replace("\r", "").replace("\n", "\\n")
+                val processedText = combinedText
+                    .replace(Regex("(?i)<ul>\\s*"), "")
+                    .replace(Regex("(?i)\\s*</ul>"), "")
+                    .replace(Regex("(?i)\\s*<li>\\s*"), "- ")
+                    .replace(Regex("(?i)\\s*</li>\\s*"), "\n")
+                allChangelogs = processedText.replace("\\", "\\\\").replace("\"", "\\\"").replace("\r", "").replace("\n", "\\n")
             }
         }
         buildConfigField("String", "CHANGELOG", "\"$allChangelogs\"")
