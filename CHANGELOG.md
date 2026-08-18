@@ -4,6 +4,80 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [1.9.1] - 2026-08-18
+
+### Added
+
+- 81777ca  feat: add functionality to resume stuck download items and improve WorkManager scheduling
+- bee97b6  feat: enhance candidate selection by incorporating YouTube video duration
+- 6128d77  feat: combine all changelogs into a single build config field for improved clarity
+
+### Fixed
+
+- 30ce42f  fix: add checks for keystore properties file existence in build.gradle.kts
+- 0095975  fix: add version check for useDownloadsUri in AndroidDownloadStorage
+- 9ddbaaa  fix: enhance original video deletion logic to prevent unnecessary deletions
+
+### Tests
+
+- 98101e6  test: add unit tests for scoreCandidate method and mock YouTubeDurationFetcher
+
+### Documentation
+
+- 56b8645  docs: update README for clarity and formatting improvements
+- 0ebe571  docs: add total downloads badge to README
+
+### CI/CD
+
+- c45c15b  ci: bump actions/setup-java from 4 to 5
+
+### Maintenance
+
+- 5627f8d  chore: update gem dependencies
+- f074cbe  chore: comment out lint in CI workflow
+- 177480f  chore: ensure main branch is specified for push events in CI workflow
+- 7388a3b  chore: reorder types in changelog section for improved clarity
+- fa65c05  chore: format changelogs to use HTML list
+- 833ab55  chore: update fastfile to format changelog entries as HTML list
+- 7e1022e  chore: process changelog entries to remove HTML tags and format as bullet points
+
+## [1.9.1] - 2026-08-18
+
+### Added
+
+- 81777ca  feat: add functionality to resume stuck download items and improve WorkManager scheduling
+- bee97b6  feat: enhance candidate selection by incorporating YouTube video duration
+- 6128d77  feat: combine all changelogs into a single build config field for improved clarity
+
+### Fixed
+
+- 30ce42f  fix: add checks for keystore properties file existence in build.gradle.kts
+- 0095975  fix: add version check for useDownloadsUri in AndroidDownloadStorage
+- 9ddbaaa  fix: enhance original video deletion logic to prevent unnecessary deletions
+
+### Tests
+
+- 98101e6  test: add unit tests for scoreCandidate method and mock YouTubeDurationFetcher
+
+### Documentation
+
+- 56b8645  docs: update README for clarity and formatting improvements
+- 0ebe571  docs: add total downloads badge to README
+
+### CI/CD
+
+- c45c15b  ci: bump actions/setup-java from 4 to 5
+
+### Maintenance
+
+- 5627f8d  chore: update gem dependencies
+- f074cbe  chore: comment out lint in CI workflow
+- 177480f  chore: ensure main branch is specified for push events in CI workflow
+- 7388a3b  chore: reorder types in changelog section for improved clarity
+- fa65c05  chore: format changelogs to use HTML list
+- 833ab55  chore: update fastfile to format changelog entries as HTML list
+- 7e1022e  chore: process changelog entries to remove HTML tags and format as bullet points
+
 ## [1.9.0] - 2026-08-15
 
 ### Fixed

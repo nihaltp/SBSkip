@@ -1,0 +1,22 @@
+SB Skip v1.9.1 (2026-08-18)
+
+Commits included in this release:
+<ul>
+  <li>81777ca  feat: add functionality to resume stuck download items and improve WorkManager scheduling</li>
+  <li>bee97b6  feat: enhance candidate selection by incorporating YouTube video duration</li>
+  <li>6128d77  feat: combine all changelogs into a single build config field for improved clarity</li>
+  <li>30ce42f  fix: add checks for keystore properties file existence in build.gradle.kts</li>
+  <li>0095975  fix: add version check for useDownloadsUri in AndroidDownloadStorage</li>
+  <li>9ddbaaa  fix: enhance original video deletion logic to prevent unnecessary deletions</li>
+  <li>98101e6  test: add unit tests for scoreCandidate method and mock YouTubeDurationFetcher</li>
+  <li>56b8645  docs: update README for clarity and formatting improvements</li>
+  <li>0ebe571  docs: add total downloads badge to README</li>
+  <li>c45c15b  ci: bump actions/setup-java from 4 to 5</li>
+  <li>5627f8d  chore: update gem dependencies</li>
+  <li>f074cbe  chore: comment out lint in CI workflow</li>
+  <li>177480f  chore: ensure main branch is specified for push events in CI workflow</li>
+  <li>7388a3b  chore: reorder types in changelog section for improved clarity</li>
+  <li>fa65c05  chore: format changelogs to use HTML list</li>
+  <li>833ab55  chore: update fastfile to format changelog entries as HTML list</li>
+  <li>7e1022e  chore: process changelog entries to remove HTML tags and format as bullet points</li>
+</ul>
