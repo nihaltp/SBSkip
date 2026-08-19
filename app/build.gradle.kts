@@ -38,8 +38,8 @@ android {
         applicationId = "com.nihaltp.sbskip"
         minSdk = 26
         targetSdk = 35
-        versionCode = 17
-        versionName = "1.9.2"
+        versionCode = 18
+        versionName = "1.9.3"
 
         val changelogsDir = rootProject.file("fastlane/metadata/android/en-US/changelogs")
         var allChangelogs = ""

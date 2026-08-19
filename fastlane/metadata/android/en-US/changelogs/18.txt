@@ -1,0 +1,9 @@
+SB Skip v1.9.3 (2026-08-19)
+
+Commits included in this release:
+<ul>
+  <li>503b199  feat: add pending downloads and playlist download state to AppSettings and DataStoreSettingsRepository</li>
+  <li>4f60596  fix: add database migrations for download_queue table to support new columns</li>
+  <li>f519197  fix: handle exceptions when reading display name from URI in MainViewModel</li>
+  <li>6a96fa4  fix: resolve race condition by filtering out deleted candidates during scan</li>
+</ul>

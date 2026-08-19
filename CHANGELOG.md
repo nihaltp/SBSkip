@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [1.9.3] - 2026-08-19
+
+### Added
+
+- 503b199  feat: add pending downloads and playlist download state to AppSettings and DataStoreSettingsRepository
+
+### Fixed
+
+- 4f60596  fix: add database migrations for download_queue table to support new columns
+- f519197  fix: handle exceptions when reading display name from URI in MainViewModel
+- 6a96fa4  fix: resolve race condition by filtering out deleted candidates during scan
+
 ## [1.9.2] - 2026-08-19
 
 ### Fixed
