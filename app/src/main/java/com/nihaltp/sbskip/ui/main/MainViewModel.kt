@@ -1197,7 +1197,23 @@ class MainViewModel
                     val youtubeDuration = com.nihaltp.sbskip.util.YouTubeDurationFetcher.fetchDuration(pendingDownload.videoId)
                     collectRecentCandidates(pendingDownload, settings, youtubeDuration)
                 }
-            val bestCandidate = candidates.maxByOrNull { it.score }
+
+            // Fix Race Condition: Filter out candidates that were deleted during the scan
+            val bestCandidate =
+                withContext(Dispatchers.IO) {
+                    candidates
+                        .sortedByDescending { it.score }
+                        .firstOrNull { candidate ->
+                            try {
+                                androidx.documentfile.provider.DocumentFile.fromSingleUri(
+                                    context,
+                                    Uri.parse(candidate.uri),
+                                )?.exists() == true
+                            } catch (e: Exception) {
+                                false
+                            }
+                        }
+                } ?: candidates.maxByOrNull { it.score }
 
             if (bestCandidate == null || bestCandidate.score < MIN_CONFIDENCE_SCORE) {
                 AppLogger.metadata(
