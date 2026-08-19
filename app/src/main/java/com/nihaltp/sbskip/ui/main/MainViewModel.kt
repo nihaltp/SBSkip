@@ -28,7 +28,9 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -74,6 +76,8 @@ class MainViewModel
                     it.copy(
                         convertVideoToAudio = initialSettings.defaultConvertVideoToAudio,
                         deleteOriginalVideo = initialSettings.defaultDeleteOriginalVideo,
+                        pendingDownloads = initialSettings.pendingDownloads,
+                        playlistDownloadState = initialSettings.playlistDownloadState,
                     )
                 }
                 settingsRepository.settings.collect { settings ->
@@ -82,6 +86,20 @@ class MainViewModel
                     }
                 }
             }
+            viewModelScope.launch {
+                _uiState
+                    .map { Pair(it.pendingDownloads, it.playlistDownloadState) }
+                    .distinctUntilChanged()
+                    .collect { (pending, playlist) ->
+                        settingsRepository.update { settings ->
+                            settings.copy(
+                                pendingDownloads = pending,
+                                playlistDownloadState = playlist,
+                            )
+                        }
+                    }
+            }
+
             checkNewPipeInstalled()
         }
 

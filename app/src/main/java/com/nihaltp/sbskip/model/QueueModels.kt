@@ -1,5 +1,7 @@
 package com.nihaltp.sbskip.model
 
+import kotlinx.serialization.Serializable
+
 enum class DownloadQueueStatus {
     QUEUED,
     FETCHING_SEGMENTS,
@@ -54,6 +56,7 @@ data class DownloadQueueItem(
         get() = if (url.startsWith("sbskip://")) "" else url.substringBefore("?bypassDurationCheck").substringBefore("&bypassDurationCheck")
 }
 
+@Serializable
 data class PendingDownload(
     val videoId: String,
     val url: String,
@@ -70,6 +73,7 @@ data class PendingDownload(
     val estimatedReadyAtEpochMillis: Long? = null,
 )
 
+@Serializable
 data class DetectedFile(
     val uri: String,
     val score: Int,
@@ -77,12 +81,14 @@ data class DetectedFile(
     val folderUri: String? = null,
 )
 
+@Serializable
 data class PlaylistVideo(
     val videoId: String,
     val title: String,
     val thumbnailUrl: String?,
 )
 
+@Serializable
 data class PlaylistDownloadState(
     val playlistId: String,
     val title: String,

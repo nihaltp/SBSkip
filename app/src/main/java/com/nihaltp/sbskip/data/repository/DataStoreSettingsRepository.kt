@@ -11,6 +11,8 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.nihaltp.sbskip.model.AppSettings
 import com.nihaltp.sbskip.model.DownloaderType
+import com.nihaltp.sbskip.model.PendingDownload
+import com.nihaltp.sbskip.model.PlaylistDownloadState
 import com.nihaltp.sbskip.model.SponsorBlockCategory
 import com.nihaltp.sbskip.model.SponsorBlockSettings
 import com.nihaltp.sbskip.model.ThemeMode
@@ -57,6 +59,8 @@ class DataStoreSettingsRepository
             val BYPASS_SMALL_DURATION_DIFFERENCE = booleanPreferencesKey("bypass_small_duration_difference")
             val MAX_DURATION_DIFFERENCE_SECONDS = intPreferencesKey("max_duration_difference_seconds")
             val WATCHLIST = stringPreferencesKey("watchlist")
+            val PENDING_DOWNLOADS = stringPreferencesKey("pending_downloads")
+            val PLAYLIST_DOWNLOAD_STATE = stringPreferencesKey("playlist_download_state")
         }
 
         override val settings: Flow<AppSettings> =
@@ -110,6 +114,16 @@ class DataStoreSettingsRepository
                         runCatching {
                             json.decodeFromString<List<WatchlistFolder>>(preferences[PreferencesKeys.WATCHLIST] ?: "[]")
                         }.getOrElse { emptyList() },
+                    pendingDownloads =
+                        runCatching {
+                            json.decodeFromString<List<PendingDownload>>(preferences[PreferencesKeys.PENDING_DOWNLOADS] ?: "[]")
+                        }.getOrElse { emptyList() },
+                    playlistDownloadState =
+                        runCatching {
+                            preferences[PreferencesKeys.PLAYLIST_DOWNLOAD_STATE]?.let {
+                                json.decodeFromString<PlaylistDownloadState>(it)
+                            }
+                        }.getOrNull(),
                 )
             }
 
@@ -159,6 +173,16 @@ class DataStoreSettingsRepository
                             runCatching {
                                 json.decodeFromString<List<WatchlistFolder>>(preferences[PreferencesKeys.WATCHLIST] ?: "[]")
                             }.getOrElse { emptyList() },
+                        pendingDownloads =
+                            runCatching {
+                                json.decodeFromString<List<PendingDownload>>(preferences[PreferencesKeys.PENDING_DOWNLOADS] ?: "[]")
+                            }.getOrElse { emptyList() },
+                        playlistDownloadState =
+                            runCatching {
+                                preferences[PreferencesKeys.PLAYLIST_DOWNLOAD_STATE]?.let {
+                                    json.decodeFromString<PlaylistDownloadState>(it)
+                                }
+                            }.getOrNull(),
                     )
                 val updated = transform(current)
 
@@ -185,6 +209,12 @@ class DataStoreSettingsRepository
                 preferences[PreferencesKeys.BYPASS_SMALL_DURATION_DIFFERENCE] = updated.bypassSmallDurationDifference
                 preferences[PreferencesKeys.MAX_DURATION_DIFFERENCE_SECONDS] = updated.maxDurationDifferenceSeconds
                 preferences[PreferencesKeys.WATCHLIST] = json.encodeToString(updated.watchlist)
+                preferences[PreferencesKeys.PENDING_DOWNLOADS] = json.encodeToString(updated.pendingDownloads)
+                if (updated.playlistDownloadState != null) {
+                    preferences[PreferencesKeys.PLAYLIST_DOWNLOAD_STATE] = json.encodeToString(updated.playlistDownloadState)
+                } else {
+                    preferences.remove(PreferencesKeys.PLAYLIST_DOWNLOAD_STATE)
+                }
             }
         }
     }

@@ -25,4 +25,6 @@ data class AppSettings(
     val bypassSmallDurationDifference: Boolean = false,
     val maxDurationDifferenceSeconds: Int = 1,
     val watchlist: List<WatchlistFolder> = emptyList(),
+    val pendingDownloads: List<PendingDownload> = emptyList(),
+    val playlistDownloadState: PlaylistDownloadState? = null,
 )
