@@ -1557,13 +1557,17 @@ class MainViewModel
         }
 
         private fun readDisplayName(uriString: String): String? {
-            val uri = Uri.parse(uriString)
-            val projection = arrayOf(MediaStore.MediaColumns.DISPLAY_NAME)
-            context.contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
-                val index = cursor.getColumnIndex(MediaStore.MediaColumns.DISPLAY_NAME)
-                if (index != -1 && cursor.moveToFirst()) {
-                    return cursor.getString(index)
+            try {
+                val uri = Uri.parse(uriString)
+                val projection = arrayOf(MediaStore.MediaColumns.DISPLAY_NAME)
+                context.contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
+                    val index = cursor.getColumnIndex(MediaStore.MediaColumns.DISPLAY_NAME)
+                    if (index != -1 && cursor.moveToFirst()) {
+                        return cursor.getString(index)
+                    }
                 }
+            } catch (e: Exception) {
+                AppLogger.error("MainViewModel", e, "Failed to read display name for uri: $uriString")
             }
             return null
         }
