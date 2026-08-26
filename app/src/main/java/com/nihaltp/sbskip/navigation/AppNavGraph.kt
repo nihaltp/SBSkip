@@ -1,5 +1,9 @@
 package com.nihaltp.sbskip.navigation
 
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -72,7 +76,37 @@ fun AppNavGraph(
         }
 
         composable(Destination.Settings.route) {
-            SettingsScreen(onBack = { navController.popBackStack() })
+            SettingsScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToLicenses = { navController.navigate(Destination.Licenses.route) },
+            )
+        }
+
+        composable(Destination.Licenses.route) {
+            androidx.compose.material3.Scaffold(
+                topBar = {
+                    @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+                    androidx.compose.material3.TopAppBar(
+                        title = {
+                            androidx.compose.material3.Text(
+                                androidx.compose.ui.res.stringResource(com.nihaltp.sbskip.R.string.licenses_title),
+                            )
+                        },
+                        navigationIcon = {
+                            androidx.compose.material3.IconButton(onClick = { navController.popBackStack() }) {
+                                androidx.compose.material3.Icon(
+                                    Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = androidx.compose.ui.res.stringResource(com.nihaltp.sbskip.R.string.back),
+                                )
+                            }
+                        },
+                    )
+                },
+            ) { paddingValues ->
+                com.mikepenz.aboutlibraries.ui.compose.m3.LibrariesContainer(
+                    modifier = Modifier.fillMaxSize().padding(paddingValues),
+                )
+            }
         }
     }
 }

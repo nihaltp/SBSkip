@@ -6,4 +6,6 @@ abstract class Destination(val route: String) {
     data object DownloadConfig : Destination("download_config")
 
     data object Settings : Destination("settings")
+
+    data object Licenses : Destination("licenses")
 }

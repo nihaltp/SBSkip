@@ -193,6 +193,7 @@
     <string name="logs_export_failed_toast">Günlükler kaydedilemedi</string>
     <string name="copy">Kopyala</string>
     <string name="clear">Temizle</string>
+    <string name="back">Geri</string>
     <string name="cancel">İptal</string>
     <string name="save">Kaydet</string>
     <string name="done">Bitti</string>

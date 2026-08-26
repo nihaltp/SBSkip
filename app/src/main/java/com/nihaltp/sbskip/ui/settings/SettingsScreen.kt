@@ -62,7 +62,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.os.LocaleListCompat
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.mikepenz.aboutlibraries.ui.compose.m3.LibrariesContainer
 import com.nihaltp.sbskip.BuildConfig
 import com.nihaltp.sbskip.R
 import com.nihaltp.sbskip.model.DownloaderType
@@ -79,13 +78,13 @@ data class AppLanguage(val tag: String, val displayName: String)
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
+    onNavigateToLicenses: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val settingsState by viewModel.settings.collectAsState()
     val settings = settingsState
 
     val context = LocalContext.current
-    var showLicensesDialog by remember { mutableStateOf(false) }
     var showChangelogDialog by remember { mutableStateOf(false) }
     var filesPermissionGranted by remember {
         mutableStateOf(PermissionHelper.hasFilesPermission(context))
@@ -570,9 +569,7 @@ fun SettingsScreen(
                         SettingValueRow(
                             title = stringResource(id = R.string.label_licenses),
                             value = stringResource(id = R.string.app_licenses),
-                            onClick = {
-                                showLicensesDialog = true
-                            },
+                            onClick = onNavigateToLicenses,
                         )
                     }
                 }
@@ -793,23 +790,6 @@ fun SettingsScreen(
                 }
             }
         }
-    }
-
-    if (showLicensesDialog) {
-        AlertDialog(
-            onDismissRequest = { showLicensesDialog = false },
-            title = { Text(stringResource(id = R.string.licenses_title)) },
-            text = {
-                LibrariesContainer(
-                    modifier = Modifier.fillMaxSize(),
-                )
-            },
-            confirmButton = {
-                Button(onClick = { showLicensesDialog = false }) {
-                    Text(stringResource(id = R.string.close))
-                }
-            },
-        )
     }
 
     if (showChangelogDialog) {
