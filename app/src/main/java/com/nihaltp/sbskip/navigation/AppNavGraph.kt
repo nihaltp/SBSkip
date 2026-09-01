@@ -79,6 +79,7 @@ fun AppNavGraph(
             SettingsScreen(
                 onBack = { navController.popBackStack() },
                 onNavigateToLicenses = { navController.navigate(Destination.Licenses.route) },
+                onNavigateToLogs = { navController.navigate(Destination.Logs.route) },
             )
         }
 
@@ -107,6 +108,12 @@ fun AppNavGraph(
                     modifier = Modifier.fillMaxSize().padding(paddingValues),
                 )
             }
+        }
+
+        composable(Destination.Logs.route) {
+            com.nihaltp.sbskip.ui.settings.RawLogsScreen(
+                onNavigateBack = { navController.popBackStack() },
+            )
         }
     }
 }

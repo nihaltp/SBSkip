@@ -8,4 +8,6 @@ abstract class Destination(val route: String) {
     data object Settings : Destination("settings")
 
     data object Licenses : Destination("licenses")
+
+    data object Logs : Destination("logs")
 }

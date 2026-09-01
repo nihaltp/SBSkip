@@ -6,7 +6,6 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatDelegate
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -19,13 +18,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.SaveAlt
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -36,7 +31,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
@@ -52,12 +46,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.os.LocaleListCompat
@@ -79,6 +70,7 @@ data class AppLanguage(val tag: String, val displayName: String)
 fun SettingsScreen(
     onBack: () -> Unit,
     onNavigateToLicenses: () -> Unit,
+    onNavigateToLogs: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val settingsState by viewModel.settings.collectAsState()
@@ -522,17 +514,11 @@ fun SettingsScreen(
                             checked = settings.verboseLogging,
                             onCheckedChange = viewModel::updateVerboseLogging,
                         )
-                        OutlinedButton(
-                            onClick = { showLogsDialog = true },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Description,
-                                contentDescription = null,
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(stringResource(id = R.string.settings_view_logs_button))
-                        }
+                        SettingValueRow(
+                            title = stringResource(id = R.string.settings_view_logs_button),
+                            value = stringResource(id = R.string.logs_title),
+                            onClick = onNavigateToLogs,
+                        )
                     }
                 }
 
@@ -812,112 +798,6 @@ fun SettingsScreen(
             confirmButton = {
                 Button(onClick = { showChangelogDialog = false }) {
                     Text(stringResource(id = R.string.close))
-                }
-            },
-        )
-    }
-
-    if (showLogsDialog) {
-        val clipboardManager = LocalClipboardManager.current
-        val logs = remember(logRefreshKey) { viewModel.getLogs() }
-        AlertDialog(
-            onDismissRequest = { showLogsDialog = false },
-            title = { Text(stringResource(id = R.string.logs_title)) },
-            text = {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    SelectionContainer(
-                        modifier =
-                            Modifier
-                                .weight(1f)
-                                .fillMaxWidth(),
-                    ) {
-                        LazyColumn(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .height(300.dp)
-                                    .background(
-                                        color = MaterialTheme.colorScheme.surfaceVariant,
-                                        shape = MaterialTheme.shapes.small,
-                                    )
-                                    .padding(8.dp),
-                        ) {
-                            if (logs.isEmpty()) {
-                                item {
-                                    Text(
-                                        text = stringResource(id = R.string.logs_empty),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                                    )
-                                }
-                            } else {
-                                val lines = logs.split("\n")
-                                items(lines) { line ->
-                                    val isError = line.contains("-ERROR-")
-                                    val color = if (isError) Color.Red else MaterialTheme.colorScheme.onSurfaceVariant
-                                    Text(
-                                        text = line,
-                                        color = color,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    TextButton(
-                        onClick = {
-                            if (logs.isNotEmpty()) {
-                                clipboardManager.setText(AnnotatedString(logs))
-                                Toast.makeText(context, context.getString(R.string.logs_copied_toast), Toast.LENGTH_SHORT).show()
-                            }
-                        },
-                        enabled = logs.isNotEmpty(),
-                    ) {
-                        Text(stringResource(id = R.string.copy))
-                    }
-                    TextButton(
-                        onClick = {
-                            if (logs.isNotEmpty()) {
-                                val timestamp = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.US).format(java.util.Date())
-                                logsToExport = logs
-                                exportLogsLauncher.launch("sbskip_logs_$timestamp.txt")
-                            }
-                        },
-                        enabled = logs.isNotEmpty(),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.SaveAlt,
-                            contentDescription = null,
-                            modifier = Modifier.height(18.dp).width(18.dp),
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(stringResource(id = R.string.logs_export_button))
-                    }
-                }
-            },
-            dismissButton = {
-                Row {
-                    TextButton(
-                        onClick = {
-                            viewModel.clearLogs()
-                            logRefreshKey++
-                            Toast.makeText(context, context.getString(R.string.logs_cleared_toast), Toast.LENGTH_SHORT).show()
-                        },
-                    ) {
-                        Text(stringResource(id = R.string.clear))
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    TextButton(onClick = { showLogsDialog = false }) {
-                        Text(stringResource(id = R.string.close))
-                    }
                 }
             },
         )
