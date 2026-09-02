@@ -9,6 +9,9 @@ import org.junit.Test
 import java.io.File
 
 class FFmpegMediaProcessorTest {
+    @get:org.junit.Rule
+    val tempFolder = org.junit.rules.TemporaryFolder()
+
     private lateinit var processor: FFmpegMediaProcessor
     private lateinit var tempDir: File
     private val executedCommands = mutableListOf<String>()
@@ -16,8 +19,7 @@ class FFmpegMediaProcessorTest {
     @Before
     fun setUp() {
         processor = FFmpegMediaProcessor()
-        tempDir = File(System.getProperty("java.io.tmpdir"), "ffmpeg_test_${System.currentTimeMillis()}")
-        tempDir.mkdirs()
+        tempDir = tempFolder.newFolder("ffmpeg_test")
 
         // Override command executor to capture commands and mock success
         processor.commandExecutor = { command ->
@@ -33,7 +35,6 @@ class FFmpegMediaProcessorTest {
 
     @After
     fun tearDown() {
-        tempDir.deleteRecursively()
         executedCommands.clear()
     }
 

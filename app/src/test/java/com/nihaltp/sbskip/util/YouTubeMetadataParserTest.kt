@@ -13,11 +13,9 @@ class YouTubeMetadataParserTest {
         @JvmStatic
         @org.junit.BeforeClass
         fun setupFixtures() {
-            val fixturesDir = File("src/test/resources/fixtures")
+            val fixturesDir = com.nihaltp.sbskip.TestFiles.generatedFixturesDir
             if (!fixturesDir.exists()) {
                 fixturesDir.mkdirs()
-            } else {
-                fixturesDir.listFiles()?.forEach { it.delete() }
             }
 
             // Rebuild HTML data files from scratch
@@ -89,19 +87,10 @@ class YouTubeMetadataParserTest {
                 """.trimIndent(),
             )
         }
-
-        @JvmStatic
-        @org.junit.AfterClass
-        fun teardownFixtures() {
-            val fixturesDir = File("src/test/resources/fixtures")
-            if (fixturesDir.exists()) {
-                fixturesDir.listFiles()?.forEach { it.delete() }
-            }
-        }
     }
 
     private fun getFixture(name: String): String {
-        val file = File("src/test/resources/fixtures/$name")
+        val file = File(com.nihaltp.sbskip.TestFiles.generatedFixturesDir, name)
         if (!file.exists()) {
             throw IllegalArgumentException("Fixture $name not found at ${file.absolutePath}")
         }
@@ -162,7 +151,7 @@ class YouTubeMetadataParserTest {
     }
 
     private fun fetchAndParseLiveVideo(videoId: String): YouTubeMetadataParser.ExtractionResult {
-        val fixtureFile = File("src/test/resources/fixtures/live_$videoId.html")
+        val fixtureFile = File(com.nihaltp.sbskip.TestFiles.generatedFixturesDir, "live_$videoId.html")
         val html =
             if (fixtureFile.exists()) {
                 fixtureFile.readText()
