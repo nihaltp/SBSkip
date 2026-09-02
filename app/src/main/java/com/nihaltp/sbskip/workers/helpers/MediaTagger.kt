@@ -32,8 +32,7 @@ class MediaTagger
             val authorName = processingContext.authorName
             val authorUrl = processingContext.authorUrl
             val thumbnailUrl = processingContext.thumbnailUrl
-            val detectedCategories = processingContext.segments?.map { it.category }?.toSet() ?: emptySet()
-            val categories = detectedCategories.intersect(processingContext.categories).map { it.name }
+            val categories = resolveCategoriesForMetadata(processingContext)
             val sbSkipSegments = processingContext.sbSkipSegments
 
             val extension = inputFile.extension.lowercase()
@@ -173,7 +172,7 @@ class MediaTagger
             }
         }
 
-        private fun buildProcessedMetadataJson(
+        internal fun buildProcessedMetadataJson(
             videoId: String,
             youtubeUrl: String,
             youtubeTitle: String,
@@ -239,5 +238,10 @@ class MediaTagger
 
         private fun escapeForFfmpeg(value: String): String {
             return value.replace("\\", "\\\\").replace("\"", "\\\"")
+        }
+
+        internal fun resolveCategoriesForMetadata(processingContext: ProcessingContext): List<String> {
+            val detectedCategories = processingContext.segments?.map { it.category }?.toSet() ?: emptySet()
+            return detectedCategories.intersect(processingContext.categories).map { it.name }
         }
     }
