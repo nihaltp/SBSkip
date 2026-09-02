@@ -2,14 +2,16 @@ package com.nihaltp.sbskip
 
 import com.nihaltp.sbskip.util.YouTubePlaylistFetcher
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class RealPlaylistTest {
     @Test
     fun testRealPlaylist() =
         runBlocking {
             val playlistId = "PLY87vwSUPI1U"
-            val fixtureFile = java.io.File("src/test/resources/fixtures/playlist_$playlistId.html")
+            val fixtureFile = File(TestFiles.generatedFixturesDir, "playlist_$playlistId.html")
 
             val html =
                 if (fixtureFile.exists()) {
@@ -26,11 +28,6 @@ class RealPlaylistTest {
             for (video in videos) {
                 println("- ${video.title} (${video.videoId})")
             }
-            assert(videos.isNotEmpty()) { "Videos should not be empty" }
-
-            // Clean up the generated fixture file at the end of the test
-            if (fixtureFile.exists()) {
-                fixtureFile.delete()
-            }
+            assertTrue("Videos should not be empty", videos.isNotEmpty())
         }
 }
