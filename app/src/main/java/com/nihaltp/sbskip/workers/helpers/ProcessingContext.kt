@@ -23,4 +23,6 @@ data class ProcessingContext(
     val categories: Set<SponsorBlockCategory>,
     val segments: List<SponsorBlockSegment>?,
     val plan: ProcessingPlan,
+    val musicMetadata: com.nihaltp.sbskip.model.MusicMetadata? = null,
+    val musicConfidence: Float = 0f,
 )

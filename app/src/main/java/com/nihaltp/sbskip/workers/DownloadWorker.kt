@@ -85,6 +85,7 @@ class DownloadWorker
                 var oembedAuthorUrl: String? = null
                 var finalThumbnailUrl: String? = null
                 var sbSkipSegments = ""
+                var ytMetadataRef: com.nihaltp.sbskip.workers.helpers.YouTubeMetadata? = null
 
                 // 1. Mark as FETCHING_SEGMENTS
                 queueRepository.markFetchingSegments(queueItemId)
@@ -128,6 +129,7 @@ class DownloadWorker
                     // Fetch YouTube oEmbed metadata if possible
                     try {
                         val metadata = metadataFetcher.fetchYouTubeMetadata(item.url)
+                        ytMetadataRef = metadata
                         oembedTitle = metadata.title
                         oembedAuthorName = metadata.authorName
                         oembedAuthorUrl = metadata.authorUrl
@@ -180,6 +182,8 @@ class DownloadWorker
                         categories = categories,
                         segments = segments,
                         plan = plan,
+                        musicMetadata = ytMetadataRef?.musicMetadata,
+                        musicConfidence = ytMetadataRef?.musicConfidence ?: 0f,
                     )
 
                 // Process media with FFmpeg

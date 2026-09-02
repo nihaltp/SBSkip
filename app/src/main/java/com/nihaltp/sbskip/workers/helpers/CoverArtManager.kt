@@ -16,7 +16,11 @@ class CoverArtManager
     constructor(
         @ApplicationContext private val context: Context,
     ) {
-        private val httpClient = OkHttpClient()
+        private val httpClient =
+            OkHttpClient.Builder()
+                .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                .build()
 
         fun audioHasCoverImage(file: File): Boolean {
             val retriever = MediaMetadataRetriever()
@@ -44,18 +48,30 @@ class CoverArtManager
                 try {
                     httpClient.newCall(request).execute().use { response ->
                         if (!response.isSuccessful) {
-                            AppLogger.worker("Failed to download thumbnail: HTTP ${response.code}")
+                            AppLogger.worker("Failed to download artwork: HTTP ${response.code}")
                             return@withContext null
                         }
                         val body = response.body ?: return@withContext null
-                        val tempFile = File.createTempFile("thumb_", ".jpg", cacheDir)
+                        val contentType = body.contentType()?.toString()?.lowercase() ?: ""
+                        if (!contentType.startsWith("image/")) {
+                            AppLogger.worker("Failed to download artwork: invalid content type $contentType")
+                            return@withContext null
+                        }
+                        val contentLength = body.contentLength()
+                        if (contentLength > 5 * 1024 * 1024) { // 5MB limit
+                            AppLogger.worker("Failed to download artwork: file too large ($contentLength bytes)")
+                            return@withContext null
+                        }
+
+                        val extension = if (contentType.contains("png")) ".png" else ".jpg"
+                        val tempFile = File.createTempFile("artwork_", extension, cacheDir)
                         tempFile.outputStream().use { output ->
                             body.byteStream().copyTo(output)
                         }
                         tempFile
                     }
                 } catch (e: Exception) {
-                    AppLogger.error("CoverArtManager", e, "Failed to download thumbnail from $url")
+                    AppLogger.error("CoverArtManager", e, "Failed to download artwork from $url")
                     null
                 }
             }

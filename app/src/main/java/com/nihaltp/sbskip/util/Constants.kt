@@ -8,6 +8,31 @@ object Constants {
     const val SPONSORBLOCK_STATUS_BASE_URL = "https://status.sponsor.ajay.app"
     const val GITHUB_ISSUE_BASE_URL = "https://github.com/nihaltp/SBSkip/issues/new"
 
+    val positiveMusicKeywords =
+        listOf(
+            "official music video",
+            "official video",
+            "music video",
+            "mv",
+            "official audio",
+            "lyric video",
+            "visualizer",
+            "live performance",
+            "concert",
+        )
+    val negativeMusicKeywords =
+        listOf(
+            "reaction",
+            "review",
+            "interview",
+            "podcast",
+            "tutorial",
+            "cover",
+            "how to play",
+            "guitar lesson",
+            "news",
+        )
+
     fun buildYouTubeWatchUrl(videoId: String): String = "$YOUTUBE_WATCH_URL_PREFIX$videoId"
 
     fun buildYouTubeThumbnailUrl(videoId: String): String = "$YOUTUBE_THUMBNAIL_URL_PREFIX$videoId/mqdefault.jpg"

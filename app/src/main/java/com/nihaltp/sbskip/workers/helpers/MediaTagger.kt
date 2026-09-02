@@ -56,27 +56,64 @@ class MediaTagger
             val isAudio = extension in setOf("m4a", "mp3")
             var thumbFile: File? = null
             if (isAudio && !coverArtManager.audioHasCoverImage(inputFile)) {
-                val thumbUrl = thumbnailUrl?.takeIf { it.isNotBlank() }
-                if (thumbUrl != null) {
-                    AppLogger.worker("Audio cover image is missing; downloading thumbnail: $thumbUrl")
+                val artworkUrlToDownload =
+                    processingContext.musicMetadata?.artworkUrl?.takeIf { it.isNotBlank() }
+                        ?: thumbnailUrl?.takeIf { it.isNotBlank() }
+                if (artworkUrlToDownload != null) {
+                    AppLogger.worker("Audio cover image is missing; downloading cover art: $artworkUrlToDownload")
                     val cacheDir = inputFile.parentFile ?: context.cacheDir
-                    thumbFile = coverArtManager.downloadThumbnail(thumbUrl, cacheDir)
+                    thumbFile = coverArtManager.downloadThumbnail(artworkUrlToDownload, cacheDir)
+
+                    if (thumbFile == null && processingContext.musicMetadata?.artworkUrl != null) {
+                        val fallbackThumbUrl = thumbnailUrl?.takeIf { it.isNotBlank() }
+                        if (fallbackThumbUrl != null) {
+                            AppLogger.worker("Artwork download failed, falling back to thumbnail: $fallbackThumbUrl")
+                            thumbFile = coverArtManager.downloadThumbnail(fallbackThumbUrl, cacheDir)
+                        }
+                    }
                 }
             }
 
-            val (existingTitle, existingAuthor) = getExistingMetadata(inputFile)
+            val existingMetadata = getExistingMetadata(inputFile)
             val metadataArgs = mutableListOf<String>()
 
-            if (existingTitle.isNullOrBlank() && youtubeTitle.isNotBlank()) {
-                metadataArgs.add("-metadata title=\"${escapeForFfmpeg(youtubeTitle)}\"")
+            // Priority: Existing reliable metadata -> MusicMetadata -> YouTube basic metadata -> Filename
+            val finalTitle =
+                existingMetadata.title
+                    ?: processingContext.musicMetadata?.title
+                    ?: youtubeTitle
+
+            val finalArtist =
+                existingMetadata.artist
+                    ?: processingContext.musicMetadata?.artists?.joinToString(", ")
+                    ?: authorName
+
+            val finalAlbum = existingMetadata.album ?: processingContext.musicMetadata?.album
+            val finalYear = existingMetadata.year ?: processingContext.musicMetadata?.year?.toString()
+            val finalGenre = existingMetadata.genre ?: processingContext.musicMetadata?.genre
+
+            if (finalTitle.isNotBlank()) {
+                metadataArgs.add("-metadata title=\"${escapeForFfmpeg(finalTitle)}\"")
             }
 
-            if (existingAuthor.isNullOrBlank() && !authorName.isNullOrBlank()) {
+            if (!finalArtist.isNullOrBlank()) {
                 if (isAudio) {
-                    metadataArgs.add("-metadata artist=\"${escapeForFfmpeg(authorName)}\"")
+                    metadataArgs.add("-metadata artist=\"${escapeForFfmpeg(finalArtist)}\"")
                 } else {
-                    metadataArgs.add("-metadata author=\"${escapeForFfmpeg(authorName)}\"")
+                    metadataArgs.add("-metadata author=\"${escapeForFfmpeg(finalArtist)}\"")
                 }
+            }
+
+            if (!finalAlbum.isNullOrBlank()) {
+                metadataArgs.add("-metadata album=\"${escapeForFfmpeg(finalAlbum)}\"")
+            }
+
+            if (!finalYear.isNullOrBlank()) {
+                metadataArgs.add("-metadata date=\"${escapeForFfmpeg(finalYear)}\"")
+            }
+
+            if (!finalGenre.isNullOrBlank()) {
+                metadataArgs.add("-metadata genre=\"${escapeForFfmpeg(finalGenre)}\"")
             }
 
             if (!authorUrl.isNullOrBlank()) {
@@ -167,18 +204,30 @@ class MediaTagger
                 "}"
         }
 
-        private fun getExistingMetadata(file: File): Pair<String?, String?> {
+        private data class ExistingMetadata(
+            val title: String?,
+            val artist: String?,
+            val album: String?,
+            val year: String?,
+            val genre: String?,
+        )
+
+        private fun getExistingMetadata(file: File): ExistingMetadata {
             val retriever = MediaMetadataRetriever()
             return try {
                 retriever.setDataSource(file.absolutePath)
-                val title = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
+                val title = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)?.takeIf { it.isNotBlank() }
                 val artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
                 val author = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_AUTHOR)
                 val authorName = artist?.takeIf { it.isNotBlank() } ?: author?.takeIf { it.isNotBlank() }
-                Pair(title?.takeIf { it.isNotBlank() }, authorName)
+                val album = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM)?.takeIf { it.isNotBlank() }
+                val year = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_YEAR)?.takeIf { it.isNotBlank() }
+                val genre = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_GENRE)?.takeIf { it.isNotBlank() }
+
+                ExistingMetadata(title, authorName, album, year, genre)
             } catch (e: Exception) {
                 AppLogger.error("MediaTagger", e, "Failed to read metadata for ${file.name}")
-                Pair(null, null)
+                ExistingMetadata(null, null, null, null, null)
             } finally {
                 try {
                     retriever.release()
