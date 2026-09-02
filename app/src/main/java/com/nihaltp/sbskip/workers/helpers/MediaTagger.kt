@@ -32,7 +32,8 @@ class MediaTagger
             val authorName = processingContext.authorName
             val authorUrl = processingContext.authorUrl
             val thumbnailUrl = processingContext.thumbnailUrl
-            val categories = processingContext.categories.map { it.name }
+            val detectedCategories = processingContext.segments?.map { it.category }?.toSet() ?: emptySet()
+            val categories = detectedCategories.intersect(processingContext.categories).map { it.name }
             val sbSkipSegments = processingContext.sbSkipSegments
 
             val extension = inputFile.extension.lowercase()
