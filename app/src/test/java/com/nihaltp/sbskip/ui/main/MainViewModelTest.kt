@@ -42,8 +42,8 @@ class MainViewModelTest {
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        io.mockk.mockkObject(com.nihaltp.sbskip.util.YouTubeDurationFetcher)
-        coEvery { com.nihaltp.sbskip.util.YouTubeDurationFetcher.fetchDuration(any()) } returns 100L
+        io.mockk.mockkObject(com.nihaltp.sbskip.util.fetcher.YouTubeDurationFetcher)
+        coEvery { com.nihaltp.sbskip.util.fetcher.YouTubeDurationFetcher.fetchDuration(any()) } returns 100L
 
         // Use a mock context so context.getString() never throws Resources$NotFoundException.
         val packageManager = mockk<PackageManager>(relaxed = true)
@@ -71,7 +71,7 @@ class MainViewModelTest {
 
     @After
     fun tearDown() {
-        io.mockk.unmockkObject(com.nihaltp.sbskip.util.YouTubeDurationFetcher)
+        io.mockk.unmockkObject(com.nihaltp.sbskip.util.fetcher.YouTubeDurationFetcher)
         Dispatchers.resetMain()
     }
 

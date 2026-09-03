@@ -1,6 +1,6 @@
 package com.nihaltp.sbskip
 
-import com.nihaltp.sbskip.util.YouTubePlaylistFetcher
+import com.nihaltp.sbskip.util.fetcher.YouTubePlaylistFetcher
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertTrue
 import org.junit.Test
