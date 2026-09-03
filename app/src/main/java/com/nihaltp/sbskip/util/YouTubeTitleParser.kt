@@ -1,6 +1,46 @@
 package com.nihaltp.sbskip.util
 
 object YouTubeTitleParser {
+    private val AT_REGEX = Regex("@\\s*([\\w.-]+)")
+
+    private val FEAT_REGEX = Regex("(?i)\\b(?:ft\\.|feat\\.)\\s*([^\\|\\[\\]\\(\\)\\-]+)")
+
+    private val ENCLOSED_FLUFF_PATTERNS =
+        listOf(
+            "m/?v",
+            "official( m/?v| video| music video| audio| lyrics?)?",
+            "lyrics?",
+            "hd",
+            "hq",
+            "\\d{3,4}p",
+            "4k",
+            "8k",
+            "\\d{4}",
+            "audio",
+            "visualizer",
+            "remastered",
+            "full album",
+            "album track",
+        )
+
+    private val TEXT_FLUFF_PATTERNS =
+        listOf(
+            "official (video|music video|audio|m/?v|4k music video)",
+            "full album",
+            "album track",
+            "lyric video",
+            "music video",
+            "m/?v",
+        )
+
+    private val ENCLOSED_FLUFF_REGEX = Regex("(?i)[\\(\\[](${ENCLOSED_FLUFF_PATTERNS.joinToString("|")})[\\)\\]]")
+
+    private val TEXT_FLUFF_REGEX = Regex("(?i)\\b(${TEXT_FLUFF_PATTERNS.joinToString("|")})\\b")
+
+    private val FEAT_ARTIST_SPLIT_REGEX = Regex("[,&]")
+    private val MULTIPLE_SPACES_REGEX = Regex("\\s{2,}")
+    private val FLOATING_SEPARATORS_REGEX = Regex("^[\\s\\-|]+|[\\s\\-|]+\$")
+
     /**
      * Extracts artists from a YouTube title using strict heuristics (e.g. looking for @ handles and ft./feat.).
      * Designed to be expanded with more sophisticated parsing rules later.
@@ -14,15 +54,13 @@ object YouTubeTitleParser {
 
         authorName?.takeIf { it.isNotBlank() }?.let { artists.add(it.trim()) }
 
-        val atRegex = Regex("@\\s*([\\w.-]+)")
-        atRegex.findAll(title).forEach { matchResult ->
+        AT_REGEX.findAll(title).forEach { matchResult ->
             artists.add(matchResult.groupValues[1].trim())
         }
 
-        val featRegex = Regex("(?i)\\b(?:ft\\.|feat\\.)\\s*([^\\|\\[\\]\\(\\)\\-]+)")
-        featRegex.findAll(title).forEach { matchResult ->
+        FEAT_REGEX.findAll(title).forEach { matchResult ->
             val featArtistsStr = matchResult.groupValues[1]
-            val featArtists = featArtistsStr.split(Regex("[,&]")).map { it.trim() }.filter { it.isNotEmpty() }
+            val featArtists = featArtistsStr.split(FEAT_ARTIST_SPLIT_REGEX).map { it.trim() }.filter { it.isNotEmpty() }
             artists.addAll(featArtists)
         }
 
@@ -35,27 +73,12 @@ object YouTubeTitleParser {
     fun cleanTitle(title: String): String {
         var clean = title
 
-        // Patterns to match enclosed fluff like [MV], (Official Video), (1080p), (1999)
-        val enclosedFluffRegex =
-            Regex(
-                "(?i)[\\(\\[](m/?v|official( m/?v| video| music video| audio| lyrics?)?|" +
-                    "lyrics?|hd|hq|\\d{3,4}p|4k|8k|\\d{4}|audio|visualizer|" +
-                    "remastered|full album|album track)[\\)\\]]",
-            )
-
-        // Patterns for non-enclosed fluff
-        val textFluffRegex =
-            Regex(
-                "(?i)\\b(official (video|music video|audio|m/?v|4k music video)|" +
-                    "full album|album track|lyric video|music video|m/?v)\\b",
-            )
-
-        clean = enclosedFluffRegex.replace(clean, "")
-        clean = textFluffRegex.replace(clean, "")
+        clean = ENCLOSED_FLUFF_REGEX.replace(clean, "")
+        clean = TEXT_FLUFF_REGEX.replace(clean, "")
 
         // Clean up any remaining multiple spaces or floating hyphens/separators that might have been left behind
-        clean = clean.replace(Regex("\\s{2,}"), " ")
-        clean = clean.replace(Regex("^[\\s\\-|]+|[\\s\\-|]+\$"), "")
+        clean = clean.replace(MULTIPLE_SPACES_REGEX, " ")
+        clean = clean.replace(FLOATING_SEPARATORS_REGEX, "")
 
         return clean.trim()
     }
