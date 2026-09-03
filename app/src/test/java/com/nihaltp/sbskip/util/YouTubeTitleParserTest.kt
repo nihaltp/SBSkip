@@ -77,5 +77,11 @@ class YouTubeTitleParserTest {
             "Red Hot Chili Peppers - Californication",
             YouTubeTitleParser.cleanTitle("Red Hot Chili Peppers - Californication [Official Music Video]"),
         )
+        // Live tests
+        assertEquals("Nirvana - The Man Who Sold The World", YouTubeTitleParser.cleanTitle("Nirvana - The Man Who Sold The World (Live)"))
+        assertEquals("Queen - Radio Ga Ga", YouTubeTitleParser.cleanTitle("Queen - Radio Ga Ga [Live Aid 1985]"))
+        assertEquals("Dua Lipa - Don't Start Now", YouTubeTitleParser.cleanTitle("Dua Lipa - Don't Start Now (Live in LA)"))
+        assertEquals("Adele - Someone Like You", YouTubeTitleParser.cleanTitle("Adele - Someone Like You Live Acoustic"))
+        assertEquals("Ed Sheeran - Perfect", YouTubeTitleParser.cleanTitle("Ed Sheeran - Perfect Official Live Video"))
     }
 }
