@@ -1,5 +1,6 @@
 package com.nihaltp.sbskip.workers.helpers
 
+import com.nihaltp.sbskip.config.AppVersions
 import com.nihaltp.sbskip.model.SponsorBlockCategory
 import com.nihaltp.sbskip.sponsorblock.SponsorBlockSegment
 import com.nihaltp.sbskip.sponsorblock.SponsorBlockService
@@ -24,7 +25,7 @@ class MetadataFetcher
         private val json = Json { ignoreUnknownKeys = true }
 
         private val metadataCache = mutableMapOf<String, CachedMetadata>()
-        private val cacheVersion = 1
+        private val cacheVersion = AppVersions.METADATA_CACHE_VERSION
 
         private data class CachedMetadata(
             val version: Int,

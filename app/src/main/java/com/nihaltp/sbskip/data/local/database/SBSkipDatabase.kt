@@ -3,12 +3,13 @@ package com.nihaltp.sbskip.data.local.database
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import com.nihaltp.sbskip.config.AppVersions
 import com.nihaltp.sbskip.data.local.dao.DownloadQueueDao
 import com.nihaltp.sbskip.data.local.entity.DownloadQueueEntity
 
 @Database(
     entities = [DownloadQueueEntity::class],
-    version = 7,
+    version = AppVersions.DATABASE_VERSION,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
