@@ -45,6 +45,7 @@ object YouTubeTitleParser {
             "remastered",
             "full album",
             "album track",
+            "live[^\\)\\]]*", // Matches (Live), [Live Performance], (Live at Wembley)
         ) + VIDEO_AUDIO_QUALITIES
 
     private val TEXT_FLUFF_PATTERNS =
@@ -55,6 +56,8 @@ object YouTubeTitleParser {
             "lyric video",
             "music video",
             "m/?v",
+            "official live( video| audio| performance)?",
+            "live (performance|session|acoustic)",
         )
 
     private val ENCLOSED_FLUFF_REGEX = Regex("(?i)[\\(\\[](${ENCLOSED_FLUFF_PATTERNS.joinToString("|")})[\\)\\]]")
