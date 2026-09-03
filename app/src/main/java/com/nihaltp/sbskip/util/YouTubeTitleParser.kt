@@ -5,23 +5,47 @@ object YouTubeTitleParser {
 
     private val FEAT_REGEX = Regex("(?i)\\b(?:ft\\.|feat\\.)\\s*([^\\|\\[\\]\\(\\)\\-]+)")
 
+    private val VIDEO_AUDIO_QUALITIES =
+        listOf(
+            "hd",
+            "hq",
+            "sd",
+            "uhd",
+            "fhd",
+            "qhd",
+            "2k",
+            "4k",
+            "8k",
+            "\\d{3,4}p", // e.g. 360p, 480p, 720p, 1080p, 1440p, 2160p
+            "\\d{3,4}p60", // e.g. 1080p60, 720p60
+            "60fps",
+            "audio",
+            "high quality",
+            "high definition",
+            "lossless",
+            "flac",
+            "mp3",
+            "320kbps",
+            "spatial audio",
+            "8d audio",
+            "8d",
+            "16d",
+            "16d audio",
+            "3d",
+            "3d audio",
+        )
+
     private val ENCLOSED_FLUFF_PATTERNS =
         listOf(
             "m/?v",
             "official( m/?v| video| music video| audio| lyrics?)?",
             "lyrics?",
-            "hd",
-            "hq",
-            "\\d{3,4}p",
-            "4k",
-            "8k",
             "\\d{4}",
-            "audio",
             "visualizer",
             "remastered",
             "full album",
             "album track",
-        )
+        ) + VIDEO_AUDIO_QUALITIES
 
     private val TEXT_FLUFF_PATTERNS =
         listOf(
