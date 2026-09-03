@@ -35,7 +35,7 @@ class MetadataFetcher
 
         suspend fun fetchYouTubeMetadata(videoUrl: String): YouTubeMetadata =
             withContext(Dispatchers.IO) {
-                val videoId = com.nihaltp.sbskip.util.YouTubeUrlParser.extractVideoId(videoUrl)
+                val videoId = com.nihaltp.sbskip.util.parser.YouTubeUrlParser.extractVideoId(videoUrl)
                 if (videoId != null) {
                     val cached = metadataCache[videoId]
                     if (cached != null &&
@@ -52,7 +52,7 @@ class MetadataFetcher
                     httpClient.newCall(request).execute().use { response ->
                         if (response.isSuccessful) {
                             val body = response.body?.string().orEmpty()
-                            val extractionResult = com.nihaltp.sbskip.util.YouTubeMetadataParser.parse(body)
+                            val extractionResult = com.nihaltp.sbskip.util.parser.YouTubeMetadataParser.parse(body)
 
                             if (videoId != null) {
                                 // Scraped basic info from microformat/videoDetails might be limited if the parser didn't find ytInitialPlayerResponse.

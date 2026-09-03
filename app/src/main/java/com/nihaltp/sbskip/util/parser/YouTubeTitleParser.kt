@@ -1,4 +1,4 @@
-package com.nihaltp.sbskip.util
+package com.nihaltp.sbskip.util.parser
 
 object YouTubeTitleParser {
     private val AT_REGEX = Regex("@\\s*([\\w.-]+)")

@@ -1,6 +1,7 @@
-package com.nihaltp.sbskip.util
+package com.nihaltp.sbskip.util.parser
 
 import android.net.Uri
+import com.nihaltp.sbskip.util.Constants
 
 object YouTubeUrlParser {
     private val supportedHosts =

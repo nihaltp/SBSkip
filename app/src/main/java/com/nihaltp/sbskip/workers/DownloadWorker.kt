@@ -12,7 +12,7 @@ import com.nihaltp.sbskip.model.SponsorBlockCategory
 import com.nihaltp.sbskip.notifications.DownloadNotificationManager
 import com.nihaltp.sbskip.util.AppLogger
 import com.nihaltp.sbskip.util.Constants
-import com.nihaltp.sbskip.util.YouTubeUrlParser
+import com.nihaltp.sbskip.util.parser.YouTubeUrlParser
 import com.nihaltp.sbskip.workers.helpers.DurationValidator
 import com.nihaltp.sbskip.workers.helpers.MediaProcessingManager
 import com.nihaltp.sbskip.workers.helpers.MediaTagger

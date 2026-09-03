@@ -83,7 +83,7 @@ class MediaTagger
                     ?: processingContext.musicMetadata?.title
                     ?: youtubeTitle
 
-            val extractedArtists = com.nihaltp.sbskip.util.YouTubeTitleParser.extractArtistsFromTitle(youtubeTitle, authorName)
+            val extractedArtists = com.nihaltp.sbskip.util.parser.YouTubeTitleParser.extractArtistsFromTitle(youtubeTitle, authorName)
             val finalArtistList = mutableSetOf<String>()
             existingMetadata.artist?.let { finalArtistList.addAll(it.split(",").map { a -> a.trim() }.filter { a -> a.isNotBlank() }) }
             processingContext.musicMetadata?.artists?.let { finalArtistList.addAll(it) }

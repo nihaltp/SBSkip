@@ -1,4 +1,4 @@
-package com.nihaltp.sbskip.util
+package com.nihaltp.sbskip.util.parser
 
 import com.nihaltp.sbskip.model.MusicVideoType
 import org.junit.Assert.assertEquals
