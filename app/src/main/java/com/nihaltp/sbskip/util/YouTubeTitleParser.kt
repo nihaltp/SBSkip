@@ -6,9 +6,10 @@ object YouTubeTitleParser {
      * Designed to be expanded with more sophisticated parsing rules later.
      */
     fun extractArtistsFromTitle(
-        title: String,
+        rawTitle: String,
         authorName: String?,
     ): List<String> {
+        val title = cleanTitle(rawTitle)
         val artists = mutableSetOf<String>()
 
         authorName?.takeIf { it.isNotBlank() }?.let { artists.add(it.trim()) }
@@ -26,5 +27,36 @@ object YouTubeTitleParser {
         }
 
         return artists.toList()
+    }
+
+    /**
+     * Removes common YouTube fluff from titles (e.g. [MV], (Official Video), (Lyrics))
+     */
+    fun cleanTitle(title: String): String {
+        var clean = title
+
+        // Patterns to match enclosed fluff like [MV], (Official Video), (1080p), (1999)
+        val enclosedFluffRegex =
+            Regex(
+                "(?i)[\\(\\[](m/?v|official( m/?v| video| music video| audio| lyrics?)?|" +
+                    "lyrics?|hd|hq|\\d{3,4}p|4k|8k|\\d{4}|audio|visualizer|" +
+                    "remastered|full album|album track)[\\)\\]]",
+            )
+
+        // Patterns for non-enclosed fluff
+        val textFluffRegex =
+            Regex(
+                "(?i)\\b(official (video|music video|audio|m/?v|4k music video)|" +
+                    "full album|album track|lyric video|music video|m/?v)\\b",
+            )
+
+        clean = enclosedFluffRegex.replace(clean, "")
+        clean = textFluffRegex.replace(clean, "")
+
+        // Clean up any remaining multiple spaces or floating hyphens/separators that might have been left behind
+        clean = clean.replace(Regex("\\s{2,}"), " ")
+        clean = clean.replace(Regex("^[\\s\\-|]+|[\\s\\-|]+\$"), "")
+
+        return clean.trim()
     }
 }
