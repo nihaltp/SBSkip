@@ -4,7 +4,7 @@ import com.nihaltp.sbskip.config.AppVersions
 import com.nihaltp.sbskip.model.SponsorBlockCategory
 import com.nihaltp.sbskip.sponsorblock.SponsorBlockSegment
 import com.nihaltp.sbskip.sponsorblock.SponsorBlockService
-import com.nihaltp.sbskip.util.YouTubeDurationFetcher
+import com.nihaltp.sbskip.util.fetcher.YouTubeDurationFetcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName

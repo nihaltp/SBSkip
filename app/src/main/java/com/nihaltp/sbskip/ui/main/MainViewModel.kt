@@ -580,7 +580,7 @@ class MainViewModel
                                 thumbnailUrl = item.thumbnailUrl,
                                 createdAtEpochMillis = item.createdAtEpochMillis,
                             )
-                        val youtubeDuration = com.nihaltp.sbskip.util.YouTubeDurationFetcher.fetchDuration(pending.videoId)
+                        val youtubeDuration = com.nihaltp.sbskip.util.fetcher.YouTubeDurationFetcher.fetchDuration(pending.videoId)
                         val candidates = collectRecentCandidates(pending, settings, youtubeDuration)
                         val bestCandidate = candidates.maxByOrNull { it.score }
                         if (bestCandidate != null && bestCandidate.score > 50 && bestCandidate.uri != item.localFileUri) {
@@ -904,7 +904,7 @@ class MainViewModel
 
                 if (!force) {
                     _uiState.update { it.copy(isVerifyingDuration = true) }
-                    val youtubeDuration = com.nihaltp.sbskip.util.YouTubeDurationFetcher.fetchDuration(videoId)
+                    val youtubeDuration = com.nihaltp.sbskip.util.fetcher.YouTubeDurationFetcher.fetchDuration(videoId)
                     _uiState.update { it.copy(isVerifyingDuration = false) }
 
                     if (youtubeDuration != null) {
@@ -1058,7 +1058,7 @@ class MainViewModel
             if (!playlistId.isNullOrBlank() && videoId.isNullOrBlank()) {
                 viewModelScope.launch {
                     try {
-                        val videos = com.nihaltp.sbskip.util.YouTubePlaylistFetcher.fetchPlaylistVideos(playlistId)
+                        val videos = com.nihaltp.sbskip.util.fetcher.YouTubePlaylistFetcher.fetchPlaylistVideos(playlistId)
                         if (videos.isEmpty()) {
                             showToast("No videos found in playlist or playlist is private")
                             _uiState.update { it.copy(isFetchingMetadata = false) }
@@ -1112,7 +1112,7 @@ class MainViewModel
                 }
             val durationDeferred =
                 viewModelScope.async {
-                    com.nihaltp.sbskip.util.YouTubeDurationFetcher.fetchDuration(videoId)
+                    com.nihaltp.sbskip.util.fetcher.YouTubeDurationFetcher.fetchDuration(videoId)
                 }
 
             val metadata = metadataDeferred.await()
@@ -1212,7 +1212,7 @@ class MainViewModel
             val settings = settingsRepository.settings.first()
             val candidates =
                 withContext(Dispatchers.IO) {
-                    val youtubeDuration = com.nihaltp.sbskip.util.YouTubeDurationFetcher.fetchDuration(pendingDownload.videoId)
+                    val youtubeDuration = com.nihaltp.sbskip.util.fetcher.YouTubeDurationFetcher.fetchDuration(pendingDownload.videoId)
                     collectRecentCandidates(pendingDownload, settings, youtubeDuration)
                 }
 

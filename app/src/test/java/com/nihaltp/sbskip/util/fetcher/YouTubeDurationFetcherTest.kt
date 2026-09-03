@@ -1,4 +1,4 @@
-package com.nihaltp.sbskip.util
+package com.nihaltp.sbskip.util.fetcher
 
 import com.nihaltp.sbskip.model.AppSettings
 import org.junit.Assert.assertEquals
