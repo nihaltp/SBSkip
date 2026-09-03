@@ -10,7 +10,7 @@ import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.model.QueueActionResult
 import com.nihaltp.sbskip.util.AppLogger
 import com.nihaltp.sbskip.util.Constants
-import com.nihaltp.sbskip.util.YouTubeUrlParser
+import com.nihaltp.sbskip.util.parser.YouTubeUrlParser
 import com.nihaltp.sbskip.workers.DownloadWorkScheduler
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow

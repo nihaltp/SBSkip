@@ -20,7 +20,7 @@ import com.nihaltp.sbskip.navigation.ShareIntentEvent
 import com.nihaltp.sbskip.storage.DownloadStorage
 import com.nihaltp.sbskip.util.AppLogger
 import com.nihaltp.sbskip.util.Constants
-import com.nihaltp.sbskip.util.YouTubeUrlParser
+import com.nihaltp.sbskip.util.parser.YouTubeUrlParser
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -574,7 +574,7 @@ class MainViewModel
                         val settings = settingsRepository.settings.first()
                         val pending =
                             com.nihaltp.sbskip.model.PendingDownload(
-                                videoId = com.nihaltp.sbskip.util.YouTubeUrlParser.extractVideoId(item.url) ?: "",
+                                videoId = com.nihaltp.sbskip.util.parser.YouTubeUrlParser.extractVideoId(item.url) ?: "",
                                 url = item.url,
                                 title = item.title,
                                 thumbnailUrl = item.thumbnailUrl,
@@ -599,7 +599,7 @@ class MainViewModel
                 showToast(context.getString(R.string.newpipe_not_installed))
                 return
             }
-            val normalizedUrl = com.nihaltp.sbskip.util.YouTubeUrlParser.normalize(item.url) ?: item.url
+            val normalizedUrl = com.nihaltp.sbskip.util.parser.YouTubeUrlParser.normalize(item.url) ?: item.url
             launchNewPipe(normalizedUrl)
         }
 

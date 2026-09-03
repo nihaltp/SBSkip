@@ -1,7 +1,9 @@
-package com.nihaltp.sbskip.util
+package com.nihaltp.sbskip.util.parser
 
 import com.nihaltp.sbskip.model.MusicMetadata
 import com.nihaltp.sbskip.model.MusicVideoType
+import com.nihaltp.sbskip.util.AppLogger
+import com.nihaltp.sbskip.util.Constants
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
