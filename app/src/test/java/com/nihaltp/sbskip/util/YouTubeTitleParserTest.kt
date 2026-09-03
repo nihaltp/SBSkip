@@ -48,4 +48,34 @@ class YouTubeTitleParserTest {
         val result = YouTubeTitleParser.extractArtistsFromTitle(title, authorName)
         assertEquals(listOf("My Channel"), result)
     }
+
+    @Test
+    fun `removes youtube fluff from titles`() {
+        assertEquals("BLACKPINK - 'How You Like That'", YouTubeTitleParser.cleanTitle("BLACKPINK - 'How You Like That' M/V"))
+        assertEquals("The Weeknd - Blinding Lights", YouTubeTitleParser.cleanTitle("The Weeknd - Blinding Lights (Official Video)"))
+        assertEquals("Eminem - Without Me", YouTubeTitleParser.cleanTitle("Eminem - Without Me (Official Music Video)"))
+        assertEquals("BTS (방탄소년단) 'Dynamite'", YouTubeTitleParser.cleanTitle("BTS (방탄소년단) 'Dynamite' Official MV"))
+        assertEquals("Taylor Swift - Blank Space", YouTubeTitleParser.cleanTitle("Taylor Swift - Blank Space (Official)"))
+        assertEquals("Ed Sheeran - Shape of You", YouTubeTitleParser.cleanTitle("Ed Sheeran - Shape of You [Official Video]"))
+        assertEquals("Post Malone - Circles", YouTubeTitleParser.cleanTitle("Post Malone - Circles (Lyrics)"))
+        assertEquals("Adele - Hello", YouTubeTitleParser.cleanTitle("Adele - Hello (Official Audio)"))
+        assertEquals(
+            "Arctic Monkeys - Do I Wanna Know?",
+            YouTubeTitleParser.cleanTitle("Arctic Monkeys - Do I Wanna Know? (Official Video) (HD)"),
+        )
+        assertEquals("Daft Punk - Get Lucky", YouTubeTitleParser.cleanTitle("Daft Punk - Get Lucky (Full Album)"))
+        assertEquals(
+            "Oasis - Wonderwall",
+            YouTubeTitleParser.cleanTitle("Oasis - Wonderwall (Remastered) (1080p)"),
+        )
+        assertEquals("Kendrick Lamar - HUMBLE.", YouTubeTitleParser.cleanTitle("Kendrick Lamar - HUMBLE. [4K]"))
+        assertEquals("Gorillaz - Feel Good Inc.", YouTubeTitleParser.cleanTitle("Gorillaz - Feel Good Inc. Official Video"))
+        assertEquals("Linkin Park - Numb", YouTubeTitleParser.cleanTitle("Linkin Park - Numb [Official Music Video]"))
+        assertEquals("Coldplay - Yellow", YouTubeTitleParser.cleanTitle("Coldplay - Yellow (Official Video) [4K]"))
+        assertEquals("Aha - Take On Me", YouTubeTitleParser.cleanTitle("Aha - Take On Me (Official Music Video)"))
+        assertEquals(
+            "Red Hot Chili Peppers - Californication",
+            YouTubeTitleParser.cleanTitle("Red Hot Chili Peppers - Californication [Official Music Video]"),
+        )
+    }
 }
