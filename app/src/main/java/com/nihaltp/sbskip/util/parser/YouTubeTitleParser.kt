@@ -66,7 +66,7 @@ object YouTubeTitleParser {
 
     private val FEAT_ARTIST_SPLIT_REGEX = Regex("[,&]")
     private val MULTIPLE_SPACES_REGEX = Regex("\\s{2,}")
-    private val FLOATING_SEPARATORS_REGEX = Regex("^[\\s\\-|]+|[\\s\\-|]+\$")
+    private val FLOATING_SEPARATORS_REGEX = Regex("^[\\s\\-|]+|[\\s\\-|]+$")
 
     /**
      * Extracts artists from a YouTube title using strict heuristics (e.g. looking for @ handles and ft./feat.).
