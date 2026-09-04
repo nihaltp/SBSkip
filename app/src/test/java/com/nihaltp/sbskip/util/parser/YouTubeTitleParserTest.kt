@@ -83,5 +83,8 @@ class YouTubeTitleParserTest {
         assertEquals("Dua Lipa - Don't Start Now", YouTubeTitleParser.cleanTitle("Dua Lipa - Don't Start Now (Live in LA)"))
         assertEquals("Adele - Someone Like You", YouTubeTitleParser.cleanTitle("Adele - Someone Like You Live Acoustic"))
         assertEquals("Ed Sheeran - Perfect", YouTubeTitleParser.cleanTitle("Ed Sheeran - Perfect Official Live Video"))
+
+        // Trailing separator test
+        assertEquals("Artist - Song", YouTubeTitleParser.cleanTitle("Artist - Song - (Official Video)"))
     }
 }
