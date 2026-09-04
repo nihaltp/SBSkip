@@ -3,7 +3,7 @@ package com.nihaltp.sbskip.util.parser
 object YouTubeTitleParser {
     private val AT_REGEX = Regex("@\\s*([\\w.-]+)")
 
-    private val FEAT_REGEX = Regex("(?i)\\b(?:ft\\.|feat\\.)\\s*([^\\|\\[\\]\\(\\)\\-]+)")
+    private val FEAT_REGEX = Regex("(?i)\\b(?:ft\\.|feat\\.)\\s*([^\\|\\[\\]\\(\\)]+?)(?=\\s*(?:\\||\\[|\\]|\\(|\\)|$)|\\s+-\\s+)")
 
     private val VIDEO_AUDIO_QUALITIES =
         listOf(
