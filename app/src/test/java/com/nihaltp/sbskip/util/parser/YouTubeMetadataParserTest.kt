@@ -17,6 +17,7 @@ class YouTubeMetadataParserTest {
             if (!fixturesDir.exists()) {
                 fixturesDir.mkdirs()
             }
+            if (File(fixturesDir, "official_music_video.html").exists()) return
 
             // Rebuild HTML data files from scratch
             File(fixturesDir, "official_music_video.html").writeText(
@@ -166,7 +167,12 @@ class YouTubeMetadataParserTest {
                         )
                         .header("Accept-Language", "en-US,en;q=0.9")
                         .build()
-                val response = okhttp3.OkHttpClient().newCall(request).execute()
+                val client =
+                    okhttp3.OkHttpClient.Builder()
+                        .connectTimeout(5, java.util.concurrent.TimeUnit.SECONDS)
+                        .readTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+                        .build()
+                val response = client.newCall(request).execute()
                 val body = response.body?.string() ?: throw IllegalStateException("Failed to download HTML")
 
                 fixtureFile.parentFile?.mkdirs()
