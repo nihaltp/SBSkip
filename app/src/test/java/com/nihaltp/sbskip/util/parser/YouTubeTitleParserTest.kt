@@ -14,6 +14,15 @@ class YouTubeTitleParserTest {
     }
 
     @Test
+    fun `extracts hyphenated artists after feat`() {
+        val title = "Song Name ft. AC-DC & T-Pain - Official Video"
+        val authorName = "Vevo"
+
+        val result = YouTubeTitleParser.extractArtistsFromTitle(title, authorName)
+        assertEquals(listOf("Vevo", "AC-DC", "T-Pain"), result)
+    }
+
+    @Test
     fun `extracts @ handles as artists`() {
         val title = "@ SaiAbhyankkar - Pavazha Malli (Music Video) | ft. Kayadu | feat. Shruti_Haasan"
         val authorName = "Think Indie"
