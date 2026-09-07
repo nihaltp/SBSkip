@@ -40,12 +40,12 @@ object YouTubeTitleParser {
             "m/?v",
             "official( m/?v| video| music video| audio| lyrics?)?",
             "lyrics?",
-            "\\d{4}",
+            "\\b(?:19|20)\\d{2}\\b\\s+(?:remaster(?:ed)?|version|edition|release|mix)\\b",
             "visualizer",
             "remastered",
             "full album",
             "album track",
-            "live[^\\)\\]]*", // Matches (Live), [Live Performance], (Live at Wembley)
+            "\\blive\\b[^\\)\\]]*", // Matches (Live), [Live Performance], (Live at Wembley)
         ) + VIDEO_AUDIO_QUALITIES
 
     private val TEXT_FLUFF_PATTERNS =
