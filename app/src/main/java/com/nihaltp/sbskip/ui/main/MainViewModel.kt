@@ -22,6 +22,7 @@ import com.nihaltp.sbskip.storage.DownloadStorage
 import com.nihaltp.sbskip.util.AppLogger
 import com.nihaltp.sbskip.util.Constants
 import com.nihaltp.sbskip.util.NetworkErrorClassifier
+import com.nihaltp.sbskip.util.NetworkRetry
 import com.nihaltp.sbskip.util.parser.YouTubeUrlParser
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -1329,21 +1330,23 @@ class MainViewModel
                         ?.build()
                         ?: throw IOException(context.getString(R.string.unable_fetch_metadata))
 
-                val request = Request.Builder().url(oEmbedUrl).build()
-                httpClient.newCall(request).execute().use { response ->
-                    if (!response.isSuccessful) {
-                        throw IOException("oEmbed request failed: ${response.code}")
+                NetworkRetry.execute {
+                    val request = Request.Builder().url(oEmbedUrl).build()
+                    httpClient.newCall(request).execute().use { response ->
+                        if (!response.isSuccessful) {
+                            throw IOException("oEmbed request failed: ${response.code}")
+                        }
+                        val body = response.body?.string().orEmpty()
+                        val parsed = json.decodeFromString(YouTubeOEmbedResponse.serializer(), body)
+                        val videoId = YouTubeUrlParser.extractVideoId(videoUrl)
+                        val customThumbnailUrl = videoId?.let { Constants.buildYouTubeThumbnailUrl(it) } ?: parsed.thumbnailUrl
+                        YouTubeMetadata(
+                            title = parsed.title,
+                            authorName = parsed.authorName,
+                            authorUrl = parsed.authorUrl,
+                            thumbnailUrl = customThumbnailUrl,
+                        )
                     }
-                    val body = response.body?.string().orEmpty()
-                    val parsed = json.decodeFromString(YouTubeOEmbedResponse.serializer(), body)
-                    val videoId = YouTubeUrlParser.extractVideoId(videoUrl)
-                    val customThumbnailUrl = videoId?.let { Constants.buildYouTubeThumbnailUrl(it) } ?: parsed.thumbnailUrl
-                    YouTubeMetadata(
-                        title = parsed.title,
-                        authorName = parsed.authorName,
-                        authorUrl = parsed.authorUrl,
-                        thumbnailUrl = customThumbnailUrl,
-                    )
                 }
             }
 

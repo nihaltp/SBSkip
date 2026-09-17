@@ -2,6 +2,7 @@ package com.nihaltp.sbskip.util.fetcher
 
 import com.nihaltp.sbskip.util.AppLogger
 import com.nihaltp.sbskip.util.Constants
+import com.nihaltp.sbskip.util.NetworkRetry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -14,24 +15,26 @@ object YouTubeDurationFetcher {
     suspend fun fetchDuration(videoId: String): Long? =
         withContext(Dispatchers.IO) {
             try {
-                val url = Constants.buildYouTubeWatchUrl(videoId)
-                val request =
-                    Request.Builder()
-                        .url(url)
-                        .header(
-                            "User-Agent",
-                            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
-                                "AppleWebKit/537.36 (KHTML, like Gecko) " +
-                                "Chrome/120.0.0.0 Safari/537.36",
-                        )
-                        .build()
+                return@withContext NetworkRetry.execute {
+                    val url = Constants.buildYouTubeWatchUrl(videoId)
+                    val request =
+                        Request.Builder()
+                            .url(url)
+                            .header(
+                                "User-Agent",
+                                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
+                                    "AppleWebKit/537.36 (KHTML, like Gecko) " +
+                                    "Chrome/120.0.0.0 Safari/537.36",
+                            )
+                            .build()
 
-                client.newCall(request).execute().use { response ->
-                    if (!response.isSuccessful) {
-                        throw IOException("HTTP error ${response.code}")
+                    client.newCall(request).execute().use { response ->
+                        if (!response.isSuccessful) {
+                            throw IOException("HTTP error ${response.code}")
+                        }
+                        val html = response.body?.string().orEmpty()
+                        parseDurationFromHtml(html)
                     }
-                    val html = response.body?.string().orEmpty()
-                    return@withContext parseDurationFromHtml(html)
                 }
             } catch (e: Exception) {
                 AppLogger.error("YouTubeDurationFetcher", e, "Failed to scrape YouTube video duration for videoId=$videoId")

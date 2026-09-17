@@ -5,6 +5,7 @@ import com.nihaltp.sbskip.model.SponsorBlockCategory
 import com.nihaltp.sbskip.model.SponsorBlockSegment
 import com.nihaltp.sbskip.model.YouTubeMetadata
 import com.nihaltp.sbskip.sponsorblock.SponsorBlockService
+import com.nihaltp.sbskip.util.NetworkRetry
 import com.nihaltp.sbskip.util.fetcher.YouTubeDurationFetcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -48,42 +49,50 @@ class MetadataFetcher
                 }
 
                 // 1. Try Scraping via HTML
-                try {
-                    val request = Request.Builder().url(videoUrl).build()
-                    httpClient.newCall(request).execute().use { response ->
-                        if (response.isSuccessful) {
-                            val body = response.body?.string().orEmpty()
-                            val extractionResult = com.nihaltp.sbskip.util.parser.YouTubeMetadataParser.parse(body)
+                val scrapedMetadata =
+                    try {
+                        NetworkRetry.execute {
+                            val request = Request.Builder().url(videoUrl).build()
+                            httpClient.newCall(request).execute().use { response ->
+                                if (!response.isSuccessful) {
+                                    throw IOException("YouTube metadata request failed: ${response.code}")
+                                }
+                                val body = response.body?.string().orEmpty()
+                                val extractionResult = com.nihaltp.sbskip.util.parser.YouTubeMetadataParser.parse(body)
 
-                            if (videoId != null) {
-                                // Scraped basic info from microformat/videoDetails might be limited if the parser didn't find ytInitialPlayerResponse.
-                                // If parser returns good confidence or basic metadata is present, use it.
-                                // YouTubeMetadata needs title, author, thumbnail
-                                val customThumbnailUrl = com.nihaltp.sbskip.util.Constants.buildYouTubeThumbnailUrl(videoId)
+                                if (videoId != null) {
+                                    // Scraped basic info from microformat/videoDetails might be limited if the parser didn't find ytInitialPlayerResponse.
+                                    // If parser returns good confidence or basic metadata is present, use it.
+                                    // YouTubeMetadata needs title, author, thumbnail
+                                    val customThumbnailUrl = com.nihaltp.sbskip.util.Constants.buildYouTubeThumbnailUrl(videoId)
 
-                                val ytMetadata =
-                                    YouTubeMetadata(
-                                        title = extractionResult.rawTitle ?: extractionResult.musicMetadata?.title,
-                                        authorName =
-                                            extractionResult.rawChannelName
-                                                ?: extractionResult.musicMetadata?.artists?.firstOrNull(),
-                                        authorUrl = null,
-                                        thumbnailUrl = customThumbnailUrl,
-                                        description = extractionResult.rawDescription,
-                                        categoryId = extractionResult.rawCategoryId,
-                                        musicVideoType = extractionResult.type,
-                                        musicConfidence = extractionResult.confidence,
-                                        musicMetadata = extractionResult.musicMetadata,
-                                    )
+                                    val ytMetadata =
+                                        YouTubeMetadata(
+                                            title = extractionResult.rawTitle ?: extractionResult.musicMetadata?.title,
+                                            authorName =
+                                                extractionResult.rawChannelName
+                                                    ?: extractionResult.musicMetadata?.artists?.firstOrNull(),
+                                            authorUrl = null,
+                                            thumbnailUrl = customThumbnailUrl,
+                                            description = extractionResult.rawDescription,
+                                            categoryId = extractionResult.rawCategoryId,
+                                            musicVideoType = extractionResult.type,
+                                            musicConfidence = extractionResult.confidence,
+                                            musicMetadata = extractionResult.musicMetadata,
+                                        )
 
-                                metadataCache[videoId] = CachedMetadata(cacheVersion, System.currentTimeMillis(), ytMetadata)
-                                return@withContext ytMetadata
+                                    metadataCache[videoId] = CachedMetadata(cacheVersion, System.currentTimeMillis(), ytMetadata)
+                                    ytMetadata
+                                } else {
+                                    null
+                                }
                             }
                         }
+                    } catch (e: Exception) {
+                        com.nihaltp.sbskip.util.AppLogger.error("MetadataFetcher", e, "Scraping failed")
+                        null
                     }
-                } catch (e: Exception) {
-                    com.nihaltp.sbskip.util.AppLogger.error("MetadataFetcher", e, "Scraping failed")
-                }
+                if (scrapedMetadata != null) return@withContext scrapedMetadata
 
                 // 2. Fallback to oEmbed
                 val oEmbedUrl =
@@ -97,32 +106,34 @@ class MetadataFetcher
                         ?.build()
                         ?: throw IOException("Unable to parse video URL")
 
-                val request = Request.Builder().url(oEmbedUrl).build()
-                httpClient.newCall(request).execute().use { response ->
-                    if (!response.isSuccessful) {
-                        throw IOException("oEmbed request failed: ${response.code}")
-                    }
-                    val body = response.body?.string().orEmpty()
-                    val parsed = json.decodeFromString(YouTubeOEmbedResponse.serializer(), body)
-                    val customThumbnailUrl =
-                        videoId?.let {
-                            com.nihaltp.sbskip.util.Constants.buildYouTubeThumbnailUrl(
-                                it,
+                NetworkRetry.execute {
+                    val request = Request.Builder().url(oEmbedUrl).build()
+                    httpClient.newCall(request).execute().use { response ->
+                        if (!response.isSuccessful) {
+                            throw IOException("oEmbed request failed: ${response.code}")
+                        }
+                        val body = response.body?.string().orEmpty()
+                        val parsed = json.decodeFromString(YouTubeOEmbedResponse.serializer(), body)
+                        val customThumbnailUrl =
+                            videoId?.let {
+                                com.nihaltp.sbskip.util.Constants.buildYouTubeThumbnailUrl(
+                                    it,
+                                )
+                            } ?: parsed.thumbnailUrl
+
+                        val ytMetadata =
+                            YouTubeMetadata(
+                                title = parsed.title,
+                                authorName = parsed.authorName,
+                                authorUrl = parsed.authorUrl,
+                                thumbnailUrl = customThumbnailUrl,
                             )
-                        } ?: parsed.thumbnailUrl
 
-                    val ytMetadata =
-                        YouTubeMetadata(
-                            title = parsed.title,
-                            authorName = parsed.authorName,
-                            authorUrl = parsed.authorUrl,
-                            thumbnailUrl = customThumbnailUrl,
-                        )
-
-                    if (videoId != null) {
-                        metadataCache[videoId] = CachedMetadata(cacheVersion, System.currentTimeMillis(), ytMetadata)
+                        if (videoId != null) {
+                            metadataCache[videoId] = CachedMetadata(cacheVersion, System.currentTimeMillis(), ytMetadata)
+                        }
+                        ytMetadata
                     }
-                    ytMetadata
                 }
             }
 
