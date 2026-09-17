@@ -4,6 +4,87 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [1.9.4] - 2026-09-18
+
+### Added
+
+- de151d7  feat: add Logs screen and navigation from Settings
+- 0ff0536  feat: add YouTube metadata parsing and music metadata extraction
+- f945773  feat: add YouTubeTitleParser for extracting artists from YouTube titles
+
+### Fixed
+
+- 90df7d0  fix: update ktlint hook entries to use Gradle wrapper directly
+- 7302202  fix: move unit tests step to the correct position in CI workflow
+- 8f2fb66  fix: improve category detection logic in MediaTagger
+- d02269a  fix: correct regex pattern for floating separators in YouTubeTitleParser
+- 56d1b6e  fix: improve regex pattern for feat. artist extraction in YouTubeTitleParser
+- 934c6f1  fix: optimize HTTP client configuration and prevent unnecessary file regeneration
+- 67286ff  fix: update regex pattern for year-based remastered video titles in YouTubeTitleParser
+- ae33aaf  fix: enhance regex patterns for official video titles
+- 3da2c15  fix: refine regex pattern for remastered video titles in YouTubeTitleParser
+- cba53ab  fix: ensure ktlint check runs only on pull requests
+- d75cac6  fix: enhance YouTubeUrlParser to support additional hosts and improve video ID extraction
+
+### Refactor
+
+- 6a06bdb  refactor: update test fixture handling to use centralized TestFiles object
+- a6dc5c4  refactor: extract category resolution logic into separate function and add unit tests
+- 20bca75  refactor: centralize versioning in AppVersions object
+- c152082  refactor: update artist extraction logic and enhance title cleaning regex patterns
+- 1b89e5b  refactor: enhance fluff removal patterns and optimize regex usage in YouTubeTitleParser
+- 65b58d3  refactor: enhance video/audio quality patterns and reorganize fluff removal lists in YouTubeTitleParser
+- 3d8da1b  refactor: enhance fluff removal patterns for live performances in YouTubeTitleParser
+- e90ea1a  refactor: relocate YouTube parser files
+- 9ad2855  refactor: reorganize YouTube fetcher utilities and update imports
+- 4797a21  refactor: remove DownloadRepository interface and related data classes
+- a66c086  refactor: reorganize model imports and introduce new data classes for processing and media metadata
+- 85d91a1  refactor: invoke NewPipe before network requests to optimize metadata fetching
+- fe74657  refactor: expand no-report-errors list in ErrorDetailsDialog for better error handling
+- 0d9e9e1  refactor: introduce NetworkErrorClassifier for improved network error handling
+- 14a0f82  refactor: update thumbnailUrl assignment to use YouTube thumbnail URL
+- 1903728  refactor: implement NetworkRetry for improved network request handling
+- 22299b0  refactor: enhance thumbnail download logic to ensure temporary files are deleted on failure
+- ffbbbda  refactor: enhance media detection by querying MediaStore for recent candidates
+
+### Style
+
+- 7452082  style: add Licenses screen and navigation from Settings, update string resources
+
+### Tests
+
+- b539547  test: add YouTubeMetadataParser unit tests with various HTML fixtures
+- 6120554  test: refactor RealPlaylistTest to use fixture files for playlist HTML
+- 6e823b5  test: add unit tests for YouTubeTitleParser to validate artist extraction
+- c0671d8  test: add unit tests for cleaning YouTube titles to remove fluff
+- 7fe53da  test: add live performance title cleaning tests in YouTubeTitleParserTest
+- 21eee4b  test: add trailing separator test for cleanTitle in YouTubeTitleParserTest
+- 9b712e6  test: add test for extracting hyphenated artists after feat in YouTubeTitleParserTest
+
+### Documentation
+
+- bcca487  docs: add YouTube metadata parsing architecture documentation
+- 30fe19a  docs: add comprehensive documentation for thumbnail handling and processing
+- 509bf80  docs: update thumbnail handling docs
+
+### CI/CD
+
+- b4f3117  ci: bump actions/setup-java from 5 to 6
+
+### Maintenance
+
+- ce8b232  chore: bump fastlane from 2.238.0 to 2.239.0
+- 035a4d3  chore: remove UrlValidator as it is not used
+- 8a3856e  chore: bump org.jetbrains.kotlinx:kotlinx-coroutines-android in /app
+- 618942f  chore: update Kotlin plugin versions to 2.2.0
+- 915b541  chore: update Dagger Hilt version to 2.56.1
+- e5dc891  chore: update Gradle wrapper to version 8.11.1
+- 8c20074  chore: update Android Gradle plugin version to 8.10.1
+
+### Other
+
+- 8a89fa3  Update app/src/main/java/com/nihaltp/sbskip/util/parser/YouTubeUrlParser.kt
+
 ## [1.9.3] - 2026-08-19
 
 ### Added
