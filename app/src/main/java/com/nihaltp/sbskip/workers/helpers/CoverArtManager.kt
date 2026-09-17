@@ -60,10 +60,18 @@ class CoverArtManager
 
                             val extension = if (contentType.contains("png")) ".png" else ".jpg"
                             val tempFile = File.createTempFile("artwork_", extension, cacheDir)
-                            tempFile.outputStream().use { output ->
-                                body.byteStream().copyTo(output)
+                            var completed = false
+                            try {
+                                tempFile.outputStream().use { output ->
+                                    body.byteStream().copyTo(output)
+                                }
+                                completed = true
+                                tempFile
+                            } finally {
+                                if (!completed) {
+                                    tempFile.delete()
+                                }
                             }
-                            tempFile
                         }
                     }
                 } catch (e: Exception) {
