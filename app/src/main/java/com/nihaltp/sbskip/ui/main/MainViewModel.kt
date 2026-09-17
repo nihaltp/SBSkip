@@ -1377,9 +1377,18 @@ class MainViewModel
         ): List<DetectedCandidate> =
             withContext(Dispatchers.IO) {
                 val now = System.currentTimeMillis()
+                val indexedCandidates = collectMediaStoreCandidates(pendingDownload, settings, youtubeDuration, now)
+                if (indexedCandidates.any { it.score >= MIN_CONFIDENCE_SCORE }) {
+                    AppLogger.metadata(
+                        "AutoDetect: MediaStore query found ${indexedCandidates.size} recent candidates; " +
+                            "skipping recursive watchlist scan",
+                    )
+                    return@withContext indexedCandidates.sortedByDescending { it.score }
+                }
+
                 val candidates = mutableListOf<DetectedCandidate>()
 
-                AppLogger.metadata("AutoDetect: Scanning watchlist directories for files...")
+                AppLogger.metadata("AutoDetect: MediaStore query found no candidates; scanning SAF watchlist directories")
 
                 // 2. Query watchlist folders
                 settings.watchlist.forEach { folder ->
@@ -1477,6 +1486,111 @@ class MainViewModel
 
                 candidates.sortedByDescending { it.score }
             }
+
+        private fun collectMediaStoreCandidates(
+            pendingDownload: PendingDownload,
+            settings: com.nihaltp.sbskip.model.AppSettings,
+            youtubeDuration: Long?,
+            now: Long,
+        ): List<DetectedCandidate> {
+            if (settings.watchlist.isEmpty()) return emptyList()
+
+            val cutoffSeconds =
+                ((pendingDownload.createdAtEpochMillis - RECENT_WINDOW_MILLIS).coerceAtLeast(0L)) / 1000L
+            val projection =
+                arrayOf(
+                    MediaStore.Files.FileColumns._ID,
+                    MediaStore.Files.FileColumns.DISPLAY_NAME,
+                    MediaStore.Files.FileColumns.RELATIVE_PATH,
+                    MediaStore.Files.FileColumns.DATE_ADDED,
+                    MediaStore.Files.FileColumns.DATE_MODIFIED,
+                    MediaStore.Files.FileColumns.MEDIA_TYPE,
+                    MediaStore.Video.VideoColumns.DURATION,
+                )
+            val selection =
+                "(${MediaStore.Files.FileColumns.DATE_ADDED} >= ? OR " +
+                    "${MediaStore.Files.FileColumns.DATE_MODIFIED} >= ?) AND " +
+                    "${MediaStore.Files.FileColumns.MEDIA_TYPE} IN (?, ?)"
+            val selectionArgs =
+                arrayOf(
+                    cutoffSeconds.toString(),
+                    cutoffSeconds.toString(),
+                    MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO.toString(),
+                    MediaStore.Files.FileColumns.MEDIA_TYPE_AUDIO.toString(),
+                )
+            val candidates = mutableListOf<DetectedCandidate>()
+            var rowCount = 0
+
+            try {
+                context.contentResolver.query(
+                    MediaStore.Files.getContentUri("external"),
+                    projection,
+                    selection,
+                    selectionArgs,
+                    "${MediaStore.Files.FileColumns.DATE_MODIFIED} DESC",
+                )?.use { cursor ->
+                    val idIndex = cursor.getColumnIndex(MediaStore.Files.FileColumns._ID)
+                    val nameIndex = cursor.getColumnIndex(MediaStore.Files.FileColumns.DISPLAY_NAME)
+                    val pathIndex = cursor.getColumnIndex(MediaStore.Files.FileColumns.RELATIVE_PATH)
+                    val addedIndex = cursor.getColumnIndex(MediaStore.Files.FileColumns.DATE_ADDED)
+                    val modifiedIndex = cursor.getColumnIndex(MediaStore.Files.FileColumns.DATE_MODIFIED)
+                    val durationIndex = cursor.getColumnIndex(MediaStore.Video.VideoColumns.DURATION)
+
+                    while (cursor.moveToNext() && candidates.size < MAX_SCAN_RESULTS_PER_COLLECTION) {
+                        rowCount++
+                        if (idIndex == -1 || nameIndex == -1) continue
+
+                        val displayName = cursor.getString(nameIndex) ?: continue
+                        val relativePath = cursor.getString(pathIndex)?.trim('/') ?: continue
+                        val normalizedPath = relativePath.lowercase(Locale.ROOT)
+                        val watchlist =
+                            settings.watchlist.firstOrNull { folder ->
+                                val normalizedFolder = folder.path.trim('/').lowercase(Locale.ROOT)
+                                normalizedPath == normalizedFolder || normalizedPath.startsWith("$normalizedFolder/")
+                            } ?: continue
+                        val extension = displayName.substringAfterLast('.', "").lowercase(Locale.ROOT)
+                        if (extension !in SUPPORTED_MEDIA_EXTENSIONS) continue
+
+                        val timestampSeconds =
+                            maxOf(
+                                if (addedIndex >= 0) cursor.getLong(addedIndex) else 0L,
+                                if (modifiedIndex >= 0) cursor.getLong(modifiedIndex) else 0L,
+                            )
+                        val timestampMillis = if (timestampSeconds > 0L) timestampSeconds * 1000L else now
+                        val durationSeconds =
+                            if (durationIndex >= 0) cursor.getLong(durationIndex).takeIf { it > 0L }?.div(1000L) else null
+                        val score =
+                            scoreCandidate(
+                                pendingDownload = pendingDownload,
+                                displayName = displayName,
+                                relativePath = relativePath,
+                                durationSeconds = durationSeconds,
+                                timestampMillis = timestampMillis,
+                                settings = settings,
+                                youtubeDuration = youtubeDuration,
+                            )
+                        val id = cursor.getLong(idIndex)
+                        candidates.add(
+                            DetectedCandidate(
+                                uri = MediaStore.Files.getContentUri("external", id).toString(),
+                                score = score,
+                                fallbackName = displayName,
+                                relativePath = relativePath,
+                                folderUri = watchlist.uri,
+                            ),
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                AppLogger.error("MainViewModel", e, "AutoDetect: MediaStore candidate query failed")
+                return emptyList()
+            }
+
+            AppLogger.metadata(
+                "AutoDetect: MediaStore queried $rowCount recent media rows and matched ${candidates.size} watchlist files",
+            )
+            return candidates
+        }
 
         private fun scoreCandidate(
             pendingDownload: PendingDownload,
@@ -1655,6 +1769,7 @@ class MainViewModel
             private const val RECENT_WINDOW_MILLIS = 15 * 60 * 1000L
             private const val MIN_CONFIDENCE_SCORE = 55
             private const val MAX_SCAN_RESULTS_PER_COLLECTION = 100
+            private val SUPPORTED_MEDIA_EXTENSIONS = setOf("mp4", "m4a", "webm", "mkv", "mp3", "opus")
             private val WORD_SPLIT_REGEX = Regex("[^a-z0-9]+")
 
             // How long to wait for a NewPipe download before running auto-detect.
