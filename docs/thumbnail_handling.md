@@ -32,7 +32,7 @@ The persistent queue stores `thumbnailUrl` on `DownloadQueueEntity` in the `down
 There are two important paths:
 
 - A direct NewPipe download creates a `PendingDownload` with a thumbnail URL. When the downloaded file is later enqueued, that URL is passed into the queue model and can be displayed immediately.
-- An existing local file is added through `QueueRepository.enqueue()`. That method currently creates the entity with `thumbnailUrl = null`. The item therefore initially displays the cleaning placeholder until `DownloadWorker` fetches metadata and calls `QueueRepository.updateMetadata()`.
+- An existing local file is added through `QueueRepository.enqueue()`. For a valid YouTube URL, that method derives and persists the `img.youtube.com` thumbnail URL from the video ID, so the item can display its thumbnail immediately. URLs without a video ID are persisted with `thumbnailUrl = null` until `DownloadWorker` fetches metadata and calls `QueueRepository.updateMetadata()`.
 
 The worker updates the queue thumbnail using the generated video thumbnail URL, with the YouTube metadata/oEmbed result as the fallback source when no video ID is available.
 
@@ -75,6 +75,4 @@ Thumbnail URLs are not downloaded when queue records are created. Coil downloads
 
 ## Known Timing Limitation
 
-For the existing-local-file workflow, the queue is persisted with a null thumbnail before the worker runs. This is why a newly queued media-cleaning item can show the placeholder image. The thumbnail becomes available only after the worker reaches metadata fetching and updates the queue record.
-
-A future improvement would derive and persist the thumbnail URL from the YouTube video ID during `QueueRepository.enqueue()`, before scheduling the worker. That would remove the initial placeholder for valid YouTube URLs while keeping the worker update as a fallback.
+For the existing-local-file workflow, `QueueRepository.enqueue()` derives and persists the thumbnail URL from a valid YouTube video ID before scheduling the worker. Newly queued items with valid YouTube URLs can therefore display their thumbnail immediately. Items without a video ID still show the placeholder until the worker reaches metadata fetching and updates the queue record.
