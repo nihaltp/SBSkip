@@ -15,6 +15,7 @@ import com.nihaltp.sbskip.model.YouTubeMetadata
 import com.nihaltp.sbskip.notifications.DownloadNotificationManager
 import com.nihaltp.sbskip.util.AppLogger
 import com.nihaltp.sbskip.util.Constants
+import com.nihaltp.sbskip.util.NetworkErrorClassifier
 import com.nihaltp.sbskip.util.parser.YouTubeUrlParser
 import com.nihaltp.sbskip.workers.helpers.DurationValidator
 import com.nihaltp.sbskip.workers.helpers.MediaProcessingManager
@@ -251,6 +252,20 @@ class DownloadWorker
                     throwable.message?.takeIf { it.isNotBlank() }
                         ?: applicationContext.getString(R.string.download_failed_generic)
 
+                if (NetworkErrorClassifier.isRetryableNetworkError(throwable) && runAttemptCount < MAX_NETWORK_RETRY_ATTEMPTS - 1) {
+                    AppLogger.worker(
+                        "Retrying network operation for queueItemId=$queueItemId " +
+                            "attempt=${runAttemptCount + 1}/$MAX_NETWORK_RETRY_ATTEMPTS",
+                    )
+                    notificationManager.showActive(
+                        notificationId,
+                        taskTitle,
+                        10,
+                        applicationContext.getString(R.string.status_fetching_info),
+                    )
+                    return Result.retry()
+                }
+
                 queueRepository.markFailed(queueItemId, message)
                 notificationManager.showFailure(notificationId, taskTitle, message)
 
@@ -271,14 +286,7 @@ class DownloadWorker
                 val settings = settingsRepository.settings.first()
                 val statusUrl = settings.sponsorBlockStatusUrl.trim()
                 if (statusUrl.isNotBlank()) {
-                    val isNetworkError =
-                        throwable is java.io.IOException && (
-                            throwable is java.net.UnknownHostException ||
-                                throwable is java.net.SocketTimeoutException ||
-                                throwable.message?.contains("Unable to resolve host", ignoreCase = true) == true ||
-                                throwable.message?.contains("timeout", ignoreCase = true) == true ||
-                                throwable.message?.contains("timed out", ignoreCase = true) == true
-                        )
+                    val isNetworkError = NetworkErrorClassifier.isRetryableNetworkError(throwable)
                     if (isNetworkError) {
                         try {
                             metadataFetcher.checkApiStatus() != "operational"
@@ -302,5 +310,6 @@ class DownloadWorker
             const val KEY_ERROR = "error"
             const val KEY_OUTPUT_PATH = "output_path"
             const val KEY_MESSAGE = "message"
+            private const val MAX_NETWORK_RETRY_ATTEMPTS = 3
         }
     }
