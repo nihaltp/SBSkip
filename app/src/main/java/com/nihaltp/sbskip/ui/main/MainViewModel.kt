@@ -1099,7 +1099,10 @@ class MainViewModel
                     normalizedUrl
                 }
 
-            // Fetch metadata and video duration concurrently
+            // Start NewPipe before doing network metadata requests so the download begins immediately.
+            launchNewPipe(normalizedUrl)
+
+            // Fetch metadata and video duration concurrently after NewPipe has been invoked.
             val metadataDeferred =
                 viewModelScope.async {
                     runCatching { fetchYouTubeOEmbed(normalizedUrl) }.getOrElse {
@@ -1158,8 +1161,6 @@ class MainViewModel
                     showWatchlistPromptDialog = showPrompt,
                 )
             }
-
-            launchNewPipe(normalizedUrl)
 
             // Delay auto-detect until the estimated download time has elapsed.
             // Store the Job so it can be cancelled if the user taps "Search now".
