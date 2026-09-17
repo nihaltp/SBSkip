@@ -92,6 +92,14 @@ class YouTubeTitleParserTest {
         assertEquals("Dua Lipa - Don't Start Now", YouTubeTitleParser.cleanTitle("Dua Lipa - Don't Start Now (Live in LA)"))
         assertEquals("Adele - Someone Like You", YouTubeTitleParser.cleanTitle("Adele - Someone Like You Live Acoustic"))
         assertEquals("Ed Sheeran - Perfect", YouTubeTitleParser.cleanTitle("Ed Sheeran - Perfect Official Live Video"))
+        assertEquals("Pearl Jam - Alive", YouTubeTitleParser.cleanTitle("Pearl Jam - Alive (Official Video)"))
+        assertEquals("Celine Dion - I'm Alive", YouTubeTitleParser.cleanTitle("Celine Dion - I'm Alive [Official HD Video]"))
+
+        // Year-based remastered titles
+        assertEquals("The Beatles - Here Comes The Sun", YouTubeTitleParser.cleanTitle("The Beatles - Here Comes The Sun (2019 Mix)"))
+        assertEquals("Led Zeppelin - Immigrant Song", YouTubeTitleParser.cleanTitle("Led Zeppelin - Immigrant Song (1990 Remaster)"))
+        assertEquals("Pink Floyd - Money", YouTubeTitleParser.cleanTitle("Pink Floyd - Money (2011 Remastered Version)"))
+        assertEquals("Metallica - Enter Sandman", YouTubeTitleParser.cleanTitle("Metallica - Enter Sandman (1991 Edition)"))
 
         // Trailing separator test
         assertEquals("Artist - Song", YouTubeTitleParser.cleanTitle("Artist - Song - (Official Video)"))
