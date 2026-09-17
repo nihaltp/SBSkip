@@ -204,6 +204,10 @@ class DefaultQueueRepositoryTest {
                 "Expected overwrite=true in normalized URL",
                 insertedEntitySlot.captured.url.contains("overwrite=true"),
             )
+            assertEquals(
+                "https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg",
+                insertedEntitySlot.captured.thumbnailUrl,
+            )
         }
 
     @Test

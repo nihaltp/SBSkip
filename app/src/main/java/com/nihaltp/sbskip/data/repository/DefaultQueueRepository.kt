@@ -81,7 +81,7 @@ class DefaultQueueRepository
                     title = title,
                     localFileUri = localFileUri,
                     mediaType = mediaType.name,
-                    thumbnailUrl = null,
+                    thumbnailUrl = videoId?.let(Constants::buildYouTubeThumbnailUrl),
                     durationSeconds = null,
                     status = DownloadQueueStatus.QUEUED,
                     createdAtEpochMillis = now,
