@@ -2,7 +2,8 @@ package com.nihaltp.sbskip.workers.helpers
 
 import com.nihaltp.sbskip.config.AppVersions
 import com.nihaltp.sbskip.model.SponsorBlockCategory
-import com.nihaltp.sbskip.sponsorblock.SponsorBlockSegment
+import com.nihaltp.sbskip.model.SponsorBlockSegment
+import com.nihaltp.sbskip.model.YouTubeMetadata
 import com.nihaltp.sbskip.sponsorblock.SponsorBlockService
 import com.nihaltp.sbskip.util.fetcher.YouTubeDurationFetcher
 import kotlinx.coroutines.Dispatchers
@@ -147,16 +148,4 @@ private data class YouTubeOEmbedResponse(
     @SerialName("author_name") val authorName: String? = null,
     @SerialName("author_url") val authorUrl: String? = null,
     @SerialName("thumbnail_url") val thumbnailUrl: String? = null,
-)
-
-data class YouTubeMetadata(
-    val title: String?,
-    val authorName: String?,
-    val authorUrl: String?,
-    val thumbnailUrl: String?,
-    val description: String? = null,
-    val categoryId: Int? = null,
-    val musicVideoType: com.nihaltp.sbskip.model.MusicVideoType? = null,
-    val musicConfidence: Float = 0f,
-    val musicMetadata: com.nihaltp.sbskip.model.MusicMetadata? = null,
 )

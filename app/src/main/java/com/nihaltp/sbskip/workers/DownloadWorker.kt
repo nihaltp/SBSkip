@@ -8,7 +8,10 @@ import androidx.work.workDataOf
 import com.nihaltp.sbskip.R
 import com.nihaltp.sbskip.data.repository.QueueRepository
 import com.nihaltp.sbskip.data.repository.SettingsRepository
+import com.nihaltp.sbskip.model.ProcessingContext
 import com.nihaltp.sbskip.model.SponsorBlockCategory
+import com.nihaltp.sbskip.model.SponsorBlockSegment
+import com.nihaltp.sbskip.model.YouTubeMetadata
 import com.nihaltp.sbskip.notifications.DownloadNotificationManager
 import com.nihaltp.sbskip.util.AppLogger
 import com.nihaltp.sbskip.util.Constants
@@ -18,7 +21,6 @@ import com.nihaltp.sbskip.workers.helpers.MediaProcessingManager
 import com.nihaltp.sbskip.workers.helpers.MediaTagger
 import com.nihaltp.sbskip.workers.helpers.MetadataFetcher
 import com.nihaltp.sbskip.workers.helpers.OutputSaver
-import com.nihaltp.sbskip.workers.helpers.ProcessingContext
 import com.nihaltp.sbskip.workers.helpers.ProcessingPlanBuilder
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -85,7 +87,7 @@ class DownloadWorker
                 var oembedAuthorUrl: String? = null
                 var finalThumbnailUrl: String? = null
                 var sbSkipSegments = ""
-                var ytMetadataRef: com.nihaltp.sbskip.workers.helpers.YouTubeMetadata? = null
+                var ytMetadataRef: YouTubeMetadata? = null
 
                 // 1. Mark as FETCHING_SEGMENTS
                 queueRepository.markFetchingSegments(queueItemId)
@@ -112,7 +114,7 @@ class DownloadWorker
 
                 var videoId: String? = null
                 var youtubeDuration: Long? = null
-                var segments: List<com.nihaltp.sbskip.sponsorblock.SponsorBlockSegment>? = null
+                var segments: List<SponsorBlockSegment>? = null
 
                 if (item.url.isNotBlank() && !item.url.startsWith("sbskip://")) {
                     videoId = YouTubeUrlParser.extractVideoId(item.url)

@@ -1,8 +1,9 @@
 package com.nihaltp.sbskip.workers.helpers
 
 import com.nihaltp.sbskip.model.DownloadQueueItem
+import com.nihaltp.sbskip.model.ProcessingPlan
+import com.nihaltp.sbskip.model.SponsorBlockSegment
 import com.nihaltp.sbskip.processing.SegmentProcessor
-import com.nihaltp.sbskip.sponsorblock.SponsorBlockSegment
 import com.nihaltp.sbskip.util.AppLogger
 import javax.inject.Inject
 

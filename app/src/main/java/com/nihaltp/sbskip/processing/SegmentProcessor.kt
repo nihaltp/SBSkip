@@ -1,6 +1,6 @@
 package com.nihaltp.sbskip.processing
 
-import com.nihaltp.sbskip.sponsorblock.SponsorBlockSegment
+import com.nihaltp.sbskip.model.SponsorBlockSegment
 
 object SegmentProcessor {
     /**

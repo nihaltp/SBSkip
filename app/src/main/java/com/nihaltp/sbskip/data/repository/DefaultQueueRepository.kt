@@ -3,7 +3,7 @@ package com.nihaltp.sbskip.data.repository
 import android.content.Context
 import com.nihaltp.sbskip.R
 import com.nihaltp.sbskip.data.local.dao.DownloadQueueDao
-import com.nihaltp.sbskip.data.local.entity.DownloadQueueEntity
+import com.nihaltp.sbskip.model.DownloadQueueEntity
 import com.nihaltp.sbskip.model.DownloadQueueItem
 import com.nihaltp.sbskip.model.DownloadQueueStatus
 import com.nihaltp.sbskip.model.MediaType

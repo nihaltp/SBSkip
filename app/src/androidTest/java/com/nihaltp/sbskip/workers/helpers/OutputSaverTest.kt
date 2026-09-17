@@ -7,9 +7,11 @@ import com.nihaltp.sbskip.data.repository.SettingsRepository
 import com.nihaltp.sbskip.di.TestEntryPoint
 import com.nihaltp.sbskip.model.DownloadQueueItem
 import com.nihaltp.sbskip.model.DownloadQueueStatus
+import com.nihaltp.sbskip.model.MediaFileMetadata
 import com.nihaltp.sbskip.model.MediaType
+import com.nihaltp.sbskip.model.ProcessingContext
+import com.nihaltp.sbskip.model.ProcessingPlan
 import com.nihaltp.sbskip.storage.DownloadStorage
-import com.nihaltp.sbskip.storage.MediaFileMetadata
 import dagger.hilt.EntryPoints
 import kotlinx.coroutines.runBlocking
 import org.junit.After

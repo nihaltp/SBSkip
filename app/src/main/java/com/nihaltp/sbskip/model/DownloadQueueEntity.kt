@@ -1,8 +1,7 @@
-package com.nihaltp.sbskip.data.local.entity
+package com.nihaltp.sbskip.model
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.nihaltp.sbskip.model.DownloadQueueStatus
 
 @Entity(tableName = "download_queue")
 data class DownloadQueueEntity(

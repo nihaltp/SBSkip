@@ -5,7 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import com.nihaltp.sbskip.data.local.entity.DownloadQueueEntity
+import com.nihaltp.sbskip.model.DownloadQueueEntity
 import com.nihaltp.sbskip.model.DownloadQueueStatus
 import kotlinx.coroutines.flow.Flow
 

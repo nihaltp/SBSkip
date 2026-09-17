@@ -5,7 +5,7 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.nihaltp.sbskip.config.AppVersions
 import com.nihaltp.sbskip.data.local.dao.DownloadQueueDao
-import com.nihaltp.sbskip.data.local.entity.DownloadQueueEntity
+import com.nihaltp.sbskip.model.DownloadQueueEntity
 
 @Database(
     entities = [DownloadQueueEntity::class],

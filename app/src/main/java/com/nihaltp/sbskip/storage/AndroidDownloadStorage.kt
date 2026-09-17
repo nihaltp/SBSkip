@@ -10,6 +10,7 @@ import android.provider.OpenableColumns
 import android.webkit.MimeTypeMap
 import androidx.documentfile.provider.DocumentFile
 import com.nihaltp.sbskip.data.repository.SettingsRepository
+import com.nihaltp.sbskip.model.MediaFileMetadata
 import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.util.AppLogger
 import com.nihaltp.sbskip.util.FilenameSanitizer

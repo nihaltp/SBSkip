@@ -1,6 +1,7 @@
 package com.nihaltp.sbskip.storage
 
 import com.nihaltp.sbskip.model.MatchedWatchFolder
+import com.nihaltp.sbskip.model.MediaFileMetadata
 import com.nihaltp.sbskip.model.MediaType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

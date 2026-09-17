@@ -1,7 +1,7 @@
 package com.nihaltp.sbskip.processing
 
 import com.nihaltp.sbskip.model.SponsorBlockCategory
-import com.nihaltp.sbskip.sponsorblock.SponsorBlockSegment
+import com.nihaltp.sbskip.model.SponsorBlockSegment
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

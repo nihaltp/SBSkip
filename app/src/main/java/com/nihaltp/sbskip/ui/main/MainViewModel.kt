@@ -16,6 +16,7 @@ import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.model.PendingDownload
 import com.nihaltp.sbskip.model.PendingEnqueueData
 import com.nihaltp.sbskip.model.SponsorBlockCategory
+import com.nihaltp.sbskip.model.YouTubeMetadata
 import com.nihaltp.sbskip.navigation.ShareIntentEvent
 import com.nihaltp.sbskip.storage.DownloadStorage
 import com.nihaltp.sbskip.util.AppLogger
@@ -1620,13 +1621,6 @@ class MainViewModel
             @SerialName("author_name") val authorName: String? = null,
             @SerialName("author_url") val authorUrl: String? = null,
             @SerialName("thumbnail_url") val thumbnailUrl: String? = null,
-        )
-
-        private data class YouTubeMetadata(
-            val title: String?,
-            val authorName: String?,
-            val authorUrl: String?,
-            val thumbnailUrl: String?,
         )
 
         fun showToast(

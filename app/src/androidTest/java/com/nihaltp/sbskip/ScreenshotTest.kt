@@ -15,9 +15,9 @@ import androidx.compose.ui.test.swipe
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.nihaltp.sbskip.data.local.entity.DownloadQueueEntity
 import com.nihaltp.sbskip.data.repository.SettingsRepository
 import com.nihaltp.sbskip.di.TestEntryPoint
+import com.nihaltp.sbskip.model.DownloadQueueEntity
 import com.nihaltp.sbskip.model.DownloadQueueStatus
 import com.nihaltp.sbskip.model.ThemeMode
 import kotlinx.coroutines.runBlocking

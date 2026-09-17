@@ -1,9 +1,4 @@
-package com.nihaltp.sbskip.workers.helpers
-
-import com.nihaltp.sbskip.model.DownloadQueueItem
-import com.nihaltp.sbskip.model.SponsorBlockCategory
-import com.nihaltp.sbskip.sponsorblock.SponsorBlockSegment
-import com.nihaltp.sbskip.storage.MediaFileMetadata
+package com.nihaltp.sbskip.model
 
 data class ProcessingPlan(
     val keepRanges: List<Pair<Double, Double>>,
@@ -23,6 +18,6 @@ data class ProcessingContext(
     val categories: Set<SponsorBlockCategory>,
     val segments: List<SponsorBlockSegment>?,
     val plan: ProcessingPlan,
-    val musicMetadata: com.nihaltp.sbskip.model.MusicMetadata? = null,
+    val musicMetadata: MusicMetadata? = null,
     val musicConfidence: Float = 0f,
 )

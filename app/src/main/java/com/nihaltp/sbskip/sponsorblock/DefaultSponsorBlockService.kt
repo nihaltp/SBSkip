@@ -2,6 +2,7 @@ package com.nihaltp.sbskip.sponsorblock
 
 import com.nihaltp.sbskip.data.repository.SettingsRepository
 import com.nihaltp.sbskip.model.SponsorBlockCategory
+import com.nihaltp.sbskip.model.SponsorBlockSegment
 import com.nihaltp.sbskip.util.AppLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first

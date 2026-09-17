@@ -1,5 +1,6 @@
 package com.nihaltp.sbskip.storage
 
+import com.nihaltp.sbskip.model.MediaFileMetadata
 import com.nihaltp.sbskip.model.MediaType
 import java.io.File
 
@@ -43,9 +44,3 @@ interface DownloadStorage {
 
     suspend fun hasPersistedPermission(uriString: String): Boolean
 }
-
-data class MediaFileMetadata(
-    val title: String,
-    val extension: String,
-    val durationSeconds: Long?,
-)

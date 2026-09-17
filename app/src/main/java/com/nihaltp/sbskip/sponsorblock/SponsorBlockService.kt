@@ -1,6 +1,7 @@
 package com.nihaltp.sbskip.sponsorblock
 
 import com.nihaltp.sbskip.model.SponsorBlockCategory
+import com.nihaltp.sbskip.model.SponsorBlockSegment
 
 interface SponsorBlockService {
     suspend fun fetchSegments(
@@ -10,9 +11,3 @@ interface SponsorBlockService {
 
     suspend fun checkApiStatus(): String
 }
-
-data class SponsorBlockSegment(
-    val category: SponsorBlockCategory,
-    val startSeconds: Double,
-    val endSeconds: Double,
-)
