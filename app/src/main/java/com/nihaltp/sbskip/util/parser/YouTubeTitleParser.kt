@@ -38,7 +38,7 @@ object YouTubeTitleParser {
     private val ENCLOSED_FLUFF_PATTERNS =
         listOf(
             "m/?v",
-            "official( m/?v| video| music video| audio| lyrics?)?",
+            "official( (${VIDEO_AUDIO_QUALITIES.joinToString("|")}))?( m/?v| video| music video| audio| lyrics?)?",
             "lyrics?",
             "\\b(?:19|20)\\d{2}\\b\\s+(?:remaster(?:ed)?|version|edition|release|mix)\\b",
             "visualizer",
@@ -50,7 +50,7 @@ object YouTubeTitleParser {
 
     private val TEXT_FLUFF_PATTERNS =
         listOf(
-            "official (video|music video|audio|m/?v|4k music video)",
+            "official( (${VIDEO_AUDIO_QUALITIES.joinToString("|")}))? (video|music video|audio|m/?v)",
             "full album",
             "album track",
             "lyric video",
