@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import com.nihaltp.sbskip.BuildConfig
 import com.nihaltp.sbskip.R
 import com.nihaltp.sbskip.model.DownloadQueueItem
+import com.nihaltp.sbskip.util.NetworkErrorClassifier
 import com.nihaltp.sbskip.util.buildGithubBugReportUrl
 
 @Composable
@@ -43,15 +44,7 @@ fun ErrorDetailsDialog(
     val context = LocalContext.current
     val errorMessage = item.errorMessage.orEmpty()
     val isDurationMismatch = errorMessage.startsWith("Picked file duration")
-    val noReportErrors =
-        listOf(
-            "timeout",
-            "unable to resolve host",
-            "unknownhostexception",
-            "network is unreachable",
-            "no route to host",
-        )
-    val shouldHideReportButton = noReportErrors.any { errorMessage.contains(it, ignoreCase = true) }
+    val shouldHideReportButton = NetworkErrorClassifier.isNetworkErrorMessage(errorMessage)
 
     if (isDurationMismatch) {
         val regex = """Picked file duration \((\d+)\s*s\) does not match YouTube video duration \((\d+)\s*s\)""".toRegex()

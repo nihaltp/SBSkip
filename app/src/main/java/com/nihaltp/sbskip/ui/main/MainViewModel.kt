@@ -21,6 +21,7 @@ import com.nihaltp.sbskip.navigation.ShareIntentEvent
 import com.nihaltp.sbskip.storage.DownloadStorage
 import com.nihaltp.sbskip.util.AppLogger
 import com.nihaltp.sbskip.util.Constants
+import com.nihaltp.sbskip.util.NetworkErrorClassifier
 import com.nihaltp.sbskip.util.parser.YouTubeUrlParser
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -571,7 +572,8 @@ class MainViewModel
 
                 if (!bypassDurationCheck) {
                     val item = queueRepository.findItemById(id)
-                    if (item != null) {
+                    val isNetworkError = item?.errorMessage?.let(NetworkErrorClassifier::isNetworkErrorMessage) == true
+                    if (!isNetworkError && item != null) {
                         val settings = settingsRepository.settings.first()
                         val pending =
                             com.nihaltp.sbskip.model.PendingDownload(
