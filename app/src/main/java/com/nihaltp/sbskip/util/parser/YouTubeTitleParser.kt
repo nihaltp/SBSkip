@@ -40,7 +40,7 @@ object YouTubeTitleParser {
             "m/?v",
             "official( (${VIDEO_AUDIO_QUALITIES.joinToString("|")}))?( m/?v| video| music video| audio| lyrics?)?",
             "lyrics?",
-            "\\b(?:19|20)\\d{2}\\b\\s+(?:remaster(?:ed)?|version|edition|release|mix)\\b",
+            "\\b(?:19|20)\\d{2}\\b\\s+(?:(?:remaster(?:ed)?)(?:\\s+version)?|version|edition|release|mix)\\b",
             "visualizer",
             "remastered",
             "full album",
