@@ -3,6 +3,7 @@ package com.nihaltp.sbskip.workers.helpers
 import android.content.Context
 import android.media.MediaMetadataRetriever
 import com.nihaltp.sbskip.util.AppLogger
+import com.nihaltp.sbskip.util.NetworkRetry
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -44,31 +45,26 @@ class CoverArtManager
             cacheDir: File,
         ): File? =
             withContext(Dispatchers.IO) {
-                val request = Request.Builder().url(url).build()
                 try {
-                    httpClient.newCall(request).execute().use { response ->
-                        if (!response.isSuccessful) {
-                            AppLogger.worker("Failed to download artwork: HTTP ${response.code}")
-                            return@withContext null
-                        }
-                        val body = response.body ?: return@withContext null
-                        val contentType = body.contentType()?.toString()?.lowercase() ?: ""
-                        if (!contentType.startsWith("image/")) {
-                            AppLogger.worker("Failed to download artwork: invalid content type $contentType")
-                            return@withContext null
-                        }
-                        val contentLength = body.contentLength()
-                        if (contentLength > 5 * 1024 * 1024) { // 5MB limit
-                            AppLogger.worker("Failed to download artwork: file too large ($contentLength bytes)")
-                            return@withContext null
-                        }
+                    NetworkRetry.execute {
+                        val request = Request.Builder().url(url).build()
+                        httpClient.newCall(request).execute().use { response ->
+                            if (!response.isSuccessful) {
+                                throw java.io.IOException("Artwork request failed: HTTP ${response.code}")
+                            }
+                            val body = response.body ?: return@execute null
+                            val contentType = body.contentType()?.toString()?.lowercase() ?: ""
+                            if (!contentType.startsWith("image/")) return@execute null
+                            val contentLength = body.contentLength()
+                            if (contentLength > 5 * 1024 * 1024) return@execute null
 
-                        val extension = if (contentType.contains("png")) ".png" else ".jpg"
-                        val tempFile = File.createTempFile("artwork_", extension, cacheDir)
-                        tempFile.outputStream().use { output ->
-                            body.byteStream().copyTo(output)
+                            val extension = if (contentType.contains("png")) ".png" else ".jpg"
+                            val tempFile = File.createTempFile("artwork_", extension, cacheDir)
+                            tempFile.outputStream().use { output ->
+                                body.byteStream().copyTo(output)
+                            }
+                            tempFile
                         }
-                        tempFile
                     }
                 } catch (e: Exception) {
                     AppLogger.error("CoverArtManager", e, "Failed to download artwork from $url")
