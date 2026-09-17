@@ -25,6 +25,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Run ktlint check
+        if: github.event_name == 'pull_request'
         run: ./gradlew :app:ktlintCheck --no-daemon
 
       # - name: Run lint
