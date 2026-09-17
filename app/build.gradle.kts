@@ -157,8 +157,8 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     implementation("io.coil-kt:coil-compose:2.7.0")
 
-    implementation("com.google.dagger:hilt-android:2.52")
-    kapt("com.google.dagger:hilt-compiler:2.52")
+    implementation("com.google.dagger:hilt-android:2.56.1")
+    kapt("com.google.dagger:hilt-compiler:2.56.1")
     kapt("androidx.hilt:hilt-compiler:1.2.0")
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
 
