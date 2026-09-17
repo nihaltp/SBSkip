@@ -43,7 +43,14 @@ fun ErrorDetailsDialog(
     val context = LocalContext.current
     val errorMessage = item.errorMessage.orEmpty()
     val isDurationMismatch = errorMessage.startsWith("Picked file duration")
-    val noReportErrors = listOf("timeout")
+    val noReportErrors =
+        listOf(
+            "timeout",
+            "unable to resolve host",
+            "unknownhostexception",
+            "network is unreachable",
+            "no route to host",
+        )
     val shouldHideReportButton = noReportErrors.any { errorMessage.contains(it, ignoreCase = true) }
 
     if (isDurationMismatch) {
