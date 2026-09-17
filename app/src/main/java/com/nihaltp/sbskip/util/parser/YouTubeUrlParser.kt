@@ -62,6 +62,7 @@ object YouTubeUrlParser {
                     "www.",
                     ignoreCase = true,
                 ) || trimmed.startsWith("youtube.com", ignoreCase = true) || trimmed.startsWith("youtu.be", ignoreCase = true) ||
+                trimmed.startsWith("m.youtube.com", ignoreCase = true) ||
                 trimmed.startsWith("music.youtube.com", ignoreCase = true) ||
                 trimmed.startsWith("youtube-nocookie.com", ignoreCase = true)
             ) {
