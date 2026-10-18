@@ -220,6 +220,20 @@
     <string name="settings_sb_status_url_title">SponsorBlock Status Page URL</string>
     <string name="settings_sb_status_url_field_label">Server Status Page URL</string>
 
+    <!-- Downloaded Videos History -->
+    <string name="downloaded_history_title">Downloaded Videos</string>
+    <string name="downloaded_history_empty_title">No downloaded videos yet</string>
+    <string name="downloaded_history_empty_body">Downloaded videos will appear here once tracking is enabled.</string>
+    <string name="downloaded_history_clear_title">Clear Downloaded Videos</string>
+    <string name="downloaded_history_clear_message">This will delete all tracked downloaded videos. This action cannot be undone.</string>
+
+    <string name="settings_downloaded_videos_title">Downloaded Videos History</string>
+    <string name="settings_downloaded_videos_view_title">View Downloaded Videos</string>
+    <string name="settings_downloaded_videos_view_desc">See the list of tracked downloaded videos.</string>
+    <string name="settings_downloaded_videos_clear_title">Clear Downloaded Videos</string>
+    <string name="settings_downloaded_videos_clear_desc">Remove all tracked downloaded video records.</string>
+    <string name="settings_downloaded_videos_clear_confirm_message">This will delete all tracked downloaded videos. This action cannot be undone.</string>
+
     <!-- Translation Section -->
     <string name="settings_section_translation">Translation</string>
     <string name="settings_request_translation">Request a Language</string>

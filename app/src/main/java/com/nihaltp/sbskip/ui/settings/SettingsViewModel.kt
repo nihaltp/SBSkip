@@ -2,6 +2,7 @@ package com.nihaltp.sbskip.ui.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.nihaltp.sbskip.data.repository.DownloadedVideoRepository
 import com.nihaltp.sbskip.data.repository.SettingsRepository
 import com.nihaltp.sbskip.model.AppSettings
 import com.nihaltp.sbskip.model.DownloaderType
@@ -20,6 +21,7 @@ class SettingsViewModel
     @Inject
     constructor(
         private val settingsRepository: SettingsRepository,
+        private val downloadedVideoRepository: DownloadedVideoRepository,
     ) : ViewModel() {
         val settings: StateFlow<AppSettings?> =
             settingsRepository.settings
@@ -209,5 +211,11 @@ class SettingsViewModel
 
         fun clearLogs() {
             com.nihaltp.sbskip.util.AppLogger.clearLogs()
+        }
+
+        fun clearDownloadedVideos() {
+            viewModelScope.launch {
+                downloadedVideoRepository.deleteAll()
+            }
         }
     }

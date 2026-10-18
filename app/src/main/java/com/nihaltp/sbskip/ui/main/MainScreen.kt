@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.KeyboardDoubleArrowDown
 import androidx.compose.material.icons.filled.KeyboardDoubleArrowUp
 import androidx.compose.material.icons.filled.Search
@@ -98,6 +99,7 @@ fun MainScreen(
     onConvertVideoToAudioChange: (Boolean) -> Unit,
     onDeleteOriginalVideoChange: (Boolean) -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenDownloadedVideos: () -> Unit,
     onRemoveQueueItem: (DownloadQueueItem) -> Unit,
     onUndoRemoveQueueItem: (DownloadQueueItem) -> Unit,
     onDownloadQueueItem: (DownloadQueueItem) -> Unit,
@@ -191,6 +193,15 @@ fun MainScreen(
             TopAppBar(
                 title = { Text(stringResource(id = R.string.title_main)) },
                 actions = {
+                    IconButton(
+                        onClick = onOpenDownloadedVideos,
+                        modifier = Modifier.padding(end = 12.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.History,
+                            contentDescription = stringResource(id = R.string.downloaded_history_title),
+                        )
+                    }
                     IconButton(
                         onClick = onOpenSettings,
                         modifier = Modifier.padding(end = 12.dp),
