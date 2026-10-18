@@ -10,4 +10,6 @@ abstract class Destination(val route: String) {
     data object Licenses : Destination("licenses")
 
     data object Logs : Destination("logs")
+
+    data object DownloadedVideos : Destination("downloaded_videos")
 }

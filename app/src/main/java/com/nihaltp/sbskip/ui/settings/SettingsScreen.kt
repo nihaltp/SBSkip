@@ -71,6 +71,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onNavigateToLicenses: () -> Unit,
     onNavigateToLogs: () -> Unit,
+    onNavigateToDownloadedVideos: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val settingsState by viewModel.settings.collectAsState()
@@ -123,6 +124,7 @@ fun SettingsScreen(
             }
         }
     var showLogsDialog by remember { mutableStateOf(false) }
+    var showClearDownloadedVideosDialog by remember { mutableStateOf(false) }
     var logRefreshKey by remember { mutableStateOf(0) }
     var logsToExport by remember { mutableStateOf("") }
     val exportLogsLauncher =
@@ -523,6 +525,24 @@ fun SettingsScreen(
                 }
 
                 item {
+                    SettingsSection(
+                        modifier = Modifier.testTag("downloadedHistoryCard"),
+                        title = stringResource(id = R.string.settings_downloaded_videos_title),
+                    ) {
+                        SettingValueRow(
+                            title = stringResource(id = R.string.settings_downloaded_videos_view_title),
+                            value = stringResource(id = R.string.settings_downloaded_videos_view_desc),
+                            onClick = onNavigateToDownloadedVideos,
+                        )
+                        SettingValueRow(
+                            title = stringResource(id = R.string.settings_downloaded_videos_clear_title),
+                            value = stringResource(id = R.string.settings_downloaded_videos_clear_desc),
+                            onClick = { showClearDownloadedVideosDialog = true },
+                        )
+                    }
+                }
+
+                item {
                     SettingsSection(title = stringResource(id = R.string.about_section)) {
                         SettingValueRow(stringResource(id = R.string.app_version), BuildConfig.VERSION_NAME)
                         SettingValueRow(
@@ -798,6 +818,29 @@ fun SettingsScreen(
             confirmButton = {
                 Button(onClick = { showChangelogDialog = false }) {
                     Text(stringResource(id = R.string.close))
+                }
+            },
+        )
+    }
+
+    if (showClearDownloadedVideosDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearDownloadedVideosDialog = false },
+            title = { Text(stringResource(id = R.string.settings_downloaded_videos_clear_title)) },
+            text = { Text(stringResource(id = R.string.settings_downloaded_videos_clear_confirm_message)) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.clearDownloadedVideos()
+                        showClearDownloadedVideosDialog = false
+                    },
+                ) {
+                    Text(stringResource(id = R.string.clear))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearDownloadedVideosDialog = false }) {
+                    Text(stringResource(id = R.string.cancel))
                 }
             },
         )

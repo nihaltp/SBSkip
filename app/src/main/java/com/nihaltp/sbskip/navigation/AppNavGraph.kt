@@ -14,6 +14,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.nihaltp.sbskip.ui.history.DownloadedHistoryScreen
 import com.nihaltp.sbskip.ui.main.MainScreen
 import com.nihaltp.sbskip.ui.main.MainViewModel
 import com.nihaltp.sbskip.ui.settings.SettingsScreen
@@ -51,6 +52,7 @@ fun AppNavGraph(
                 onConvertVideoToAudioChange = viewModel::onConvertVideoToAudioChanged,
                 onDeleteOriginalVideoChange = viewModel::onDeleteOriginalVideoChanged,
                 onOpenSettings = { navController.navigate(Destination.Settings.route) },
+                onOpenDownloadedVideos = { navController.navigate(Destination.DownloadedVideos.route) },
                 onRemoveQueueItem = viewModel::removeQueueItem,
                 onUndoRemoveQueueItem = viewModel::undoRemoveQueueItem,
                 onDownloadQueueItem = viewModel::downloadQueueItemViaNewPipe,
@@ -80,6 +82,15 @@ fun AppNavGraph(
                 onBack = { navController.popBackStack() },
                 onNavigateToLicenses = { navController.navigate(Destination.Licenses.route) },
                 onNavigateToLogs = { navController.navigate(Destination.Logs.route) },
+                onNavigateToDownloadedVideos = {
+                    navController.navigate(Destination.DownloadedVideos.route)
+                },
+            )
+        }
+
+        composable(Destination.DownloadedVideos.route) {
+            DownloadedHistoryScreen(
+                onNavigateBack = { navController.popBackStack() },
             )
         }
 
