@@ -3,9 +3,12 @@ package com.nihaltp.sbskip.di
 import android.content.Context
 import androidx.room.Room
 import com.nihaltp.sbskip.data.local.dao.DownloadQueueDao
+import com.nihaltp.sbskip.data.local.dao.DownloadedVideoDao
 import com.nihaltp.sbskip.data.local.database.SBSkipDatabase
 import com.nihaltp.sbskip.data.repository.DataStoreSettingsRepository
+import com.nihaltp.sbskip.data.repository.DefaultDownloadedVideoRepository
 import com.nihaltp.sbskip.data.repository.DefaultQueueRepository
+import com.nihaltp.sbskip.data.repository.DownloadedVideoRepository
 import com.nihaltp.sbskip.data.repository.QueueRepository
 import com.nihaltp.sbskip.data.repository.SettingsRepository
 import com.nihaltp.sbskip.notifications.AndroidDownloadNotificationManager
@@ -31,6 +34,9 @@ import javax.inject.Singleton
 abstract class AppModule {
     @Binds
     abstract fun bindQueueRepository(impl: DefaultQueueRepository): QueueRepository
+
+    @Binds
+    abstract fun bindDownloadedVideoRepository(impl: DefaultDownloadedVideoRepository): DownloadedVideoRepository
 
     @Binds
     abstract fun bindSettingsRepository(impl: DataStoreSettingsRepository): SettingsRepository
@@ -82,6 +88,21 @@ abstract class AppModule {
                             "ALTER TABLE download_queue ADD COLUMN bypassDurationCheck INTEGER NOT NULL DEFAULT 0",
                         )
                         db.execSQL("ALTER TABLE download_queue ADD COLUMN noSuffix INTEGER NOT NULL DEFAULT 0")
+                        db.execSQL(
+                            """
+                            CREATE TABLE IF NOT EXISTS downloaded_videos (
+                                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                                video_id TEXT,
+                                url TEXT NOT NULL,
+                                title TEXT NOT NULL,
+                                thumbnail_url TEXT,
+                                duration_seconds INTEGER,
+                                downloaded_at_epoch_millis INTEGER NOT NULL,
+                                output_path TEXT,
+                                media_type TEXT NOT NULL
+                            )
+                            """.trimIndent(),
+                        )
                     }
                 }
 
@@ -94,5 +115,8 @@ abstract class AppModule {
 
         @Provides
         fun provideQueueDao(database: SBSkipDatabase): DownloadQueueDao = database.downloadQueueDao()
+
+        @Provides
+        fun provideDownloadedVideoDao(database: SBSkipDatabase): DownloadedVideoDao = database.downloadedVideoDao()
     }
 }
