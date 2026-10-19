@@ -54,7 +54,7 @@ fun ImportFromFolderScreen(
     val folderUri by viewModel.folderUri.collectAsState()
     val candidates by viewModel.candidates.collectAsState()
     val isScanning by viewModel.isScanning.collectAsState()
-    val selectedCount = viewModel.selectedCount
+    val selectedCount by viewModel.selectedCount.collectAsState()
 
     var showConfirmation by remember { mutableStateOf(false) }
 
