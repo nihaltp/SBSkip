@@ -122,7 +122,7 @@ fun MediaImage(
     isAudio: Boolean = false,
     hasThumbnail: Boolean = false,
 ) {
-    val imageModel = if (isAudio || !hasThumbnail) null else imageUrl
+    val imageModel = if (!hasThumbnail) null else imageUrl
     AsyncImage(
         model = imageModel,
         modifier =
@@ -133,12 +133,12 @@ fun MediaImage(
         contentDescription = null,
         contentScale = ContentScale.Crop,
     )
-    if (isAudio) {
+    if (!hasThumbnail) {
         Box(
             modifier =
                 modifier
                     .height(90.dp)
-                    .aspectRatio(1f, matchHeightConstraintsFirst = true)
+                    .aspectRatio(if (!isAudio) 16f / 9f else 1f, matchHeightConstraintsFirst = true)
                     .clip(MaterialTheme.shapes.extraSmall)
                     .fillMaxWidth(),
             contentAlignment = Alignment.Center,
