@@ -95,10 +95,11 @@ abstract class AppModule {
                                 videoId TEXT,
                                 url TEXT NOT NULL,
                                 title TEXT NOT NULL,
+                                author TEXT,
                                 thumbnailUrl TEXT,
                                 durationSeconds INTEGER,
-                                downloadedAtEpochMillis INTEGER NOT NULL,
                                 outputPath TEXT,
+                                fileSize INTEGER,
                                 mediaType TEXT NOT NULL
                             )
                             """.trimIndent(),

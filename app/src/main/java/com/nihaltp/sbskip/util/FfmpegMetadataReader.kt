@@ -13,6 +13,9 @@ import javax.inject.Inject
 data class SbskipFileMetadata(
     val youtubeId: String?,
     val youtubeUrl: String?,
+    val youtubeTitle: String?,
+    val authorName: String?,
+    val fileSize: Long?,
 )
 
 @Serializable
@@ -25,6 +28,8 @@ private data class FfprobeResult(val format: FfprobeFormat?)
 private data class CommentMetadata(
     val youtubeId: String?,
     val youtubeUrl: String?,
+    val youtubeTitle: String?,
+    val authorName: String?,
 )
 
 class FfmpegMetadataReader
@@ -47,7 +52,7 @@ class FfmpegMetadataReader
                 val inputStream = contentResolver.openInputStream(fileUri)
                 if (inputStream == null) {
                     AppLogger.metadata("ImportFolder: Failed to open input stream for $fileName")
-                    return SbskipFileMetadata(null, null)
+                    return SbskipFileMetadata(null, null, null, null, null)
                 }
 
                 inputStream.use { input ->
@@ -63,7 +68,7 @@ class FfmpegMetadataReader
                 val output = session.output
                 if (output == null || output.isBlank()) {
                     AppLogger.metadata("ImportFolder: ffprobe returned empty output for $fileName")
-                    return SbskipFileMetadata(null, null)
+                    return SbskipFileMetadata(null, null, null, null, tempFile.length())
                 }
 
                 try {
@@ -73,19 +78,23 @@ class FfmpegMetadataReader
                     // First try direct YOUTUBE_VIDEO_ID tag
                     var youtubeId = tags["YOUTUBE_VIDEO_ID"]?.takeIf { it.isNotBlank() }
                     var youtubeUrl = tags["YOUTUBE_VIDEO_URL"]?.takeIf { it.isNotBlank() }
+                    var youtubeTitle = tags["title"]?.takeIf { it.isNotBlank() }
+                    var authorName = tags["author"]?.takeIf { it.isNotBlank() }
 
                     // If not found, try parsing the comment JSON field (where MediaTagger writes it)
                     // The comment field contains double-escaped JSON (e.g. \"youtubeId\"), so we unescape
                     // the backslash-quotes before parsing with kotlinx.serialization
-                    if (youtubeId == null) {
+                    if (youtubeId == null || authorName == null) {
                         val comment = tags["comment"]?.takeIf { it.isNotBlank() }
                         if (comment != null) {
                             val unescaped = comment.replace("\\\"", "\"")
                             try {
                                 val commentData =
                                     json.decodeFromString<CommentMetadata>(unescaped)
-                                youtubeId = commentData.youtubeId?.takeIf { it.isNotBlank() }
-                                youtubeUrl = commentData.youtubeUrl?.takeIf { it.isNotBlank() }
+                                youtubeId = commentData.youtubeId?.takeIf { it.isNotBlank() } ?: youtubeId
+                                youtubeUrl = commentData.youtubeUrl?.takeIf { it.isNotBlank() } ?: youtubeUrl
+                                youtubeTitle = commentData.youtubeTitle?.takeIf { it.isNotBlank() } ?: youtubeTitle
+                                authorName = commentData.authorName?.takeIf { it.isNotBlank() } ?: authorName
                                 if (youtubeId == null) {
                                     AppLogger.metadata(
                                         "ImportFolder: No youtubeId in comment JSON for $fileName",
@@ -111,14 +120,17 @@ class FfmpegMetadataReader
                     SbskipFileMetadata(
                         youtubeId = youtubeId,
                         youtubeUrl = youtubeUrl,
+                        youtubeTitle = youtubeTitle,
+                        authorName = authorName,
+                        fileSize = tempFile.length(),
                     )
                 } catch (e: Exception) {
                     AppLogger.metadata("ImportFolder: Failed to parse ffprobe output for $fileName: ${e.message}")
-                    SbskipFileMetadata(null, null)
+                    SbskipFileMetadata(null, null, null, null, tempFile.length())
                 }
             } catch (e: Exception) {
                 AppLogger.metadata("ImportFolder: Error reading metadata for $fileName: ${e.message}")
-                SbskipFileMetadata(null, null)
+                SbskipFileMetadata(null, null, null, null, null)
             } finally {
                 tempFile.delete()
             }

@@ -97,6 +97,7 @@ class ImportFromFolderViewModelTest {
 
             coVerify(exactly = 1) { downloadedVideoRepository.insert(capture(insertedSlot)) }
             assertEquals("abc123", insertedSlot.captured.videoId)
+            assertEquals("https://img.youtube.com/vi/abc123/mqdefault.jpg", insertedSlot.captured.thumbnailUrl)
             assertEquals(0, viewModel.selectedCount.first())
         }
 
@@ -114,11 +115,17 @@ class ImportFromFolderViewModelTest {
         fun candidate(
             youtubeId: String,
             fileName: String,
+            authorName: String? = null,
+            fileSize: Long? = null,
+            youtubeTitle: String? = null,
         ) = ImportCandidate(
             uri = android.net.Uri.parse("content://media/external/video/1"),
             fileName = fileName,
             youtubeId = youtubeId,
             youtubeUrl = null,
+            youtubeTitle = youtubeTitle,
+            authorName = authorName,
+            fileSize = fileSize,
         )
     }
 }

@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface DownloadedVideoDao {
-    @Query("SELECT * FROM downloaded_videos ORDER BY downloadedAtEpochMillis DESC, id DESC")
+    @Query("SELECT * FROM downloaded_videos ORDER BY id DESC")
     fun observeDownloadedVideos(): Flow<List<DownloadedVideoEntity>>
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
