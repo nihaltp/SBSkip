@@ -95,6 +95,42 @@ class DownloadedHistoryViewModelTest {
         }
 
     @Test
+    fun `toggleSelection and toggleSelectAll work correctly`() =
+        runTest(testDispatcher) {
+            assertEquals(0, viewModel.selectedCount.value)
+            assertEquals(emptySet<Long>(), viewModel.selectedIds.value)
+
+            viewModel.toggleSelection(1L)
+            assertEquals(1, viewModel.selectedCount.value)
+            assertEquals(setOf(1L), viewModel.selectedIds.value)
+
+            viewModel.toggleSelectAll(listOf(1L, 2L, 3L))
+            assertEquals(3, viewModel.selectedCount.value)
+            assertEquals(setOf(1L, 2L, 3L), viewModel.selectedIds.value)
+
+            viewModel.toggleSelectAll(listOf(1L, 2L, 3L))
+            assertEquals(0, viewModel.selectedCount.value)
+            assertEquals(emptySet<Long>(), viewModel.selectedIds.value)
+        }
+
+    @Test
+    fun `deleteSelectedVideos deletes all selected items and clears selection`() =
+        runTest(testDispatcher) {
+            coEvery { downloadedVideoRepository.deleteById(any()) } just Runs
+
+            viewModel.toggleSelectAll(listOf(1L, 2L))
+            assertEquals(2, viewModel.selectedCount.value)
+
+            viewModel.deleteSelectedVideos()
+            runCurrent()
+
+            coVerify(exactly = 1) { downloadedVideoRepository.deleteById(1L) }
+            coVerify(exactly = 1) { downloadedVideoRepository.deleteById(2L) }
+            assertEquals(0, viewModel.selectedCount.value)
+            assertEquals(emptySet<Long>(), viewModel.selectedIds.value)
+        }
+
+    @Test
     fun `clearHistory delegates to repository`() =
         runTest(testDispatcher) {
             coEvery { downloadedVideoRepository.deleteAll() } just Runs

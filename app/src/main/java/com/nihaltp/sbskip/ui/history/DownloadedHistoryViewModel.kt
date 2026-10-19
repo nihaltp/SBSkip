@@ -27,61 +27,67 @@ class DownloadedHistoryViewModel
                     initialValue = emptyList(),
                 )
 
-        private val selectedIds = mutableSetOf<Long>()
+        private val _selectedIds = MutableStateFlow<Set<Long>>(emptySet())
+        val selectedIds: StateFlow<Set<Long>> = _selectedIds.asStateFlow()
 
         private val _selectedCount = MutableStateFlow(0)
         val selectedCount: StateFlow<Int> = _selectedCount.asStateFlow()
 
-        private fun updateSelectedCount() {
-            _selectedCount.value = selectedIds.size
+        private fun updateSelected(newSet: Set<Long>) {
+            _selectedIds.value = newSet
+            _selectedCount.value = newSet.size
         }
 
-        fun isSelected(id: Long): Boolean = selectedIds.contains(id)
+        fun isSelected(id: Long): Boolean = _selectedIds.value.contains(id)
 
         fun toggleSelection(id: Long) {
-            if (selectedIds.contains(id)) {
-                selectedIds.remove(id)
-            } else {
-                selectedIds.add(id)
-            }
-            updateSelectedCount()
+            val current = _selectedIds.value
+            val updated =
+                if (current.contains(id)) {
+                    current - id
+                } else {
+                    current + id
+                }
+            updateSelected(updated)
         }
 
         fun toggleSelectAll(videoIds: List<Long>) {
-            val allSelected = videoIds.all { selectedIds.contains(it) }
-            if (allSelected) {
-                selectedIds.clear()
-            } else {
-                selectedIds.clear()
-                selectedIds += videoIds
-            }
-            updateSelectedCount()
+            val current = _selectedIds.value
+            val allSelected = videoIds.isNotEmpty() && videoIds.all { current.contains(it) }
+            val updated =
+                if (allSelected) {
+                    emptySet()
+                } else {
+                    videoIds.toSet()
+                }
+            updateSelected(updated)
+        }
+
+        fun clearSelection() {
+            updateSelected(emptySet())
         }
 
         fun deleteVideo(id: Long) {
-            selectedIds.remove(id)
+            updateSelected(_selectedIds.value - id)
             viewModelScope.launch {
                 downloadedVideoRepository.deleteById(id)
             }
-            updateSelectedCount()
         }
 
         fun deleteSelectedVideos() {
-            val ids = selectedIds.toList()
-            selectedIds.clear()
+            val ids = _selectedIds.value.toList()
+            updateSelected(emptySet())
             viewModelScope.launch {
                 for (id in ids) {
                     downloadedVideoRepository.deleteById(id)
                 }
             }
-            updateSelectedCount()
         }
 
         fun clearHistory() {
-            selectedIds.clear()
+            updateSelected(emptySet())
             viewModelScope.launch {
                 downloadedVideoRepository.deleteAll()
             }
-            updateSelectedCount()
         }
     }
