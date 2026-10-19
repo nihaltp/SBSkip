@@ -26,6 +26,9 @@ data class ImportCandidate(
     val fileName: String,
     val youtubeId: String,
     val youtubeUrl: String?,
+    val youtubeTitle: String?,
+    val authorName: String?,
+    val fileSize: Long?,
     var isSelected: Boolean = false,
 )
 
@@ -119,6 +122,9 @@ class ImportFromFolderViewModel
                                                 fileName = fileName,
                                                 youtubeId = youtubeId,
                                                 youtubeUrl = metadata.youtubeUrl,
+                                                youtubeTitle = metadata.youtubeTitle,
+                                                authorName = metadata.authorName,
+                                                fileSize = metadata.fileSize,
                                                 isSelected = false,
                                             ),
                                         )
@@ -144,7 +150,6 @@ class ImportFromFolderViewModel
             if (selected.isEmpty()) return
 
             viewModelScope.launch {
-                val now = System.currentTimeMillis()
                 for (candidate in selected) {
                     val entity =
                         DownloadedVideoEntity(
@@ -152,11 +157,12 @@ class ImportFromFolderViewModel
                             url =
                                 candidate.youtubeUrl
                                     ?: "https://www.youtube.com/watch?v=${candidate.youtubeId}",
-                            title = candidate.fileName,
-                            thumbnailUrl = null,
+                            title = candidate.youtubeTitle ?: candidate.fileName,
+                            author = candidate.authorName,
+                            thumbnailUrl = "https://img.youtube.com/vi/${candidate.youtubeId}/mqdefault.jpg",
                             durationSeconds = null,
-                            downloadedAtEpochMillis = now,
                             outputPath = candidate.uri.toString(),
+                            fileSize = candidate.fileSize,
                             mediaType = mediaTypeForUri(candidate.uri),
                         )
                     downloadedVideoRepository.insert(entity)

@@ -224,6 +224,13 @@
     <string name="downloaded_history_empty_body">Downloaded videos will appear here once tracking is enabled.</string>
     <string name="downloaded_history_clear_title">Clear Downloaded Videos</string>
     <string name="downloaded_history_clear_message">This will delete all tracked downloaded videos. This action cannot be undone.</string>
+    <string name="show_more_actions">Show more actions</string>
+    <string name="export_backup">Export backup</string>
+    <string name="import_backup">Import backup</string>
+    <string name="open_file">Open file</string>
+    <string name="multiselect_mode">Multiselect mode</string>
+    <string name="multiselect_item_count">%1$d selected</string>
+    <string name="unavailable">Unavailable</string>
 
     <string name="settings_downloaded_videos_title">Downloaded Videos History</string>
     <string name="settings_downloaded_videos_view_title">View Downloaded Videos</string>

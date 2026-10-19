@@ -10,9 +10,10 @@ data class DownloadedVideoEntity(
     val videoId: String?,
     val url: String,
     val title: String,
-    val thumbnailUrl: String?,
-    val durationSeconds: Long?,
-    val downloadedAtEpochMillis: Long,
+    val author: String? = null,
+    val thumbnailUrl: String? = null,
+    val durationSeconds: Long? = null,
     val outputPath: String?,
+    val fileSize: Long? = null,
     val mediaType: String,
 )
