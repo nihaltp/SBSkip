@@ -11,10 +11,12 @@ import com.nihaltp.sbskip.util.AppLogger
 import com.nihaltp.sbskip.util.FfmpegMetadataReader
 import com.nihaltp.sbskip.util.FolderScanner
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.UUID
 import javax.inject.Inject
 
@@ -95,30 +97,35 @@ class ImportFromFolderViewModel
                     val cacheDir = context.cacheDir
                     val contentResolver = context.contentResolver
 
-                    val candidates = mutableListOf<ImportCandidate>()
+                    val candidates =
+                        withContext(Dispatchers.IO) {
+                            val mutableCandidates = mutableListOf<ImportCandidate>()
 
-                    FolderScanner.scanMediaFiles(context, treeUri).collect { fileUri ->
-                        try {
-                            val fileName = fileUri.lastPathSegment ?: "unknown"
-                            val metadata = ffmpegMetadataReader.readMetadata(contentResolver, fileUri, cacheDir)
-                            val youtubeId = metadata.youtubeId
-                            if (youtubeId != null) {
-                                candidates.add(
-                                    ImportCandidate(
-                                        uri = fileUri,
-                                        fileName = fileName,
-                                        youtubeId = youtubeId,
-                                        youtubeUrl = metadata.youtubeUrl,
-                                        isSelected = false,
-                                    ),
-                                )
+                            FolderScanner.scanMediaFiles(context, treeUri).collect { fileUri ->
+                                try {
+                                    val fileName = fileUri.lastPathSegment ?: "unknown"
+                                    val metadata = ffmpegMetadataReader.readMetadata(contentResolver, fileUri, cacheDir)
+                                    val youtubeId = metadata.youtubeId
+                                    if (youtubeId != null) {
+                                        mutableCandidates.add(
+                                            ImportCandidate(
+                                                uri = fileUri,
+                                                fileName = fileName,
+                                                youtubeId = youtubeId,
+                                                youtubeUrl = metadata.youtubeUrl,
+                                                isSelected = false,
+                                            ),
+                                        )
+                                    }
+                                } catch (e: Exception) {
+                                    // Skip files that fail to probe; one bad file shouldn't stop the scan
+                                }
                             }
-                        } catch (e: Exception) {
-                            // Skip files that fail to probe; one bad file shouldn't stop the scan
-                        }
-                    }
 
-                    AppLogger.metadata("ImportFolder: Scan complete. Found ${candidates.size} sbskip-downloaded files")
+                            AppLogger.metadata("ImportFolder: Scan complete. Found ${mutableCandidates.size} sbskip-downloaded files")
+                            mutableCandidates
+                        }
+
                     candidatesState.value = candidates
                 } finally {
                     _isScanning.value = false
