@@ -87,14 +87,14 @@ abstract class AppModule {
                             """
                             CREATE TABLE IF NOT EXISTS downloaded_videos (
                                 id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                                video_id TEXT,
+                                videoId TEXT,
                                 url TEXT NOT NULL,
                                 title TEXT NOT NULL,
-                                thumbnail_url TEXT,
-                                duration_seconds INTEGER,
-                                downloaded_at_epoch_millis INTEGER NOT NULL,
-                                output_path TEXT,
-                                media_type TEXT NOT NULL
+                                thumbnailUrl TEXT,
+                                durationSeconds INTEGER,
+                                downloadedAtEpochMillis INTEGER NOT NULL,
+                                outputPath TEXT,
+                                mediaType TEXT NOT NULL
                             )
                             """.trimIndent(),
                         )

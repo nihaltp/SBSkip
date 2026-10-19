@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -47,6 +48,7 @@ import java.util.Locale
 @Composable
 fun DownloadedHistoryScreen(
     onNavigateBack: () -> Unit,
+    onImportFromFolder: () -> Unit,
     viewModel: DownloadedHistoryViewModel = hiltViewModel(),
 ) {
     val videos by viewModel.videos.collectAsState()
@@ -71,6 +73,15 @@ fun DownloadedHistoryScreen(
                     }
                 },
                 actions = {
+                    IconButton(
+                        onClick = onImportFromFolder,
+                        modifier = Modifier.padding(end = 12.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Inbox,
+                            contentDescription = stringResource(id = R.string.import_from_folder_title),
+                        )
+                    }
                     if (videos.isNotEmpty()) {
                         IconButton(
                             onClick = { showClearConfirmation = true },
