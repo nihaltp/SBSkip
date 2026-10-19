@@ -7,6 +7,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.slot
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
@@ -50,12 +51,12 @@ class ImportFromFolderViewModelTest {
 
             viewModel.toggleCandidate(candidate)
 
-            assertEquals(1, viewModel.selectedCount)
+            assertEquals(1, viewModel.selectedCount.first())
             assertTrue(viewModel.candidates.value.first { it.id == candidate.id }.isSelected)
 
             viewModel.toggleCandidate(candidate)
 
-            assertEquals(0, viewModel.selectedCount)
+            assertEquals(0, viewModel.selectedCount.first())
             assertFalse(viewModel.candidates.value.first { it.id == candidate.id }.isSelected)
         }
 
@@ -71,13 +72,13 @@ class ImportFromFolderViewModelTest {
             // Select all via toggleSelectAll
             viewModel.toggleSelectAll()
 
-            assertEquals(2, viewModel.selectedCount)
+            assertEquals(2, viewModel.selectedCount.first())
             assertTrue(viewModel.candidates.value.all { it.isSelected })
 
             // Deselect all via toggleSelectAll
             viewModel.toggleSelectAll()
 
-            assertEquals(0, viewModel.selectedCount)
+            assertEquals(0, viewModel.selectedCount.first())
             assertFalse(viewModel.candidates.value.any { it.isSelected })
         }
 
@@ -96,7 +97,7 @@ class ImportFromFolderViewModelTest {
 
             coVerify(exactly = 1) { downloadedVideoRepository.insert(capture(insertedSlot)) }
             assertEquals("abc123", insertedSlot.captured.videoId)
-            assertEquals(0, viewModel.selectedCount)
+            assertEquals(0, viewModel.selectedCount.first())
         }
 
     @Test

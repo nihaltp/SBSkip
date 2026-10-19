@@ -48,8 +48,12 @@ class ImportFromFolderViewModel
 
         private val selectedIds = mutableSetOf<String>()
 
-        val selectedCount: Int
-            get() = selectedIds.size
+        private val _selectedCount = MutableStateFlow(0)
+        val selectedCount: StateFlow<Int> = _selectedCount.asStateFlow()
+
+        private fun updateSelectedCount() {
+            _selectedCount.value = selectedIds.size
+        }
 
         fun setFolderUri(uri: Uri?) {
             _folderUri.value = uri
@@ -66,6 +70,7 @@ class ImportFromFolderViewModel
             } else {
                 selectedIds.add(candidate.id)
             }
+            updateSelectedCount()
             val current = candidatesState.value
             candidatesState.value =
                 current.map {
@@ -81,6 +86,7 @@ class ImportFromFolderViewModel
                 selectedIds.clear()
                 selectedIds += candidatesState.value.map { it.id }
             }
+            updateSelectedCount()
             candidatesState.value =
                 candidatesState.value.map {
                     it.copy(isSelected = it.id in selectedIds)
@@ -158,6 +164,7 @@ class ImportFromFolderViewModel
                 selectedIds.clear()
                 candidatesState.value = emptyList()
                 _folderUri.value = null
+                updateSelectedCount()
             }
         }
 
