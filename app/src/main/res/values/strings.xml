@@ -234,6 +234,23 @@
     <string name="settings_downloaded_videos_clear_desc">Remove all tracked downloaded video records.</string>
     <string name="settings_downloaded_videos_clear_confirm_message">This will delete all tracked downloaded videos. This action cannot be undone.</string>
 
+    <!-- Import from Folder -->
+    <string name="import_from_folder_title">Import from Folder</string>
+    <string name="import_from_folder_empty_title">Import Downloaded Videos</string>
+    <string name="import_from_folder_empty_body">Select a folder to scan for videos previously downloaded with SBSkip.</string>
+    <string name="import_from_folder_select_folder">Select Folder</string>
+    <string name="import_from_folder_scanning">Scanning folder…</string>
+    <string name="import_from_folder_selected_folder_label">Folder selected</string>
+    <string name="import_from_folder_no_sbskip_files">No SBSkip-downloaded files found in this folder.</string>
+    <string name="import_from_folder_choose_another">Choose another folder</string>
+    <string name="import_from_folder_found_count">%1$d videos found</string>
+    <string name="import_from_folder_select_all">Select All</string>
+    <string name="import_from_folder_deselect_all">Deselect All</string>
+    <string name="import_from_folder_import_selected">Import %1$d video(s)</string>
+    <string name="import_from_folder_confirm_title">Import Videos</string>
+    <string name="import_from_folder_confirm_message">Import %1$d video(s) into your download history?</string>
+    <string name="import_from_folder_confirm_import">Import</string>
+
     <!-- Translation Section -->
     <string name="settings_section_translation">Translation</string>
     <string name="settings_request_translation">Request a Language</string>

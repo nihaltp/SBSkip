@@ -14,4 +14,6 @@ abstract class Destination(val route: String) {
     data object Logs : Destination("logs")
 
     data object DownloadedVideos : Destination("downloaded_videos")
+
+    data object ImportFromFolder : Destination("import_from_folder")
 }
