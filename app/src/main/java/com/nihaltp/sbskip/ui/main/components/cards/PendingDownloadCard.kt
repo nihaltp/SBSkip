@@ -40,9 +40,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
 import com.nihaltp.sbskip.R
 import com.nihaltp.sbskip.model.DetectedFile
+import com.nihaltp.sbskip.ui.main.components.common.ThumbnailImage
 import com.nihaltp.sbskip.util.ClipboardHelper
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -108,9 +108,8 @@ fun PendingDownloadCard(
                             CircularProgressIndicator(strokeWidth = 2.dp)
                         }
                     } else {
-                        AsyncImage(
+                        ThumbnailImage(
                             model = thumbnailUrl,
-                            contentDescription = null,
                             modifier =
                                 Modifier
                                     .fillMaxSize()
