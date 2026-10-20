@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.nihaltp.sbskip.data.local.dao.DownloadQueueDao
 import com.nihaltp.sbskip.data.local.dao.DownloadedVideoDao
 import com.nihaltp.sbskip.data.local.database.SBSkipDatabase
+import com.nihaltp.sbskip.data.local.database.SBSkipDatabaseMigrations
 import com.nihaltp.sbskip.data.repository.DataStoreSettingsRepository
 import com.nihaltp.sbskip.data.repository.DefaultDownloadedVideoRepository
 import com.nihaltp.sbskip.data.repository.DefaultQueueRepository
@@ -62,49 +63,9 @@ abstract class AppModule {
         fun provideDatabase(
             @ApplicationContext context: Context,
         ): SBSkipDatabase {
-            val migration4To5 =
-                object : androidx.room.migration.Migration(4, 5) {
-                    override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
-                        db.execSQL("ALTER TABLE download_queue ADD COLUMN relativePath TEXT")
-                    }
-                }
-            val migration5To6 =
-                object : androidx.room.migration.Migration(5, 6) {
-                    override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
-                        db.execSQL("ALTER TABLE download_queue ADD COLUMN videoOutputDirUri TEXT")
-                    }
-                }
-            val migration6To7 =
-                object : androidx.room.migration.Migration(6, 7) {
-                    override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
-                        db.execSQL("ALTER TABLE download_queue ADD COLUMN outputDurationSeconds INTEGER")
-                    }
-                }
-            val migration7To8 =
-                object : androidx.room.migration.Migration(7, 8) {
-                    override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
-                        db.execSQL(
-                            """
-                            CREATE TABLE IF NOT EXISTS downloaded_videos (
-                                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                                videoId TEXT,
-                                url TEXT NOT NULL,
-                                title TEXT NOT NULL,
-                                author TEXT,
-                                thumbnailUrl TEXT,
-                                durationSeconds INTEGER,
-                                outputPath TEXT,
-                                fileSize INTEGER,
-                                mediaType TEXT NOT NULL
-                            )
-                            """.trimIndent(),
-                        )
-                    }
-                }
-
             return Room.databaseBuilder(context, SBSkipDatabase::class.java, "sbskip.db")
                 .enableMultiInstanceInvalidation()
-                .addMigrations(migration4To5, migration5To6, migration6To7, migration7To8)
+                .addMigrations(*SBSkipDatabaseMigrations.ALL)
                 .fallbackToDestructiveMigration()
                 .build()
         }
