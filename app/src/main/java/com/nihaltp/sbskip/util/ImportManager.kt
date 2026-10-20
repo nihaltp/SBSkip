@@ -7,6 +7,7 @@ import androidx.annotation.VisibleForTesting
 import androidx.documentfile.provider.DocumentFile
 import com.nihaltp.sbskip.data.repository.DownloadedVideoRepository
 import com.nihaltp.sbskip.model.DownloadedVideoEntity
+import com.nihaltp.sbskip.notifications.ImportNotificationManager
 import com.nihaltp.sbskip.util.parser.YouTubeUrlParser
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -14,6 +15,7 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -53,6 +55,7 @@ class ImportManager
     constructor(
         private val downloadedVideoRepository: DownloadedVideoRepository,
         private val ffmpegMetadataReader: FfmpegMetadataReader,
+        private val importNotificationManager: ImportNotificationManager,
         @ApplicationContext private val context: Context,
     ) {
         private val scope = MainScope()
@@ -102,6 +105,23 @@ class ImportManager
                     next.filterNot { it.id in dropIds }
                 }
             }
+            updateFolderQueueNotification()
+        }
+
+        /**
+         * Number of folders that still have to be imported: the folder that is currently being
+         * scanned plus every folder that is still queued.
+         */
+        private fun remainingFolderCount(): Int =
+            _importQueue.value.count {
+                it.status == FolderImportStatus.PENDING || it.status == FolderImportStatus.SCANNING
+            }
+
+        /**
+         * Keeps the "folders remaining" notification in sync with the queue.
+         */
+        private fun updateFolderQueueNotification() {
+            importNotificationManager.updateFolderQueueNotification(remainingFolderCount())
         }
 
         /**
@@ -186,8 +206,15 @@ class ImportManager
             } finally {
                 _isImporting.value = false
                 _importProgressMessage.value = null
-                // Auto-start the next PENDING folder, if any.
-                processQueue()
+                val hasMoreFolders = _importQueue.value.any { it.status == FolderImportStatus.PENDING }
+                if (hasMoreFolders) {
+                    // Auto-start the next PENDING folder, if any.
+                    updateFolderQueueNotification()
+                    processQueue()
+                } else {
+                    // Nothing left to import: dismiss the progress notifications.
+                    importNotificationManager.cancelAll()
+                }
             }
         }
 
@@ -207,9 +234,19 @@ class ImportManager
             var importedCount = 0
 
             // Phase 2: Process media files directly in this folder (non-recursive).
-            FolderScanner.scanMediaFilesInFolder(context, item.treeUri).collect { fileUri ->
+            // The files are listed up front so the exact number of remaining files is known.
+            val mediaFiles = FolderScanner.scanMediaFilesInFolder(context, item.treeUri).toList()
+            val totalFiles = mediaFiles.size
+            var scannedFiles = 0
+            importNotificationManager.updateFileQueueNotification(
+                remainingFiles = totalFiles,
+                currentFileName = null,
+                totalFiles = totalFiles,
+            )
+
+            for (fileUri in mediaFiles) {
+                val fileName = fileUri.lastPathSegment ?: "unknown"
                 try {
-                    val fileName = fileUri.lastPathSegment ?: "unknown"
                     _importProgressMessage.value = fileName
 
                     val metadata =
@@ -253,6 +290,13 @@ class ImportManager
                     }
                 } catch (e: Exception) {
                     AppLogger.metadata("ImportFolder: Error probing $fileUri: ${e.message}")
+                } finally {
+                    scannedFiles++
+                    importNotificationManager.updateFileQueueNotification(
+                        remainingFiles = (totalFiles - scannedFiles).coerceAtLeast(0),
+                        currentFileName = fileName,
+                        totalFiles = totalFiles,
+                    )
                 }
             }
 
@@ -298,6 +342,7 @@ class ImportManager
                     it.id == id && it.status != FolderImportStatus.SCANNING
                 }
             }
+            updateFolderQueueNotification()
         }
 
         /**

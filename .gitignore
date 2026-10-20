@@ -38,6 +38,7 @@ build/
 */build/
 */.gradle/
 *.properties
+!app/src/test/resources/robolectric.properties
 *.jks
 
 # fastlane
