@@ -364,4 +364,12 @@
     <string name="already_downloaded_behavior_ask">Ask every time</string>
     <string name="already_downloaded_behavior_download_again">Download again</string>
     <string name="already_downloaded_behavior_skip">Skip</string>
+
+    <!-- Import Queue Notifications -->
+    <string name="notification_channel_import_name">Import progress</string>
+    <string name="notification_channel_import_description">Silent progress updates while folders are imported.</string>
+    <string name="notification_import_files_title">Importing files</string>
+    <string name="notification_import_files_remaining">%1$d files remaining</string>
+    <string name="notification_import_folders_title">Importing folders</string>
+    <string name="notification_import_folders_remaining">%1$d folders remaining</string>
 </resources>

@@ -3,7 +3,9 @@ package com.nihaltp.sbskip.util
 import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
 import com.nihaltp.sbskip.data.repository.DownloadedVideoRepository
+import com.nihaltp.sbskip.notifications.ImportNotificationManager
 import io.mockk.mockk
+import io.mockk.verify
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -21,13 +23,16 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class ImportManagerTest {
     private lateinit var importManager: ImportManager
+    private lateinit var importNotificationManager: ImportNotificationManager
 
     @Before
     fun setup() {
+        importNotificationManager = mockk<ImportNotificationManager>(relaxed = true)
         importManager =
             ImportManager(
                 mockk<DownloadedVideoRepository>(relaxed = true),
                 mockk<FfmpegMetadataReader>(relaxed = true),
+                importNotificationManager,
                 ApplicationProvider.getApplicationContext(),
             )
     }
@@ -122,5 +127,21 @@ class ImportManagerTest {
         val queue = importManager.importQueue.value
         assertEquals(ImportManager.MAX_QUEUE_SIZE, queue.size)
         assertTrue(queue.any { it.id == 999L })
+    }
+
+    @Test
+    fun `enqueueing a folder updates the folder queue notification`() {
+        importManager.enqueueForTesting(item(1L))
+
+        verify(exactly = 1) { importNotificationManager.updateFolderQueueNotification(1) }
+    }
+
+    @Test
+    fun `removing a pending folder updates the folder queue notification`() {
+        importManager.enqueueForTesting(item(1L))
+
+        importManager.removeQueueItem(1L)
+
+        verify(exactly = 1) { importNotificationManager.updateFolderQueueNotification(0) }
     }
 }
