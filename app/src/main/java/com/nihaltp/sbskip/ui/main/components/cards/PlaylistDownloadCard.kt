@@ -32,9 +32,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
 import com.nihaltp.sbskip.R
 import com.nihaltp.sbskip.model.PlaylistDownloadState
+import com.nihaltp.sbskip.ui.main.components.common.ThumbnailImage
 
 @Composable
 fun PlaylistDownloadCard(
@@ -108,9 +108,8 @@ fun PlaylistDownloadCard(
                                 CircularProgressIndicator(strokeWidth = 2.dp)
                             }
                         } else {
-                            AsyncImage(
+                            ThumbnailImage(
                                 model = currentVideo.thumbnailUrl,
-                                contentDescription = null,
                                 modifier = Modifier.fillMaxSize(),
                             )
                         }

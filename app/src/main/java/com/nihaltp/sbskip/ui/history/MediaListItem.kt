@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -18,6 +19,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -123,32 +128,37 @@ fun MediaImage(
     hasThumbnail: Boolean = false,
 ) {
     val imageModel = if (!hasThumbnail) null else imageUrl
-    AsyncImage(
-        model = imageModel,
+    // The fallback icon is shown while the thumbnail is loading and when the load fails, so a
+    // broken or corrupted thumbnail url never renders as an empty box.
+    var showFallback by remember(imageModel) { mutableStateOf(true) }
+
+    Box(
         modifier =
             modifier
                 .height(90.dp)
                 .aspectRatio(if (!isAudio) 16f / 9f else 1f, matchHeightConstraintsFirst = true)
                 .clip(MaterialTheme.shapes.extraSmall),
-        contentDescription = null,
-        contentScale = ContentScale.Crop,
-    )
-    if (!hasThumbnail) {
-        Box(
-            modifier =
-                modifier
-                    .height(90.dp)
-                    .aspectRatio(if (!isAudio) 16f / 9f else 1f, matchHeightConstraintsFirst = true)
-                    .clip(MaterialTheme.shapes.extraSmall)
-                    .fillMaxWidth(),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = Icons.Default.Album,
+    ) {
+        if (hasThumbnail) {
+            AsyncImage(
+                model = imageModel,
+                modifier = Modifier.fillMaxSize(),
                 contentDescription = null,
-                modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                contentScale = ContentScale.Crop,
+                onLoading = { showFallback = true },
+                onSuccess = { showFallback = false },
+                onError = { showFallback = true },
             )
+        }
+        if (showFallback) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.Default.Album,
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                )
+            }
         }
     }
 }
