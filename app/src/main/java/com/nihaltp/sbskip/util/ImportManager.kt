@@ -150,14 +150,21 @@ class ImportManager
 
         /**
          * Per-folder scan logic (extracted so it can be reused for each queued item).
-         * Returns the number of newly imported videos.
+         * Two-phase scanning:
+         *   Phase 2 (file processing): Non-recursive scan of media files directly in this folder
+         *     via ffprobe + DB insert — starts immediately, no deep traversal wait.
+         *   Phase 1 (folder discovery): List immediate subfolders and enqueue each as a PENDING
+         *     import queue item (deduped against existing queue URIs). Subfolders are then
+         *     processed recursively through the queue, each repeating the two-phase approach.
+         * Returns the number of newly imported videos in this folder (excluding subfolders).
          */
         private suspend fun scanFolderItem(item: FolderImportQueueItem): Int {
             val cacheDir = context.cacheDir
             val contentResolver = context.contentResolver
             var importedCount = 0
 
-            FolderScanner.scanMediaFiles(context, item.treeUri).collect { fileUri ->
+            // Phase 2: Process media files directly in this folder (non-recursive).
+            FolderScanner.scanMediaFilesInFolder(context, item.treeUri).collect { fileUri ->
                 try {
                     val fileName = fileUri.lastPathSegment ?: "unknown"
                     _importProgressMessage.value = fileName
@@ -203,6 +210,34 @@ class ImportManager
                     }
                 } catch (e: Exception) {
                     AppLogger.metadata("ImportFolder: Error probing $fileUri: ${e.message}")
+                }
+            }
+
+            // Phase 1: Discover immediate subfolders and enqueue them as PENDING items.
+            // Dedup against existing queue URIs so the same subfolder isn't queued twice.
+            // NOTE: We do NOT call takePersistableUriPermission() on each subfolder URI —
+            // those are child document URIs of the root tree URI, and the persistable
+            // permission granted on the root URI already covers them. Calling
+            // takePersistableUriPermission() on a child URI throws
+            // "No persistable permission granted" on many DocumentsProvider implementations.
+            val subfolderUris = FolderScanner.listSubfolderUris(context, item.treeUri)
+            val existingUris = _importQueue.value.map { it.treeUri }.toSet()
+            for (subUri in subfolderUris) {
+                if (subUri !in existingUris) {
+                    val subFolderName = deriveFolderName(subUri)
+                    val subItem =
+                        FolderImportQueueItem(
+                            id = nextId(),
+                            treeUri = subUri,
+                            folderName = subFolderName,
+                            status = FolderImportStatus.PENDING,
+                            importedCount = 0,
+                            errorMessage = null,
+                        )
+                    _importQueue.value = _importQueue.value + subItem
+                    AppLogger.metadata(
+                        "ImportFolder: Enqueued subfolder $subFolderName ($subUri)",
+                    )
                 }
             }
 

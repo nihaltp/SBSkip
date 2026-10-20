@@ -40,6 +40,41 @@ object FolderScanner {
             AppLogger.metadata("ImportFolder: Found $fileCount media files in scanned folder")
         }
 
+    /**
+     * Lists URIs of immediate subdirectories under [treeUri] (non-recursive).
+     * Used for Phase 1 of fast folder scanning: discover subfolders quickly
+     * so they can be enqueued as independent import queue items.
+     */
+    fun listSubfolderUris(
+        context: Context,
+        treeUri: Uri,
+    ): List<Uri> {
+        val root = DocumentFile.fromTreeUri(context, treeUri) ?: return emptyList()
+        return root.listFiles()?.filter { it.isDirectory }?.mapNotNull { it.uri } ?: emptyList()
+    }
+
+    /**
+     * Emits URIs of media files directly inside [treeUri] (non-recursive).
+     * Used for Phase 2 of fast folder scanning: process files in the current
+     * folder without waiting for a deep recursive traversal.
+     */
+    fun scanMediaFilesInFolder(
+        context: Context,
+        treeUri: Uri,
+    ): Flow<Uri> =
+        flow {
+            val root = DocumentFile.fromTreeUri(context, treeUri) ?: return@flow
+            val files = root.listFiles() ?: return@flow
+            for (file in files) {
+                if (file.isFile) {
+                    val name = file.name ?: continue
+                    if (isMediaFile(name)) {
+                        file.uri?.let { emit(it) }
+                    }
+                }
+            }
+        }
+
     private suspend fun walk(
         doc: DocumentFile,
         collector: FlowCollector<Uri>,
