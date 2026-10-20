@@ -22,6 +22,12 @@ interface DownloadedVideoDao {
     @Delete
     suspend fun delete(entity: DownloadedVideoEntity)
 
+    @Query("SELECT * FROM downloaded_videos WHERE videoId = :videoId LIMIT 1")
+    suspend fun findByVideoId(videoId: String): DownloadedVideoEntity?
+
+    @Query("SELECT * FROM downloaded_videos WHERE outputPath = :outputPath LIMIT 1")
+    suspend fun findByOutputPath(outputPath: String): DownloadedVideoEntity?
+
     @Query("DELETE FROM downloaded_videos")
     suspend fun deleteAll()
 }
