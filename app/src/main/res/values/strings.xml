@@ -244,6 +244,10 @@
     <!-- Import from Folder -->
     <string name="import_from_folder_title">Import from Folder</string>
     <string name="import_from_folder_scanning">Scanning folder…</string>
+    <string name="import_queue_section">Import Queue</string>
+    <string name="imported_count_format">%1$d imported</string>
+    <string name="snackbar_folder_imported">Imported “%1$s” (%2$d videos)</string>
+    <string name="unknown_folder">Unknown folder</string>
 
     <!-- Translation Section -->
     <string name="settings_section_translation">Translation</string>
