@@ -349,4 +349,19 @@
     <string name="onboarding_step_watchlist_desc">Add folders SBSkip should scan for downloaded files. This helps auto-detect your media. You can add, remove, or change folders anytime in Settings.</string>
     <string name="onboarding_step_watchlist_add">Add Folder</string>
     <string name="onboarding_step_watchlist_added">Folder added</string>
+
+    <!-- Duplicate Download Dialog -->
+    <string name="dialog_duplicate_download_title">Already Downloaded</string>
+    <string name="dialog_duplicate_download_message">This video is already in your downloaded videos. Download it again?</string>
+    <string name="dialog_duplicate_download_message_named">“%1$s” is already in your downloaded videos. Download it again?</string>
+    <string name="dialog_duplicate_download_again">Download Again</string>
+    <string name="dialog_duplicate_download_skip">Skip</string>
+    <string name="duplicate_download_skipped">Already downloaded, skipped.</string>
+
+    <!-- Already Downloaded Behavior Setting -->
+    <string name="settings_already_downloaded_title">Already Downloaded Videos</string>
+    <string name="settings_already_downloaded_desc">What to do when a video that you already downloaded is requested again.</string>
+    <string name="already_downloaded_behavior_ask">Ask every time</string>
+    <string name="already_downloaded_behavior_download_again">Download again</string>
+    <string name="already_downloaded_behavior_skip">Skip</string>
 </resources>

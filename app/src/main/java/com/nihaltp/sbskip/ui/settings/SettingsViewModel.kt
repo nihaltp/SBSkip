@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nihaltp.sbskip.data.repository.DownloadedVideoRepository
 import com.nihaltp.sbskip.data.repository.SettingsRepository
+import com.nihaltp.sbskip.model.AlreadyDownloadedBehavior
 import com.nihaltp.sbskip.model.AppSettings
 import com.nihaltp.sbskip.model.DownloaderType
 import com.nihaltp.sbskip.model.SponsorBlockCategory
@@ -179,6 +180,12 @@ class SettingsViewModel
         fun updateMaxDurationDifferenceSeconds(seconds: Int) {
             viewModelScope.launch {
                 settingsRepository.update { it.copy(maxDurationDifferenceSeconds = seconds) }
+            }
+        }
+
+        fun updateAlreadyDownloadedBehavior(behavior: AlreadyDownloadedBehavior) {
+            viewModelScope.launch {
+                settingsRepository.update { it.copy(alreadyDownloadedBehavior = behavior) }
             }
         }
 
