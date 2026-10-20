@@ -17,6 +17,10 @@ class DefaultDownloadedVideoRepository
 
         override suspend fun insert(video: DownloadedVideoEntity): Long = dao.insert(video)
 
+        override suspend fun findByVideoId(videoId: String): DownloadedVideoEntity? = dao.findByVideoId(videoId)
+
+        override suspend fun findByOutputPath(outputPath: String): DownloadedVideoEntity? = dao.findByOutputPath(outputPath)
+
         override suspend fun deleteById(id: Long) {
             dao.deleteById(id)
         }

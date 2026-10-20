@@ -15,7 +15,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.nihaltp.sbskip.ui.history.DownloadedHistoryScreen
-import com.nihaltp.sbskip.ui.history.ImportFromFolderScreen
 import com.nihaltp.sbskip.ui.main.MainScreen
 import com.nihaltp.sbskip.ui.main.MainViewModel
 import com.nihaltp.sbskip.ui.onboarding.OnboardingScreen
@@ -100,13 +99,6 @@ fun AppNavGraph(
 
         composable(Destination.DownloadedVideos.route) {
             DownloadedHistoryScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onImportFromFolder = { navController.navigate(Destination.ImportFromFolder.route) },
-            )
-        }
-
-        composable(Destination.ImportFromFolder.route) {
-            ImportFromFolderScreen(
                 onNavigateBack = { navController.popBackStack() },
             )
         }
