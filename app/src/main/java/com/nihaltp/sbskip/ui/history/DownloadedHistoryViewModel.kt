@@ -126,6 +126,15 @@ class DownloadedHistoryViewModel
             importManager.removeQueueItem(id)
         }
 
+        /**
+         * Removes a finished (COMPLETED/FAILED) item from the active import queue. The screen
+         * calls this once the result has been announced, so the queue only keeps the folders
+         * that are still pending or being scanned.
+         */
+        fun dismissCompletedItem(id: Long) {
+            importManager.dismissCompletedItem(id)
+        }
+
         private fun mediaTypeForUri(uri: Uri): String {
             val name = uri.lastPathSegment ?: ""
             val ext = name.substringAfterLast('.').lowercase()

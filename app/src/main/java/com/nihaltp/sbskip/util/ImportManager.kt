@@ -3,6 +3,7 @@ package com.nihaltp.sbskip.util
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.annotation.VisibleForTesting
 import androidx.documentfile.provider.DocumentFile
 import com.nihaltp.sbskip.data.repository.DownloadedVideoRepository
 import com.nihaltp.sbskip.model.DownloadedVideoEntity
@@ -13,6 +14,7 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -32,7 +34,14 @@ data class FolderImportQueueItem(
     val status: FolderImportStatus,
     val importedCount: Int,
     val errorMessage: String?,
-)
+) {
+    /**
+     * True once the item reached a terminal state (completed or failed). Terminal items are
+     * announced by the UI and then dropped from the active import queue.
+     */
+    val isTerminal: Boolean
+        get() = status == FolderImportStatus.COMPLETED || status == FolderImportStatus.FAILED
+}
 
 /**
  * Process-lifetime import manager. Owns the import queue and the sequential scanning coroutine,
@@ -65,6 +74,37 @@ class ImportManager
         }
 
         /**
+         * Appends an item to the queue while enforcing [MAX_QUEUE_SIZE]. When the queue is full
+         * the oldest PENDING items are dropped first (the item being added is never dropped);
+         * if there are not enough PENDING items, the oldest already finished items are dropped
+         * as well. This keeps the queue bounded even when the UI is not around to announce
+         * finished folders.
+         */
+        private fun enqueue(item: FolderImportQueueItem) {
+            _importQueue.update { queue ->
+                val next = queue + item
+                val overflow = next.size - MAX_QUEUE_SIZE
+                if (overflow <= 0) {
+                    next
+                } else {
+                    val dropIds =
+                        next.filter { it.status == FolderImportStatus.PENDING && it.id != item.id }
+                            .take(overflow)
+                            .map { it.id }
+                            .toMutableSet()
+                    if (dropIds.size < overflow) {
+                        val finished = next.filter { it.id !in dropIds && it.id != item.id }
+                        dropIds += finished.take(overflow - dropIds.size).map { it.id }
+                    }
+                    AppLogger.metadata(
+                        "ImportFolder: Queue full, dropped ${dropIds.size} old queue item(s)",
+                    )
+                    next.filterNot { it.id in dropIds }
+                }
+            }
+        }
+
+        /**
          * Enqueues a folder for import. Takes persistable URI permission at enqueue time so the
          * permission is held until the folder is actually scanned. If a scan is already running,
          * the folder is added as PENDING and scanned after the current one completes.
@@ -87,7 +127,7 @@ class ImportManager
                         errorMessage = null,
                     )
 
-                _importQueue.value = _importQueue.value + item
+                enqueue(item)
 
                 // If no scan is currently running, kick off the queue processor.
                 if (!_isImporting.value) {
@@ -106,8 +146,9 @@ class ImportManager
             if (pending == null) return
 
             val scanningItem = pending.copy(status = FolderImportStatus.SCANNING)
-            _importQueue.value =
-                _importQueue.value.map { if (it.id == pending.id) scanningItem else it }
+            _importQueue.update { queue ->
+                queue.map { if (it.id == pending.id) scanningItem else it }
+            }
 
             _isImporting.value = true
             _importProgressMessage.value = null
@@ -115,8 +156,8 @@ class ImportManager
             try {
                 withContext(Dispatchers.IO) {
                     val count = scanFolderItem(scanningItem)
-                    _importQueue.value =
-                        _importQueue.value.map {
+                    _importQueue.update { queue ->
+                        queue.map {
                             if (it.id == scanningItem.id) {
                                 scanningItem.copy(
                                     status = FolderImportStatus.COMPLETED,
@@ -126,19 +167,21 @@ class ImportManager
                                 it
                             }
                         }
+                    }
                     AppLogger.metadata(
                         "ImportFolder: Completed queue item ${scanningItem.folderName} ($count imported)",
                     )
                 }
             } catch (e: Exception) {
-                _importQueue.value =
-                    _importQueue.value.map {
+                _importQueue.update { queue ->
+                    queue.map {
                         if (it.id == scanningItem.id) {
                             scanningItem.copy(status = FolderImportStatus.FAILED, errorMessage = e.message)
                         } else {
                             it
                         }
                     }
+                }
                 AppLogger.metadata("ImportFolder: Failed queue item ${scanningItem.folderName}: ${e.message}")
             } finally {
                 _isImporting.value = false
@@ -234,7 +277,7 @@ class ImportManager
                             importedCount = 0,
                             errorMessage = null,
                         )
-                    _importQueue.value = _importQueue.value + subItem
+                    enqueue(subItem)
                     AppLogger.metadata(
                         "ImportFolder: Enqueued subfolder $subFolderName ($subUri)",
                     )
@@ -245,14 +288,34 @@ class ImportManager
         }
 
         /**
-         * Removes a PENDING or FAILED queue item (e.g. user-initiated cancel). Items that are
-         * COMPLETED or currently SCANNING are left in place to preserve history.
+         * Removes a PENDING, FAILED or COMPLETED queue item (e.g. user-initiated cancel).
+         * The item that is currently SCANNING is left in place so the running scan is not
+         * interrupted.
          */
         fun removeQueueItem(id: Long) {
-            _importQueue.value =
-                _importQueue.value.filterNot {
-                    it.id == id && it.status in setOf(FolderImportStatus.PENDING, FolderImportStatus.FAILED)
+            _importQueue.update { queue ->
+                queue.filterNot {
+                    it.id == id && it.status != FolderImportStatus.SCANNING
                 }
+            }
+        }
+
+        /**
+         * Removes a finished (COMPLETED or FAILED) item from the active import queue. The UI
+         * calls this once the result has been announced to the user, so that the queue only
+         * keeps the folders that are still pending or being scanned.
+         */
+        fun dismissCompletedItem(id: Long) {
+            _importQueue.update { queue -> queue.filterNot { it.id == id && it.isTerminal } }
+        }
+
+        /**
+         * Adds a queue item without triggering a scan. Used by tests to exercise the queue
+         * bookkeeping (size cap, removal) without running an actual folder import.
+         */
+        @VisibleForTesting
+        internal fun enqueueForTesting(item: FolderImportQueueItem) {
+            enqueue(item)
         }
 
         private fun deriveFolderName(treeUri: Uri): String? {
@@ -265,5 +328,14 @@ class ImportManager
             val name = uri.lastPathSegment ?: ""
             val ext = name.substringAfterLast('.').lowercase()
             return if (ext in setOf("mp4", "m4v", "mov", "avi", "wmv", "flv")) "video" else "audio"
+        }
+
+        companion object {
+            /**
+             * Hard cap on the number of entries kept in the import queue. Older PENDING entries
+             * are dropped first, so the queue can never grow without bound (e.g. when the
+             * Downloaded History screen is not open to announce finished folders).
+             */
+            const val MAX_QUEUE_SIZE = 50
         }
     }
