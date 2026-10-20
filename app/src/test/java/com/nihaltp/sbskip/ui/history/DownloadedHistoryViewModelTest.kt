@@ -2,6 +2,7 @@ package com.nihaltp.sbskip.ui.history
 
 import com.nihaltp.sbskip.data.repository.DownloadedVideoRepository
 import com.nihaltp.sbskip.model.DownloadedVideoEntity
+import com.nihaltp.sbskip.util.FfmpegMetadataReader
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -36,14 +37,16 @@ class DownloadedHistoryViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
 
     private lateinit var downloadedVideoRepository: DownloadedVideoRepository
+    private lateinit var ffmpegMetadataReader: FfmpegMetadataReader
     private lateinit var viewModel: DownloadedHistoryViewModel
 
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         downloadedVideoRepository = mockk(relaxed = true)
+        ffmpegMetadataReader = mockk(relaxed = true)
         every { downloadedVideoRepository.observeDownloadedVideos } returns flowOf(emptyList())
-        viewModel = DownloadedHistoryViewModel(downloadedVideoRepository)
+        viewModel = DownloadedHistoryViewModel(downloadedVideoRepository, ffmpegMetadataReader, mockk())
     }
 
     @After
@@ -75,7 +78,7 @@ class DownloadedHistoryViewModelTest {
                 )
             every { downloadedVideoRepository.observeDownloadedVideos } returns flowOf(expected)
 
-            viewModel = DownloadedHistoryViewModel(downloadedVideoRepository)
+            viewModel = DownloadedHistoryViewModel(downloadedVideoRepository, ffmpegMetadataReader, mockk())
 
             // first() returns initialValue (emptyList); skip it to get the upstream emission.
             assertEquals(expected, viewModel.videos.first { it.isNotEmpty() })

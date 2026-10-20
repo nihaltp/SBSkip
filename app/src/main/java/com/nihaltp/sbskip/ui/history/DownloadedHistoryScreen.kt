@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -20,10 +21,14 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.outlined.DeleteSweep
 import androidx.compose.material3.BottomAppBar
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -41,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nihaltp.sbskip.R
@@ -49,13 +55,14 @@ import com.nihaltp.sbskip.R
 @Composable
 fun DownloadedHistoryScreen(
     onNavigateBack: () -> Unit,
-    onImportFromFolder: () -> Unit,
     viewModel: DownloadedHistoryViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
     val videos by viewModel.videos.collectAsState()
     val selectedIds by viewModel.selectedIds.collectAsState()
     val selectedCount by viewModel.selectedCount.collectAsState()
+    val isImporting by viewModel.isImporting.collectAsState()
+    val importProgressMessage by viewModel.importProgressMessage.collectAsState()
 
     val lazyListState = rememberLazyListState()
 
@@ -68,6 +75,19 @@ fun DownloadedHistoryScreen(
             visibleItemCount > 0 && selectedIds.size == visibleItemCount
         }
     }
+
+    val importLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.OpenDocumentTree(),
+        ) { uri ->
+            uri?.let {
+                context.contentResolver.takePersistableUriPermission(
+                    it,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                )
+                viewModel.scanAndImportFolder(context, it)
+            }
+        }
 
     BackHandler(isSelectEnabled) {
         if (isSelectEnabled) {
@@ -111,7 +131,8 @@ fun DownloadedHistoryScreen(
                             }
                         }
                         IconButton(
-                            onClick = onImportFromFolder,
+                            onClick = { importLauncher.launch(null) },
+                            enabled = !isImporting,
                             modifier = Modifier,
                         ) {
                             Icon(
@@ -158,84 +179,129 @@ fun DownloadedHistoryScreen(
         },
         snackbarHost = { SnackbarHost(hostState = remember { SnackbarHostState() }) },
     ) { paddingValues ->
-        if (videos.isEmpty()) {
-            Column(
-                modifier = Modifier.fillMaxSize().padding(paddingValues),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.History,
-                    contentDescription = null,
-                    modifier = Modifier.size(64.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                )
-                Text(
-                    text = stringResource(id = R.string.downloaded_history_empty_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(top = 16.dp),
-                )
-                Text(
-                    text = stringResource(id = R.string.downloaded_history_empty_body),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    modifier = Modifier.padding(top = 8.dp),
-                )
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(paddingValues),
-                state = lazyListState,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                items(
-                    items = videos,
-                    key = { it.id },
-                ) { video ->
-                    with(video) {
-                        MediaListItem(
-                            modifier = Modifier,
-                            title = title,
-                            author = author ?: "",
-                            thumbnailUrl = thumbnailUrl,
-                            videoPath = outputPath ?: "",
-                            fileSize = fileSize,
-                            mediaType = mediaType,
-                            isSelectEnabled = { isSelectEnabled },
-                            isSelected = { selectedIds.contains(id) },
-                            onSelect = {
-                                viewModel.toggleSelection(id)
-                            },
-                            onClick = {
-                                if (isSelectEnabled) {
-                                    viewModel.toggleSelection(id)
-                                } else {
-                                    viewModel.deleteVideo(id)
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+        ) {
+            if (isImporting) {
+                Card(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        ),
+                ) {
+                    Column(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(id = R.string.import_from_folder_scanning),
+                                    style = MaterialTheme.typography.titleSmall,
+                                )
+                                importProgressMessage?.let { filename ->
+                                    Text(
+                                        text = filename,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
                                 }
-                            },
-                            onLongClick = {
-                                isSelectEnabled = true
-                                viewModel.toggleSelection(id)
-                            },
-                            onShowContextMenu = {
-                            },
-                        )
+                            }
+                        }
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    }
+                }
+            }
+
+            if (videos.isEmpty() && !isImporting) {
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.History,
+                        contentDescription = null,
+                        modifier = Modifier.size(64.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                    )
+                    Text(
+                        text = stringResource(id = R.string.downloaded_history_empty_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(top = 16.dp),
+                    )
+                    Text(
+                        text = stringResource(id = R.string.downloaded_history_empty_body),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    state = lazyListState,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items(
+                        items = videos,
+                        key = { it.id },
+                    ) { video ->
+                        with(video) {
+                            MediaListItem(
+                                modifier = Modifier,
+                                title = title,
+                                author = author ?: "",
+                                thumbnailUrl = thumbnailUrl,
+                                videoPath = outputPath ?: "",
+                                fileSize = fileSize,
+                                mediaType = mediaType,
+                                isSelectEnabled = { isSelectEnabled },
+                                isSelected = { selectedIds.contains(id) },
+                                onSelect = {
+                                    viewModel.toggleSelection(id)
+                                },
+                                onClick = {
+                                    if (isSelectEnabled) {
+                                        viewModel.toggleSelection(id)
+                                    } else {
+                                        viewModel.deleteVideo(id)
+                                    }
+                                },
+                                onLongClick = {
+                                    isSelectEnabled = true
+                                    viewModel.toggleSelection(id)
+                                },
+                                onShowContextMenu = {
+                                },
+                            )
+                        }
                     }
                 }
             }
         }
     }
-
-    val importLauncher =
-        rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.OpenDocumentTree(),
-        ) { uri ->
-            uri?.let {
-                context.contentResolver.takePersistableUriPermission(
-                    it,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
-                )
-                onImportFromFolder()
-            }
-        }
 }
