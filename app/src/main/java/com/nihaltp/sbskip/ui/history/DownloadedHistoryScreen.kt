@@ -8,11 +8,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
@@ -53,6 +56,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.nihaltp.sbskip.R
 import com.nihaltp.sbskip.util.FolderImportStatus
 
+/**
+ * Maximum height of the import queue list. The list scrolls on its own, so a long queue never
+ * pushes the downloaded video list off-screen.
+ */
+private val IMPORT_QUEUE_MAX_HEIGHT = 240.dp
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DownloadedHistoryScreen(
@@ -68,22 +77,38 @@ fun DownloadedHistoryScreen(
     val importQueue by viewModel.importQueue.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
-    var announcedCompleteIds by remember { mutableStateOf(emptySet<Long>()) }
+    var announcedTerminalIds by remember { mutableStateOf(emptySet<Long>()) }
 
-    // Announce a snackbar when a queued folder completes importing.
-    LaunchedEffect(importQueue) {
-        val newlyCompleted =
-            importQueue.filter { it.status == FolderImportStatus.COMPLETED && it.id !in announcedCompleteIds }
-        newlyCompleted.forEach { item ->
-            announcedCompleteIds += item.id
-            snackbarHostState.showSnackbar(
-                message =
-                    context.getString(
-                        R.string.snackbar_folder_imported,
-                        item.folderName ?: context.getString(R.string.unknown_folder),
-                        item.importedCount,
-                    ),
-            )
+    // Announce finished queue items (COMPLETED/FAILED) with a snackbar and then drop them from
+    // the active import queue. The queue is collected with a stable key so that purging an item
+    // from the queue does not cancel an in-flight announcement.
+    LaunchedEffect(Unit) {
+        viewModel.importQueue.collect { queue ->
+            // Forget ids that already left the queue, so the set cannot grow forever.
+            announcedTerminalIds = announcedTerminalIds.intersect(queue.map { it.id }.toSet())
+            queue.filter { it.isTerminal }.forEach { item ->
+                if (item.id in announcedTerminalIds) return@forEach
+                announcedTerminalIds = announcedTerminalIds + item.id
+                // The snackbar is the record of the result: drop the row from the active queue
+                // right away so only PENDING/SCANNING items stay visible.
+                viewModel.dismissCompletedItem(item.id)
+                snackbarHostState.showSnackbar(
+                    message =
+                        if (item.status == FolderImportStatus.COMPLETED) {
+                            context.getString(
+                                R.string.snackbar_folder_imported,
+                                item.folderName ?: context.getString(R.string.unknown_folder),
+                                item.importedCount,
+                            )
+                        } else {
+                            context.getString(
+                                R.string.snackbar_folder_import_failed,
+                                item.folderName ?: context.getString(R.string.unknown_folder),
+                                item.errorMessage ?: context.getString(R.string.unknown_error),
+                            )
+                        },
+                )
+            }
         }
     }
 
@@ -273,65 +298,76 @@ fun DownloadedHistoryScreen(
                             text = stringResource(id = R.string.import_queue_section),
                             style = MaterialTheme.typography.titleSmall,
                         )
-                        importQueue.forEach { queueItem ->
-                            Row(
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text =
-                                            queueItem.folderName
-                                                ?: context.getString(R.string.unknown_folder),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                    Text(
-                                        text = queueStatusText(queueItem.status),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = queueStatusColor(queueItem.status),
-                                        maxLines = 1,
-                                    )
-                                }
-                                Column(
+                        // The queue list is bounded and scrolls on its own, so a long queue can
+                        // never push the video list below it off-screen.
+                        Column(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(max = IMPORT_QUEUE_MAX_HEIGHT)
+                                    .verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            importQueue.forEach { queueItem ->
+                                Row(
                                     modifier =
                                         Modifier
-                                            .padding(start = 8.dp)
-                                            .weight(1f, fill = false),
-                                    horizontalAlignment = Alignment.End,
+                                            .fillMaxWidth()
+                                            .padding(vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                    Text(
-                                        text =
-                                            stringResource(
-                                                id = R.string.imported_count_format,
-                                                queueItem.importedCount,
-                                            ),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                    if (queueItem.status == FolderImportStatus.FAILED) {
+                                    Column(modifier = Modifier.weight(1f)) {
                                         Text(
-                                            text = queueItem.errorMessage ?: "",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.error,
+                                            text =
+                                                queueItem.folderName
+                                                    ?: context.getString(R.string.unknown_folder),
+                                            style = MaterialTheme.typography.bodyMedium,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis,
                                         )
-                                    } else if (queueItem.status == FolderImportStatus.PENDING) {
-                                        IconButton(
-                                            onClick = {
-                                                viewModel.removeQueueItem(queueItem.id)
-                                                announcedCompleteIds -= queueItem.id
-                                            },
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Delete,
-                                                contentDescription = stringResource(id = R.string.remove),
+                                        Text(
+                                            text = queueStatusText(queueItem.status),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = queueStatusColor(queueItem.status),
+                                            maxLines = 1,
+                                        )
+                                    }
+                                    Column(
+                                        modifier =
+                                            Modifier
+                                                .padding(start = 8.dp)
+                                                .weight(1f, fill = false),
+                                        horizontalAlignment = Alignment.End,
+                                    ) {
+                                        Text(
+                                            text =
+                                                stringResource(
+                                                    id = R.string.imported_count_format,
+                                                    queueItem.importedCount,
+                                                ),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                        if (queueItem.status == FolderImportStatus.FAILED) {
+                                            Text(
+                                                text = queueItem.errorMessage ?: "",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.error,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
                                             )
+                                        } else if (queueItem.status == FolderImportStatus.PENDING) {
+                                            IconButton(
+                                                onClick = {
+                                                    viewModel.removeQueueItem(queueItem.id)
+                                                    announcedTerminalIds -= queueItem.id
+                                                },
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Delete,
+                                                    contentDescription = stringResource(id = R.string.remove),
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -345,7 +381,8 @@ fun DownloadedHistoryScreen(
                 Column(
                     modifier =
                         Modifier
-                            .fillMaxSize()
+                            .weight(1f)
+                            .fillMaxWidth()
                             .padding(16.dp),
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -370,7 +407,10 @@ fun DownloadedHistoryScreen(
                 }
             } else {
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
                     state = lazyListState,
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {

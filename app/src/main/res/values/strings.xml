@@ -245,7 +245,9 @@
     <string name="import_queue_section">Import Queue</string>
     <string name="imported_count_format">%1$d imported</string>
     <string name="snackbar_folder_imported">Imported “%1$s” (%2$d videos)</string>
+    <string name="snackbar_folder_import_failed">Failed to import “%1$s” (%2$s)</string>
     <string name="unknown_folder">Unknown folder</string>
+    <string name="unknown_error">Unknown error</string>
 
     <!-- Translation Section -->
     <string name="settings_section_translation">Translation</string>
