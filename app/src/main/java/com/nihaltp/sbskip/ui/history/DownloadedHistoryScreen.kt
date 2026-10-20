@@ -1,6 +1,5 @@
 package com.nihaltp.sbskip.ui.history
 
-import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -36,6 +35,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -44,6 +44,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -63,6 +64,27 @@ fun DownloadedHistoryScreen(
     val selectedCount by viewModel.selectedCount.collectAsState()
     val isImporting by viewModel.isImporting.collectAsState()
     val importProgressMessage by viewModel.importProgressMessage.collectAsState()
+    val importQueue by viewModel.importQueue.collectAsState()
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    var announcedCompleteIds by remember { mutableStateOf(emptySet<Long>()) }
+
+    // Announce a snackbar when a queued folder completes importing.
+    LaunchedEffect(importQueue) {
+        val newlyCompleted =
+            importQueue.filter { it.status == FolderImportStatus.COMPLETED && it.id !in announcedCompleteIds }
+        newlyCompleted.forEach { item ->
+            announcedCompleteIds += item.id
+            snackbarHostState.showSnackbar(
+                message =
+                    context.getString(
+                        R.string.snackbar_folder_imported,
+                        item.folderName ?: context.getString(R.string.unknown_folder),
+                        item.importedCount,
+                    ),
+            )
+        }
+    }
 
     val lazyListState = rememberLazyListState()
 
@@ -81,10 +103,6 @@ fun DownloadedHistoryScreen(
             contract = ActivityResultContracts.OpenDocumentTree(),
         ) { uri ->
             uri?.let {
-                context.contentResolver.takePersistableUriPermission(
-                    it,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
-                )
                 viewModel.scanAndImportFolder(context, it)
             }
         }
@@ -132,7 +150,6 @@ fun DownloadedHistoryScreen(
                         }
                         IconButton(
                             onClick = { importLauncher.launch(null) },
-                            enabled = !isImporting,
                             modifier = Modifier,
                         ) {
                             Icon(
@@ -177,7 +194,7 @@ fun DownloadedHistoryScreen(
                 }
             }
         },
-        snackbarHost = { SnackbarHost(hostState = remember { SnackbarHostState() }) },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
     ) { paddingValues ->
         Column(
             modifier =
@@ -229,6 +246,96 @@ fun DownloadedHistoryScreen(
                             }
                         }
                         LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    }
+                }
+            }
+
+            if (importQueue.isNotEmpty()) {
+                Card(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        ),
+                ) {
+                    Column(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text(
+                            text = stringResource(id = R.string.import_queue_section),
+                            style = MaterialTheme.typography.titleSmall,
+                        )
+                        importQueue.forEach { queueItem ->
+                            Row(
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text =
+                                            queueItem.folderName
+                                                ?: context.getString(R.string.unknown_folder),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                    Text(
+                                        text = queueStatusText(queueItem.status),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = queueStatusColor(queueItem.status),
+                                        maxLines = 1,
+                                    )
+                                }
+                                Column(
+                                    modifier =
+                                        Modifier
+                                            .padding(start = 8.dp)
+                                            .weight(1f, fill = false),
+                                    horizontalAlignment = Alignment.End,
+                                ) {
+                                    Text(
+                                        text =
+                                            stringResource(
+                                                id = R.string.imported_count_format,
+                                                queueItem.importedCount,
+                                            ),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    if (queueItem.status == FolderImportStatus.FAILED) {
+                                        Text(
+                                            text = queueItem.errorMessage ?: "",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.error,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                        )
+                                    } else if (queueItem.status == FolderImportStatus.PENDING) {
+                                        IconButton(
+                                            onClick = {
+                                                viewModel.removeQueueItem(queueItem.id)
+                                                announcedCompleteIds -= queueItem.id
+                                            },
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Delete,
+                                                contentDescription = stringResource(id = R.string.remove),
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -305,3 +412,21 @@ fun DownloadedHistoryScreen(
         }
     }
 }
+
+@Composable
+private fun queueStatusText(status: FolderImportStatus): String =
+    when (status) {
+        FolderImportStatus.PENDING -> "Pending"
+        FolderImportStatus.SCANNING -> "Scanning"
+        FolderImportStatus.COMPLETED -> "Completed"
+        FolderImportStatus.FAILED -> "Failed"
+    }
+
+@Composable
+private fun queueStatusColor(status: FolderImportStatus): Color =
+    when (status) {
+        FolderImportStatus.PENDING -> MaterialTheme.colorScheme.onSurfaceVariant
+        FolderImportStatus.SCANNING -> MaterialTheme.colorScheme.primary
+        FolderImportStatus.COMPLETED -> MaterialTheme.colorScheme.primaryContainer
+        FolderImportStatus.FAILED -> MaterialTheme.colorScheme.error
+    }
