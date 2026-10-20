@@ -79,10 +79,12 @@ fun AppNavGraph(
                 onDismissPermissionRevokedDialog = viewModel::dismissPermissionRevokedDialog,
                 onSearchNow = viewModel::triggerAutoDetectNow,
                 onSkipPlaylistVideo = viewModel::skipPlaylistVideo,
-                onDownloadPlaylistVideo = viewModel::downloadPlaylistVideo,
+                onDownloadPlaylistVideo = { viewModel.downloadPlaylistVideo() },
                 onCancelPlaylistDownload = viewModel::cancelPlaylistDownload,
                 onPlaylistConvertVideoToAudioChanged = viewModel::setPlaylistConvertVideoToAudio,
                 onPlaylistDeleteOriginalVideoChanged = viewModel::setPlaylistDeleteOriginalVideo,
+                onProceedDuplicateDownload = viewModel::proceedDuplicateDownload,
+                onSkipDuplicateDownload = viewModel::skipDuplicateDownload,
             )
         }
 

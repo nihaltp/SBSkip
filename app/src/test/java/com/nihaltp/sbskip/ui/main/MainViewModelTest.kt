@@ -2,6 +2,7 @@ package com.nihaltp.sbskip.ui.main
 
 import android.content.Context
 import android.content.pm.PackageManager
+import com.nihaltp.sbskip.data.repository.DownloadedVideoRepository
 import com.nihaltp.sbskip.data.repository.QueueRepository
 import com.nihaltp.sbskip.data.repository.SettingsRepository
 import com.nihaltp.sbskip.model.AppSettings
@@ -35,6 +36,7 @@ class MainViewModelTest {
     private lateinit var context: Context
     private lateinit var queueRepository: QueueRepository
     private lateinit var settingsRepository: SettingsRepository
+    private lateinit var downloadedVideoRepository: DownloadedVideoRepository
     private lateinit var downloadStorage: DownloadStorage
 
     private lateinit var viewModel: MainViewModel
@@ -55,6 +57,7 @@ class MainViewModelTest {
 
         queueRepository = mockk(relaxed = true)
         settingsRepository = mockk(relaxed = true)
+        downloadedVideoRepository = mockk(relaxed = true)
         downloadStorage = mockk(relaxed = true)
 
         coEvery { settingsRepository.settings } returns flowOf(AppSettings())
@@ -64,6 +67,7 @@ class MainViewModelTest {
             MainViewModel(
                 queueRepository = queueRepository,
                 settingsRepository = settingsRepository,
+                downloadedVideoRepository = downloadedVideoRepository,
                 downloadStorage = downloadStorage,
                 context = context,
             )
@@ -523,5 +527,171 @@ class MainViewModelTest {
             val state = viewModel.uiState.value
             assert(!state.showDurationMismatchDialog) { "showDurationMismatchDialog should be false after dismiss" }
             assert(state.pendingEnqueueData == null) { "pendingEnqueueData should be null after dismiss" }
+        }
+
+    // ── feat: duplicate download detection ───────────────────────────────────
+
+    private val duplicateVideoId = "aaaaaaaaaaa"
+
+    private fun markAsDownloaded(videoId: String = duplicateVideoId) {
+        coEvery { downloadedVideoRepository.findByVideoId(videoId) } returns
+            com.nihaltp.sbskip.model.DownloadedVideoEntity(
+                videoId = videoId,
+                url = "https://www.youtube.com/watch?v=$videoId",
+                title = "Already Downloaded",
+                outputPath = "content://media/$videoId",
+                mediaType = MediaType.VIDEO.name,
+            )
+    }
+
+    private fun setBehavior(behavior: com.nihaltp.sbskip.model.AlreadyDownloadedBehavior) {
+        coEvery { settingsRepository.settings } returns
+            flowOf(AppSettings(alreadyDownloadedBehavior = behavior))
+    }
+
+    private fun injectPlaylist(vararg videoIds: String) {
+        injectUiState {
+            it.copy(
+                playlistDownloadState =
+                    com.nihaltp.sbskip.model.PlaylistDownloadState(
+                        playlistId = "PL123",
+                        title = "My Playlist",
+                        videos =
+                            videoIds.mapIndexed { index, id ->
+                                com.nihaltp.sbskip.model.PlaylistVideo(id, "Video $index", null)
+                            },
+                        currentIndex = 0,
+                    ),
+            )
+        }
+    }
+
+    @Test
+    fun `downloadPlaylistVideo asks before downloading an already downloaded video`() =
+        runTest(testDispatcher) {
+            setBehavior(com.nihaltp.sbskip.model.AlreadyDownloadedBehavior.ASK)
+            markAsDownloaded()
+            injectPlaylist(duplicateVideoId, "bbbbbbbbbbb")
+
+            viewModel.downloadPlaylistVideo()
+            testDispatcher.scheduler.runCurrent()
+
+            val state = viewModel.uiState.value
+            assert(state.showDuplicateDownloadDialog) { "Expected the duplicate dialog to be shown" }
+            assert(state.duplicateVideoInfo?.videoId == duplicateVideoId) {
+                "Expected duplicateVideoInfo to reference the duplicated video"
+            }
+            assert(state.duplicateVideoInfo?.isFromPlaylist == true) {
+                "Expected the duplicate to be flagged as a playlist video"
+            }
+            assert(state.pendingDownloads.isEmpty()) { "No pending download should be created before confirming" }
+            assert(state.playlistDownloadState?.currentIndex == 0) {
+                "The playlist should not advance while the dialog is open"
+            }
+        }
+
+    @Test
+    fun `downloadPlaylistVideo skips an already downloaded video when behavior is SKIP`() =
+        runTest(testDispatcher) {
+            setBehavior(com.nihaltp.sbskip.model.AlreadyDownloadedBehavior.SKIP)
+            markAsDownloaded()
+            injectPlaylist(duplicateVideoId, "bbbbbbbbbbb")
+
+            viewModel.downloadPlaylistVideo()
+            testDispatcher.scheduler.runCurrent()
+
+            val state = viewModel.uiState.value
+            assert(!state.showDuplicateDownloadDialog) { "No dialog should be shown when skipping" }
+            assert(state.pendingDownloads.isEmpty()) { "No pending download should be created when skipping" }
+            assert(state.playlistDownloadState?.currentIndex == 1) {
+                "The playlist should advance to the next video when skipping"
+            }
+        }
+
+    @Test
+    fun `downloadPlaylistVideo downloads an already downloaded video when behavior is DOWNLOAD_AGAIN`() =
+        runTest(testDispatcher) {
+            setBehavior(com.nihaltp.sbskip.model.AlreadyDownloadedBehavior.DOWNLOAD_AGAIN)
+            markAsDownloaded()
+            injectPlaylist(duplicateVideoId, "bbbbbbbbbbb")
+
+            viewModel.downloadPlaylistVideo()
+            testDispatcher.scheduler.runCurrent()
+
+            val state = viewModel.uiState.value
+            assert(!state.showDuplicateDownloadDialog) { "No dialog should be shown when downloading again" }
+            assert(state.pendingDownloads.any { it.videoId == duplicateVideoId }) {
+                "Expected a pending download for the duplicated video"
+            }
+            assert(state.playlistDownloadState?.currentIndex == 1) {
+                "The playlist should advance after the video is queued"
+            }
+        }
+
+    @Test
+    fun `proceedDuplicateDownload queues the video of a playlist`() =
+        runTest(testDispatcher) {
+            setBehavior(com.nihaltp.sbskip.model.AlreadyDownloadedBehavior.ASK)
+            markAsDownloaded()
+            injectPlaylist(duplicateVideoId, "bbbbbbbbbbb")
+
+            viewModel.downloadPlaylistVideo()
+            testDispatcher.scheduler.runCurrent()
+
+            viewModel.proceedDuplicateDownload()
+            testDispatcher.scheduler.runCurrent()
+
+            val state = viewModel.uiState.value
+            assert(!state.showDuplicateDownloadDialog) { "The dialog should be closed after confirming" }
+            assert(state.duplicateVideoInfo == null) { "The duplicate info should be cleared after confirming" }
+            assert(state.pendingDownloads.any { it.videoId == duplicateVideoId }) {
+                "Expected a pending download for the confirmed video"
+            }
+        }
+
+    @Test
+    fun `skipDuplicateDownload advances the playlist without queueing the video`() =
+        runTest(testDispatcher) {
+            setBehavior(com.nihaltp.sbskip.model.AlreadyDownloadedBehavior.ASK)
+            markAsDownloaded()
+            injectPlaylist(duplicateVideoId, "bbbbbbbbbbb")
+
+            viewModel.downloadPlaylistVideo()
+            testDispatcher.scheduler.runCurrent()
+
+            viewModel.skipDuplicateDownload()
+            testDispatcher.scheduler.runCurrent()
+
+            val state = viewModel.uiState.value
+            assert(!state.showDuplicateDownloadDialog) { "The dialog should be closed after skipping" }
+            assert(state.duplicateVideoInfo == null) { "The duplicate info should be cleared after skipping" }
+            assert(state.pendingDownloads.isEmpty()) { "No pending download should be created after skipping" }
+            assert(state.playlistDownloadState?.currentIndex == 1) {
+                "The playlist should advance to the next video after skipping"
+            }
+        }
+
+    @Test
+    fun `startDownloadAndClean asks before downloading an already downloaded video`() =
+        runTest(testDispatcher) {
+            setBehavior(com.nihaltp.sbskip.model.AlreadyDownloadedBehavior.ASK)
+            markAsDownloaded()
+            injectUiState {
+                it.copy(
+                    isNewPipeInstalled = true,
+                    urlInput = "https://www.youtube.com/watch?v=$duplicateVideoId",
+                )
+            }
+
+            viewModel.startDownloadAndClean()
+            testDispatcher.scheduler.runCurrent()
+
+            val state = viewModel.uiState.value
+            assert(state.showDuplicateDownloadDialog) { "Expected the duplicate dialog to be shown" }
+            assert(state.duplicateVideoInfo?.videoId == duplicateVideoId) {
+                "Expected duplicateVideoInfo to reference the duplicated video"
+            }
+            assert(state.pendingDownloads.isEmpty()) { "No pending download should be created before confirming" }
+            assert(!state.isFetchingMetadata) { "The metadata loading state should be reset when the dialog is shown" }
         }
 }

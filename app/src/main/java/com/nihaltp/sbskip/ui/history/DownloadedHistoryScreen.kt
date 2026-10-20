@@ -435,9 +435,8 @@ fun DownloadedHistoryScreen(
                                 onClick = {
                                     if (isSelectEnabled) {
                                         viewModel.toggleSelection(id)
-                                    } else {
-                                        viewModel.deleteVideo(id)
                                     }
+                                    // Outside of selection mode a tap does nothing
                                 },
                                 onLongClick = {
                                     isSelectEnabled = true
