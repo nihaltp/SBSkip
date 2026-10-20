@@ -8,8 +8,10 @@ import androidx.lifecycle.viewModelScope
 import com.nihaltp.sbskip.data.repository.DownloadedVideoRepository
 import com.nihaltp.sbskip.model.DownloadedVideoEntity
 import com.nihaltp.sbskip.util.AppLogger
+import com.nihaltp.sbskip.util.Constants
 import com.nihaltp.sbskip.util.FfmpegMetadataReader
 import com.nihaltp.sbskip.util.FolderScanner
+import com.nihaltp.sbskip.util.parser.YouTubeUrlParser
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -126,34 +128,37 @@ class DownloadedHistoryViewModel
                                 val metadata =
                                     ffmpegMetadataReader.readMetadata(contentResolver, fileUri, cacheDir)
                                 val youtubeId = metadata.youtubeId
+                                // Sanitize the youtubeId: strip query parameters (e.g. "?overwrite=true")
+                                // and keep only a clean 11-character YouTube video ID before storing it.
+                                val cleanYoutubeId = youtubeId?.let { YouTubeUrlParser.cleanVideoId(it) }
 
-                                if (youtubeId != null) {
+                                if (cleanYoutubeId != null) {
                                     // Duplicate detection:
                                     // Check if a video with this videoId or this outputPath already exists in Room
-                                    val existingById = downloadedVideoRepository.findByVideoId(youtubeId)
+                                    val existingById = downloadedVideoRepository.findByVideoId(cleanYoutubeId)
                                     val existingByPath =
                                         downloadedVideoRepository.findByOutputPath(fileUri.toString())
 
                                     if (existingById == null && existingByPath == null) {
                                         val entity =
                                             DownloadedVideoEntity(
-                                                videoId = youtubeId,
+                                                videoId = cleanYoutubeId,
                                                 url =
                                                     metadata.youtubeUrl
-                                                        ?: "https://www.youtube.com/watch?v=$youtubeId",
+                                                        ?: Constants.buildYouTubeWatchUrl(cleanYoutubeId),
                                                 title = metadata.youtubeTitle ?: fileName,
                                                 author = metadata.authorName,
                                                 thumbnailUrl =
-                                                    "https://img.youtube.com/vi/$youtubeId/mqdefault.jpg",
+                                                    Constants.buildYouTubeThumbnailUrl(cleanYoutubeId),
                                                 durationSeconds = null,
                                                 outputPath = fileUri.toString(),
                                                 fileSize = metadata.fileSize,
                                                 mediaType = mediaTypeForUri(fileUri),
                                             )
                                         downloadedVideoRepository.insert(entity)
-                                        AppLogger.metadata("ImportFolder: Imported video $youtubeId ($fileName)")
+                                        AppLogger.metadata("ImportFolder: Imported video $cleanYoutubeId ($fileName)")
                                     } else {
-                                        AppLogger.metadata("ImportFolder: Skipping duplicate $youtubeId ($fileName)")
+                                        AppLogger.metadata("ImportFolder: Skipping duplicate $cleanYoutubeId ($fileName)")
                                     }
                                 }
                             } catch (e: Exception) {

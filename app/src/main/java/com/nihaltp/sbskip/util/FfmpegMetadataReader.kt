@@ -3,6 +3,7 @@ package com.nihaltp.sbskip.util
 import android.content.ContentResolver
 import android.net.Uri
 import com.arthenica.ffmpegkit.FFprobeKit
+import com.nihaltp.sbskip.util.parser.YouTubeUrlParser
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
@@ -112,13 +113,21 @@ class FfmpegMetadataReader
                         }
                     }
 
-                    if (youtubeId == null) {
-                        AppLogger.metadata("ImportFolder: No YOUTUBE_VIDEO_ID found in $fileName (tags: $tags)")
+                    // Sanitize the youtubeId read from the file tags: strip query parameters
+                    // (e.g. "?overwrite=true" appended as an overwrite signal) and keep only a
+                    // clean 11-character YouTube video ID. This stops corrupted IDs stored in the
+                    // file metadata from being persisted to the database and used in thumbnail URLs.
+                    val cleanYoutubeId = youtubeId?.let { YouTubeUrlParser.cleanVideoId(it) }
+
+                    if (cleanYoutubeId == null) {
+                        AppLogger.metadata(
+                            "ImportFolder: No valid YOUTUBE_VIDEO_ID found in $fileName (raw: $youtubeId, tags: $tags)",
+                        )
                     } else {
-                        AppLogger.metadata("ImportFolder: Found YOUTUBE_VIDEO_ID=$youtubeId in $fileName")
+                        AppLogger.metadata("ImportFolder: Found YOUTUBE_VIDEO_ID=$cleanYoutubeId in $fileName")
                     }
                     SbskipFileMetadata(
-                        youtubeId = youtubeId,
+                        youtubeId = cleanYoutubeId,
                         youtubeUrl = youtubeUrl,
                         youtubeTitle = youtubeTitle,
                         authorName = authorName,

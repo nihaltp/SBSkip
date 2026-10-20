@@ -89,5 +89,17 @@ object YouTubeUrlParser {
             ?.second
             ?.let { URLDecoder.decode(it, StandardCharsets.UTF_8.name()) }
 
-    private fun isValidVideoId(value: String): Boolean = videoIdPattern.matches(value)
+    fun cleanVideoId(rawInput: String?): String? {
+        if (rawInput.isNullOrBlank()) return null
+        val trimmed = rawInput.trim()
+        // If it's already a clean 11-char video ID
+        if (isValidVideoId(trimmed)) return trimmed
+        // If it's a URL or contains query params (like "videoId?overwrite=true")
+        val beforeQuery = trimmed.substringBefore('?').substringBefore('&').substringBefore('#')
+        if (isValidVideoId(beforeQuery)) return beforeQuery
+        // Otherwise try general extraction
+        return extractVideoId(trimmed)
+    }
+
+    fun isValidVideoId(value: String): Boolean = videoIdPattern.matches(value)
 }
