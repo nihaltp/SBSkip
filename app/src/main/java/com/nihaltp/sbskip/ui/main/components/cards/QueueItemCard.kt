@@ -4,7 +4,6 @@ import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -26,7 +25,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -38,11 +36,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
 import com.nihaltp.sbskip.R
 import com.nihaltp.sbskip.model.DownloadQueueItem
 import com.nihaltp.sbskip.model.DownloadQueueStatus
 import com.nihaltp.sbskip.ui.main.components.common.StatusChip
+import com.nihaltp.sbskip.ui.main.components.common.ThumbnailImage
 import com.nihaltp.sbskip.util.ClipboardHelper
 import kotlinx.coroutines.launch
 
@@ -75,21 +73,16 @@ fun QueueItemCard(
                             .clip(RoundedCornerShape(14.dp)),
                     color = Color(0xFF20242A),
                 ) {
-                    if (item.thumbnailUrl == null) {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Icon(Icons.Filled.CleaningServices, contentDescription = null, tint = Color.Gray)
-                        }
-                    } else {
-                        AsyncImage(
-                            model = item.thumbnailUrl,
-                            contentDescription = null,
-                            modifier =
-                                Modifier
-                                    .fillMaxSize()
-                                    .pointerInput(item.thumbnailUrl) {
-                                        detectTapGestures(
-                                            onLongPress = {
-                                                val url = item.thumbnailUrl
+                    ThumbnailImage(
+                        model = item.thumbnailUrl,
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .pointerInput(item.thumbnailUrl) {
+                                    detectTapGestures(
+                                        onLongPress = {
+                                            val url = item.thumbnailUrl
+                                            if (url != null) {
                                                 coroutineScope.launch {
                                                     val success = ClipboardHelper.copyImageToClipboard(context, url)
                                                     if (success) {
@@ -102,11 +95,13 @@ fun QueueItemCard(
                                                         Toast.makeText(context, "Failed to copy thumbnail image", Toast.LENGTH_SHORT).show()
                                                     }
                                                 }
-                                            },
-                                        )
-                                    },
-                        )
-                    }
+                                            }
+                                        },
+                                    )
+                                },
+                        fallbackIcon = Icons.Filled.CleaningServices,
+                        fallbackTint = Color.Gray,
+                    )
                 }
 
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
