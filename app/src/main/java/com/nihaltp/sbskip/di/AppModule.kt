@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.nihaltp.sbskip.data.local.dao.DownloadQueueDao
 import com.nihaltp.sbskip.data.local.dao.DownloadedVideoDao
 import com.nihaltp.sbskip.data.local.database.SBSkipDatabase
+import com.nihaltp.sbskip.data.local.database.SBSkipDatabaseMigrations
 import com.nihaltp.sbskip.data.repository.DataStoreSettingsRepository
 import com.nihaltp.sbskip.data.repository.DefaultDownloadedVideoRepository
 import com.nihaltp.sbskip.data.repository.DefaultQueueRepository
@@ -109,7 +110,7 @@ abstract class AppModule {
 
             return Room.databaseBuilder(context, SBSkipDatabase::class.java, "sbskip.db")
                 .enableMultiInstanceInvalidation()
-                .addMigrations(migration4To5, migration5To6, migration6To7, migration7To8)
+                .addMigrations(*SBSkipDatabaseMigrations.ALL)
                 .fallbackToDestructiveMigration()
                 .build()
         }
