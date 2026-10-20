@@ -74,6 +74,7 @@ import com.nihaltp.sbskip.ui.main.components.cards.PlaylistDownloadCard
 import com.nihaltp.sbskip.ui.main.components.cards.QueueItemCard
 import com.nihaltp.sbskip.ui.main.components.common.EmptyStateCard
 import com.nihaltp.sbskip.ui.main.components.common.SectionHeader
+import com.nihaltp.sbskip.ui.main.dialogs.DuplicateDownloadDialog
 import com.nihaltp.sbskip.ui.main.dialogs.DurationMismatchDialog
 import com.nihaltp.sbskip.ui.main.dialogs.ErrorDetailsDialog
 import com.nihaltp.sbskip.ui.main.dialogs.MediaConflictDialog
@@ -121,6 +122,8 @@ fun MainScreen(
     onCancelPlaylistDownload: () -> Unit,
     onPlaylistConvertVideoToAudioChanged: (Boolean) -> Unit,
     onPlaylistDeleteOriginalVideoChanged: (Boolean) -> Unit,
+    onProceedDuplicateDownload: () -> Unit,
+    onSkipDuplicateDownload: () -> Unit,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val clipboardManager = LocalClipboardManager.current
@@ -732,6 +735,13 @@ fun MainScreen(
         onReplaceConflict = onReplaceConflict,
         onRenameConflict = onRenameConflict,
         onCancelConflictDialog = onCancelConflictDialog,
+    )
+
+    DuplicateDownloadDialog(
+        show = uiState.showDuplicateDownloadDialog,
+        videoTitle = uiState.duplicateVideoInfo?.title.orEmpty(),
+        onDownloadAgain = onProceedDuplicateDownload,
+        onSkip = onSkipDuplicateDownload,
     )
 
     if (showCategoriesDialog) {

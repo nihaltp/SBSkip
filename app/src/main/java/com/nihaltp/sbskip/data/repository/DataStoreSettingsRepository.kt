@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.nihaltp.sbskip.model.AlreadyDownloadedBehavior
 import com.nihaltp.sbskip.model.AppSettings
 import com.nihaltp.sbskip.model.DownloaderType
 import com.nihaltp.sbskip.model.PendingDownload
@@ -61,6 +62,7 @@ class DataStoreSettingsRepository
             val WATCHLIST = stringPreferencesKey("watchlist")
             val PENDING_DOWNLOADS = stringPreferencesKey("pending_downloads")
             val PLAYLIST_DOWNLOAD_STATE = stringPreferencesKey("playlist_download_state")
+            val ALREADY_DOWNLOADED_BEHAVIOR = stringPreferencesKey("already_downloaded_behavior")
         }
 
         override val settings: Flow<AppSettings> =
@@ -124,6 +126,13 @@ class DataStoreSettingsRepository
                                 json.decodeFromString<PlaylistDownloadState>(it)
                             }
                         }.getOrNull(),
+                    alreadyDownloadedBehavior =
+                        runCatching {
+                            AlreadyDownloadedBehavior.valueOf(
+                                preferences[PreferencesKeys.ALREADY_DOWNLOADED_BEHAVIOR]
+                                    ?: AlreadyDownloadedBehavior.ASK.name,
+                            )
+                        }.getOrDefault(AlreadyDownloadedBehavior.ASK),
                 )
             }
 
@@ -183,6 +192,13 @@ class DataStoreSettingsRepository
                                     json.decodeFromString<PlaylistDownloadState>(it)
                                 }
                             }.getOrNull(),
+                        alreadyDownloadedBehavior =
+                            runCatching {
+                                AlreadyDownloadedBehavior.valueOf(
+                                    preferences[PreferencesKeys.ALREADY_DOWNLOADED_BEHAVIOR]
+                                        ?: AlreadyDownloadedBehavior.ASK.name,
+                                )
+                            }.getOrDefault(AlreadyDownloadedBehavior.ASK),
                     )
                 val updated = transform(current)
 
@@ -215,6 +231,7 @@ class DataStoreSettingsRepository
                 } else {
                     preferences.remove(PreferencesKeys.PLAYLIST_DOWNLOAD_STATE)
                 }
+                preferences[PreferencesKeys.ALREADY_DOWNLOADED_BEHAVIOR] = updated.alreadyDownloadedBehavior.name
             }
         }
     }

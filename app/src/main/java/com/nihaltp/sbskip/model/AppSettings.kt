@@ -2,6 +2,20 @@ package com.nihaltp.sbskip.model
 
 import com.nihaltp.sbskip.util.Constants
 
+/**
+ * What to do when a video that already exists in the downloaded-videos database is requested again.
+ */
+enum class AlreadyDownloadedBehavior {
+    /** Ask the user with a confirmation dialog before downloading again. */
+    ASK,
+
+    /** Silently download the video again. */
+    DOWNLOAD_AGAIN,
+
+    /** Silently skip the video. */
+    SKIP,
+}
+
 data class AppSettings(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val dynamicColor: Boolean = true,
@@ -27,4 +41,5 @@ data class AppSettings(
     val watchlist: List<WatchlistFolder> = emptyList(),
     val pendingDownloads: List<PendingDownload> = emptyList(),
     val playlistDownloadState: PlaylistDownloadState? = null,
+    val alreadyDownloadedBehavior: AlreadyDownloadedBehavior = AlreadyDownloadedBehavior.ASK,
 )
