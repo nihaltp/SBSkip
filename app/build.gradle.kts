@@ -111,6 +111,15 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
+    testOptions {
+        unitTests {
+            // Give Robolectric access to the merged manifest and resources so unit tests can
+            // resolve app strings and themes. The SDK level and the application class are pinned
+            // in src/test/resources/robolectric.properties.
+            isIncludeAndroidResources = true
+        }
+    }
 }
 
 kotlin {
