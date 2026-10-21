@@ -356,7 +356,9 @@ fun DownloadedHistoryScreen(
                                                 maxLines = 1,
                                                 overflow = TextOverflow.Ellipsis,
                                             )
-                                        } else if (queueItem.status == FolderImportStatus.PENDING) {
+                                        } else if (queueItem.status == FolderImportStatus.PENDING ||
+                                            queueItem.status == FolderImportStatus.SCANNING
+                                        ) {
                                             IconButton(
                                                 onClick = {
                                                     viewModel.removeQueueItem(queueItem.id)

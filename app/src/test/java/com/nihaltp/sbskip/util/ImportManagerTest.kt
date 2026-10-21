@@ -104,6 +104,43 @@ class ImportManagerTest {
     }
 
     @Test
+    fun `removeQueueItem removes a folder that is currently scanned`() {
+        importManager.enqueueForTesting(item(1L, FolderImportStatus.SCANNING))
+
+        importManager.removeQueueItem(1L)
+
+        assertTrue(
+            "The folder that is currently scanned should be removed from the queue",
+            importManager.importQueue.value.isEmpty(),
+        )
+    }
+
+    @Test
+    fun `cancelCurrentScan removes the folder that is currently scanned`() {
+        importManager.enqueueForTesting(item(1L, FolderImportStatus.SCANNING))
+
+        importManager.cancelCurrentScan()
+
+        assertTrue(
+            "The cancelled folder should be removed from the queue",
+            importManager.importQueue.value.isEmpty(),
+        )
+    }
+
+    @Test
+    fun `cancelCurrentScan keeps the queue when no folder is scanned`() {
+        importManager.enqueueForTesting(item(1L, FolderImportStatus.PENDING))
+
+        importManager.cancelCurrentScan()
+
+        assertEquals(
+            "A pending folder must not be removed when no scan is running",
+            1,
+            importManager.importQueue.value.size,
+        )
+    }
+
+    @Test
     fun `queue never grows beyond the maximum queue size`() {
         val total = ImportManager.MAX_QUEUE_SIZE + 20
         repeat(total) { index ->

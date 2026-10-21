@@ -66,6 +66,10 @@
             android:foregroundServiceType="dataSync"
             tools:replace="android:foregroundServiceType" />
 
+        <receiver
+            android:name=".notifications.ImportCancelReceiver"
+            android:exported="false" />
+
         <service
             android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
             android:enabled="false"

@@ -10,15 +10,20 @@ import com.nihaltp.sbskip.model.DownloadedVideoEntity
 import com.nihaltp.sbskip.notifications.ImportNotificationManager
 import com.nihaltp.sbskip.util.parser.YouTubeUrlParser
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -70,6 +75,12 @@ class ImportManager
         val importQueue: StateFlow<List<FolderImportQueueItem>> = _importQueue.asStateFlow()
 
         private var nextQueueId = 0L
+
+        /**
+         * Job of the folder that is currently being scanned. Cancelling it stops that scan while
+         * the rest of the queue keeps being processed.
+         */
+        private var scanningJob: Job? = null
 
         private fun nextId(): Long {
             nextQueueId++
@@ -174,24 +185,32 @@ class ImportManager
             _importProgressMessage.value = null
 
             try {
-                withContext(Dispatchers.IO) {
-                    val count = scanFolderItem(scanningItem)
-                    _importQueue.update { queue ->
-                        queue.map {
-                            if (it.id == scanningItem.id) {
-                                scanningItem.copy(
-                                    status = FolderImportStatus.COMPLETED,
-                                    importedCount = count,
-                                )
-                            } else {
-                                it
-                            }
+                val count = scanFolderCancellable(scanningItem)
+                _importQueue.update { queue ->
+                    queue.map {
+                        if (it.id == scanningItem.id) {
+                            scanningItem.copy(
+                                status = FolderImportStatus.COMPLETED,
+                                importedCount = count,
+                            )
+                        } else {
+                            it
                         }
                     }
-                    AppLogger.metadata(
-                        "ImportFolder: Completed queue item ${scanningItem.folderName} ($count imported)",
-                    )
                 }
+                AppLogger.metadata(
+                    "ImportFolder: Completed queue item ${scanningItem.folderName} ($count imported)",
+                )
+            } catch (e: CancellationException) {
+                if (!currentCoroutineContext().isActive) {
+                    // The whole import was cancelled, not only the scan of this folder.
+                    throw e
+                }
+                // The user cancelled the scan of this folder: it is already removed from the
+                // queue, so the import simply continues with the next folder.
+                AppLogger.metadata(
+                    "ImportFolder: Scan of ${scanningItem.folderName} was cancelled by the user",
+                )
             } catch (e: Exception) {
                 _importQueue.update { queue ->
                     queue.map {
@@ -245,6 +264,8 @@ class ImportManager
             )
 
             for (fileUri in mediaFiles) {
+                // Stop as soon as the scan of this folder is cancelled.
+                currentCoroutineContext().ensureActive()
                 val fileName = fileUri.lastPathSegment ?: "unknown"
                 try {
                     _importProgressMessage.value = fileName
@@ -332,15 +353,61 @@ class ImportManager
         }
 
         /**
-         * Removes a PENDING, FAILED or COMPLETED queue item (e.g. user-initiated cancel).
-         * The item that is currently SCANNING is left in place so the running scan is not
-         * interrupted.
+         * Scans a single folder in a job of its own, so that the running scan can be cancelled by
+         * the user. Cancelling the job only stops this folder: the queue keeps being processed.
+         */
+        private suspend fun scanFolderCancellable(item: FolderImportQueueItem): Int {
+            val job = scope.async(Dispatchers.IO) { scanFolderItem(item) }
+            scanningJob = job
+            try {
+                return job.await()
+            } finally {
+                scanningJob = null
+                if (!currentCoroutineContext().isActive) {
+                    // The whole import was cancelled, so the scan has to stop as well.
+                    job.cancel()
+                }
+            }
+        }
+
+        /**
+         * Cancels the scan of the folder that is currently being imported. The folder is removed
+         * from the queue and the import continues with the next queued folder.
+         */
+        fun cancelCurrentScan() {
+            val scanningId =
+                _importQueue.value
+                    .firstOrNull { it.status == FolderImportStatus.SCANNING }
+                    ?.id ?: return
+            cancelScanningFolder(scanningId)
+            updateFolderQueueNotification()
+        }
+
+        /**
+         * Cancels the running scan of the folder with [id] and removes it from the queue.
+         */
+        private fun cancelScanningFolder(id: Long) {
+            scanningJob?.cancel(CancellationException("Import cancelled by the user"))
+            scanningJob = null
+            _importQueue.update { queue -> queue.filterNot { it.id == id } }
+            // The file notification belongs to the cancelled scan, the next folder posts its own.
+            importNotificationManager.updateFileQueueNotification(remainingFiles = 0)
+            AppLogger.metadata("ImportFolder: Cancelled the running scan of queue item $id")
+        }
+
+        /**
+         * Removes a queue item (e.g. user-initiated cancel). A folder that is currently being
+         * scanned is cancelled and removed as well, the remaining queue is processed as usual.
          */
         fun removeQueueItem(id: Long) {
-            _importQueue.update { queue ->
-                queue.filterNot {
-                    it.id == id && it.status != FolderImportStatus.SCANNING
+            val isScanning =
+                _importQueue.value.any {
+                    it.id == id && it.status == FolderImportStatus.SCANNING
                 }
+            if (isScanning) {
+                cancelScanningFolder(id)
+            } else {
+                _importQueue.update { queue -> queue.filterNot { it.id == id } }
             }
             updateFolderQueueNotification()
         }
