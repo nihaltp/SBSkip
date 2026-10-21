@@ -114,7 +114,29 @@ class ImportNotificationManager
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setContentIntent(contentIntent())
                 .setProgress(total, progress, total <= 0)
+                .addAction(
+                    android.R.drawable.ic_menu_close_clear_cancel,
+                    context.getString(R.string.notification_import_cancel),
+                    cancelPendingIntent(),
+                )
                 .build()
+        }
+
+        /**
+         * Pending intent of the "Cancel scan" action. It stops the scan of the folder that is
+         * currently being imported.
+         */
+        private fun cancelPendingIntent(): PendingIntent? {
+            val intent =
+                Intent(context, ImportCancelReceiver::class.java).apply {
+                    action = ACTION_CANCEL_SCAN
+                }
+            return PendingIntent.getBroadcast(
+                context,
+                REQUEST_CODE_CANCEL,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
         }
 
         private fun contentIntent(): PendingIntent? {
@@ -157,6 +179,10 @@ class ImportNotificationManager
             /** Notification id of the "folders remaining" notification. */
             const val NOTIFICATION_FOLDER_QUEUE = 1002
 
+            /** Action of the pending intent that cancels the running scan. */
+            const val ACTION_CANCEL_SCAN = "com.nihaltp.sbskip.action.CANCEL_IMPORT_SCAN"
+
             private const val CHANNEL_ID = "sbskip_import_queue"
+            private const val REQUEST_CODE_CANCEL = 1003
         }
     }
