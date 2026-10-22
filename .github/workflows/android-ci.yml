@@ -2,40 +2,50 @@ name: CI Tests
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
+    branches: [main]
 
 jobs:
-  build:
+  check:
+    name: Lint & Unit Tests
     runs-on: ubuntu-latest
-
+    timeout-minutes: 30
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v6
+      - uses: actions/checkout@v4
+      - uses: gradle/wrapper-validation-action@v2
+      - uses: actions/setup-java@v4
         with:
-          distribution: temurin
-          java-version: 17
-          cache: gradle
-
-      - name: Make Gradle wrapper executable
-        run: chmod +x gradlew
-
-      - name: Run ktlint check
-        if: github.event_name == 'pull_request'
-        run: ./gradlew :app:ktlintCheck --no-daemon
-
-      # - name: Run lint
-      #   run: ./gradlew lint --no-daemon
-
-      - name: Run unit tests
-        run: ./gradlew testDebugUnitTest --no-daemon
-
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+      - name: ktlint check
+        run: ./gradlew ktlintCheck
+      - name: Unit tests
+        run: ./gradlew test
       - name: Build debug APK
-        run: ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleDebug
 
-      - name: Build release APK
-        run: ./gradlew assembleRelease --no-daemon
+  # Instrumented tests (opt-in: set to true or trigger manually)
+  instrumented:
+    name: Instrumented Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: gradle/wrapper-validation-action@v2
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+      - uses: android-actions/setup-android@v3
+      - name: Start emulator
+        uses: android-actions/start-emulator@v3
+        with:
+          api-level: 30
+          arch: arm64
+          force-avd-creation: true
+      - name: Run instrumented tests
+        run: ./gradlew connectedAndroidTest
