@@ -31,24 +31,32 @@ object SBSkipDatabaseMigrations {
             }
         }
 
+    /**
+     * Creates the downloaded videos table. A video is tracked by its YouTube id and collects the
+     * paths of all the files it exists as, so it is only stored once.
+     */
     val MIGRATION_7_8 =
         object : Migration(7, 8) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
                     """
-                    CREATE TABLE IF NOT EXISTS downloaded_videos (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                        videoId TEXT,
-                        url TEXT NOT NULL,
-                        title TEXT NOT NULL,
-                        author TEXT,
-                        thumbnailUrl TEXT,
-                        durationSeconds INTEGER,
-                        outputPath TEXT,
-                        fileSize INTEGER,
-                        mediaType TEXT NOT NULL
+                    CREATE TABLE IF NOT EXISTS `downloaded_videos` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `videoId` TEXT,
+                        `url` TEXT NOT NULL,
+                        `title` TEXT NOT NULL,
+                        `author` TEXT,
+                        `thumbnailUrl` TEXT,
+                        `durationSeconds` INTEGER,
+                        `outputPaths` TEXT NOT NULL,
+                        `fileSize` INTEGER,
+                        `mediaType` TEXT NOT NULL
                     )
                     """.trimIndent(),
+                )
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS `index_downloaded_videos_videoId` " +
+                        "ON `downloaded_videos` (`videoId`)",
                 )
             }
         }

@@ -74,7 +74,7 @@ class DatabaseMigrationTest {
                 "author",
                 "thumbnailUrl",
                 "durationSeconds",
-                "outputPath",
+                "outputPaths",
                 "fileSize",
                 "mediaType",
             )
@@ -100,7 +100,7 @@ class DatabaseMigrationTest {
                     author = "Test Author",
                     thumbnailUrl = null,
                     durationSeconds = 180L,
-                    outputPath = "/sdcard/Download/video.m4a",
+                    outputPaths = listOf("/sdcard/Download/video.m4a"),
                     fileSize = 1024L,
                     mediaType = "video",
                 )
