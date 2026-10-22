@@ -6,6 +6,7 @@ import android.net.Uri
 import androidx.annotation.VisibleForTesting
 import androidx.documentfile.provider.DocumentFile
 import com.nihaltp.sbskip.data.repository.DownloadedVideoRepository
+import com.nihaltp.sbskip.data.repository.SettingsRepository
 import com.nihaltp.sbskip.model.DownloadedVideoEntity
 import com.nihaltp.sbskip.notifications.ImportNotificationManager
 import com.nihaltp.sbskip.util.parser.YouTubeUrlParser
@@ -20,10 +21,13 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -51,6 +55,47 @@ data class FolderImportQueueItem(
 }
 
 /**
+ * A queue item in its persisted form. It is stored in the settings so that the import queue
+ * survives a restart of the app.
+ */
+@Serializable
+data class PersistedFolderImport(
+    val id: Long,
+    val treeUri: String,
+    val folderName: String?,
+    val status: FolderImportStatus,
+    val importedCount: Int,
+    val errorMessage: String?,
+)
+
+/**
+ * Converts the queue item into its persisted form.
+ */
+fun FolderImportQueueItem.toPersisted(): PersistedFolderImport =
+    PersistedFolderImport(
+        id = id,
+        treeUri = treeUri.toString(),
+        folderName = folderName,
+        status = status,
+        importedCount = importedCount,
+        errorMessage = errorMessage,
+    )
+
+/**
+ * Restores a queue item from its persisted form. A scan that was interrupted by the death of the
+ * app is scanned again.
+ */
+fun PersistedFolderImport.toQueueItem(): FolderImportQueueItem =
+    FolderImportQueueItem(
+        id = id,
+        treeUri = Uri.parse(treeUri),
+        folderName = folderName,
+        status = if (status == FolderImportStatus.SCANNING) FolderImportStatus.PENDING else status,
+        importedCount = importedCount,
+        errorMessage = errorMessage,
+    )
+
+/**
  * Process-lifetime import manager. Owns the import queue and the sequential scanning coroutine,
  * so folder imports survive navigation away from the Downloaded History screen.
  */
@@ -61,6 +106,7 @@ class ImportManager
         private val downloadedVideoRepository: DownloadedVideoRepository,
         private val ffmpegMetadataReader: FfmpegMetadataReader,
         private val importNotificationManager: ImportNotificationManager,
+        private val settingsRepository: SettingsRepository,
         @ApplicationContext private val context: Context,
     ) {
         private val scope = MainScope()
@@ -76,6 +122,9 @@ class ImportManager
 
         private var nextQueueId = 0L
 
+        /** True once the persisted queue was restored, so that it is only restored once. */
+        private var isRestored = false
+
         /**
          * Job of the folder that is currently being scanned. Cancelling it stops that scan while
          * the rest of the queue keeps being processed.
@@ -85,6 +134,55 @@ class ImportManager
         private fun nextId(): Long {
             nextQueueId++
             return nextQueueId
+        }
+
+        /**
+         * Restores the import queue that was persisted before the app was killed and continues
+         * the import. Called once when the app starts.
+         */
+        fun resumePersistedImports() {
+            scope.launch {
+                if (isRestored) return@launch
+                isRestored = true
+
+                restoreQueue()
+                persistQueueChanges()
+            }
+        }
+
+        /**
+         * Reads the persisted queue and starts the import again. A folder that was being scanned
+         * when the app died is scanned again, the files that were already imported are skipped.
+         */
+        private suspend fun restoreQueue() {
+            val persisted = settingsRepository.settings.first().importQueue
+            if (persisted.isEmpty()) return
+
+            val restored = persisted.map { it.toQueueItem() }
+            _importQueue.value = restored
+            // The ids of the restored items are reused, so the counter has to continue after them.
+            nextQueueId = maxOf(nextQueueId, restored.maxOfOrNull { it.id } ?: 0L)
+            AppLogger.metadata(
+                "ImportFolder: Restored ${restored.size} queue item(s) after a restart of the app",
+            )
+
+            if (restored.any { it.status == FolderImportStatus.PENDING }) {
+                updateFolderQueueNotification()
+                processQueue()
+            }
+        }
+
+        /**
+         * Writes the queue to the settings whenever it changes, so that it survives a restart of
+         * the app.
+         */
+        private suspend fun persistQueueChanges() {
+            _importQueue.drop(1).collect { queue ->
+                val persisted = queue.map { it.toPersisted() }
+                settingsRepository.update { settings ->
+                    settings.copy(importQueue = persisted)
+                }
+            }
         }
 
         /**
