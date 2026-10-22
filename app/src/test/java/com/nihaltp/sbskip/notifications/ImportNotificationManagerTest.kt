@@ -96,4 +96,21 @@ class ImportNotificationManagerTest {
         assertEquals(1001, ImportNotificationManager.NOTIFICATION_FILE_QUEUE)
         assertEquals(1002, ImportNotificationManager.NOTIFICATION_FOLDER_QUEUE)
     }
+
+    @Test
+    fun `ensureChannel creates the import channel`() {
+        manager.ensureChannel()
+
+        val channel = notificationManager.getNotificationChannel("sbskip_import_queue")
+        assertNotNull("Expected the import channel to exist", channel)
+        assertEquals(NotificationManager.IMPORTANCE_LOW, channel!!.importance)
+    }
+
+    @Test
+    fun `ensureChannel can be called more than once`() {
+        manager.ensureChannel()
+        manager.ensureChannel()
+
+        assertNotNull(notificationManager.getNotificationChannel("sbskip_import_queue"))
+    }
 }
