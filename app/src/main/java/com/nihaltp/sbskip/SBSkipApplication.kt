@@ -6,6 +6,7 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.nihaltp.sbskip.data.repository.SettingsRepository
 import com.nihaltp.sbskip.model.ThemeMode
+import com.nihaltp.sbskip.util.ImportManager
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
@@ -23,6 +24,9 @@ class SBSkipApplication : Application(), Configuration.Provider {
     @Inject
     lateinit var settingsRepository: SettingsRepository
 
+    @Inject
+    lateinit var importManager: ImportManager
+
     @OptIn(DelicateCoroutinesApi::class)
     override fun onCreate() {
         super.onCreate()
@@ -38,6 +42,9 @@ class SBSkipApplication : Application(), Configuration.Provider {
                 }
             AppCompatDelegate.setDefaultNightMode(nightMode)
         }
+
+        // Continue the folder imports that were running when the app was killed.
+        importManager.resumePersistedImports()
 
         GlobalScope.launch(Dispatchers.Main) {
             settingsRepository.settings.collect { settings ->

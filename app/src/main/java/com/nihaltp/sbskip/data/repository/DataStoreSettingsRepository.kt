@@ -19,6 +19,7 @@ import com.nihaltp.sbskip.model.SponsorBlockSettings
 import com.nihaltp.sbskip.model.ThemeMode
 import com.nihaltp.sbskip.model.WatchlistFolder
 import com.nihaltp.sbskip.util.Constants
+import com.nihaltp.sbskip.util.PersistedFolderImport
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -63,6 +64,7 @@ class DataStoreSettingsRepository
             val PENDING_DOWNLOADS = stringPreferencesKey("pending_downloads")
             val PLAYLIST_DOWNLOAD_STATE = stringPreferencesKey("playlist_download_state")
             val ALREADY_DOWNLOADED_BEHAVIOR = stringPreferencesKey("already_downloaded_behavior")
+            val IMPORT_QUEUE = stringPreferencesKey("import_queue")
         }
 
         override val settings: Flow<AppSettings> =
@@ -133,6 +135,12 @@ class DataStoreSettingsRepository
                                     ?: AlreadyDownloadedBehavior.ASK.name,
                             )
                         }.getOrDefault(AlreadyDownloadedBehavior.ASK),
+                    importQueue =
+                        runCatching {
+                            json.decodeFromString<List<PersistedFolderImport>>(
+                                preferences[PreferencesKeys.IMPORT_QUEUE] ?: "[]",
+                            )
+                        }.getOrElse { emptyList() },
                 )
             }
 
@@ -199,6 +207,12 @@ class DataStoreSettingsRepository
                                         ?: AlreadyDownloadedBehavior.ASK.name,
                                 )
                             }.getOrDefault(AlreadyDownloadedBehavior.ASK),
+                        importQueue =
+                            runCatching {
+                                json.decodeFromString<List<PersistedFolderImport>>(
+                                    preferences[PreferencesKeys.IMPORT_QUEUE] ?: "[]",
+                                )
+                            }.getOrElse { emptyList() },
                     )
                 val updated = transform(current)
 
@@ -232,6 +246,7 @@ class DataStoreSettingsRepository
                     preferences.remove(PreferencesKeys.PLAYLIST_DOWNLOAD_STATE)
                 }
                 preferences[PreferencesKeys.ALREADY_DOWNLOADED_BEHAVIOR] = updated.alreadyDownloadedBehavior.name
+                preferences[PreferencesKeys.IMPORT_QUEUE] = json.encodeToString(updated.importQueue)
             }
         }
     }
