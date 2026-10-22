@@ -62,6 +62,10 @@ class MainViewModelTest {
 
         coEvery { settingsRepository.settings } returns flowOf(AppSettings())
         coEvery { queueRepository.observeQueue() } returns flowOf(emptyList())
+        // A relaxed mock would return a mocked entity instead of null, which would make every
+        // video look like a duplicate.
+        coEvery { downloadedVideoRepository.findByVideoId(any()) } returns null
+        coEvery { downloadedVideoRepository.findByOutputPath(any()) } returns null
 
         viewModel =
             MainViewModel(
@@ -539,7 +543,7 @@ class MainViewModelTest {
                 videoId = videoId,
                 url = "https://www.youtube.com/watch?v=$videoId",
                 title = "Already Downloaded",
-                outputPath = "content://media/$videoId",
+                outputPaths = listOf("content://media/$videoId"),
                 mediaType = MediaType.VIDEO.name,
             )
     }
@@ -565,6 +569,22 @@ class MainViewModelTest {
             )
         }
     }
+
+    @Test
+    fun `downloadPlaylistVideo downloads a video that is not downloaded yet`() =
+        runTest(testDispatcher) {
+            setBehavior(com.nihaltp.sbskip.model.AlreadyDownloadedBehavior.ASK)
+            injectPlaylist("aaaaaaaaaaa", "bbbbbbbbbbb")
+
+            viewModel.downloadPlaylistVideo()
+            testDispatcher.scheduler.runCurrent()
+
+            val state = viewModel.uiState.value
+            assert(!state.showDuplicateDownloadDialog) { "No dialog should be shown for a new video" }
+            assert(state.pendingDownloads.any { it.videoId == "aaaaaaaaaaa" }) {
+                "Expected a pending download for the new video"
+            }
+        }
 
     @Test
     fun `downloadPlaylistVideo asks before downloading an already downloaded video`() =

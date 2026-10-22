@@ -1,6 +1,7 @@
 package com.nihaltp.sbskip.data.repository
 
 import com.nihaltp.sbskip.data.local.dao.DownloadedVideoDao
+import com.nihaltp.sbskip.data.local.database.StringListConverter
 import com.nihaltp.sbskip.model.DownloadedVideoEntity
 import io.mockk.Runs
 import io.mockk.coEvery
@@ -62,7 +63,7 @@ class DefaultDownloadedVideoRepositoryTest {
                         title = "Test Video",
                         thumbnailUrl = "https://img.youtube.com/vi/abc123/mqdefault.jpg",
                         durationSeconds = 180L,
-                        outputPath = "/sdcard/Music/test.m4a",
+                        outputPaths = listOf("/sdcard/Music/test.m4a"),
                         mediaType = "audio",
                     ),
                 )
@@ -87,7 +88,7 @@ class DefaultDownloadedVideoRepositoryTest {
                     title = "Test Video",
                     thumbnailUrl = "https://img.youtube.com/vi/abc123/mqdefault.jpg",
                     durationSeconds = 180L,
-                    outputPath = "/sdcard/Music/test.m4a",
+                    outputPaths = listOf("/sdcard/Music/test.m4a"),
                     mediaType = "audio",
                 )
 
@@ -99,6 +100,100 @@ class DefaultDownloadedVideoRepositoryTest {
             assertEquals(42L, id)
             coVerify(exactly = 1) { dao.insert(video) }
             assertEquals(video, insertedSlot.captured)
+        }
+
+    @Test
+    fun `addOutputPath appends the path to the tracked video`() =
+        runTest(testDispatcher) {
+            val video =
+                DownloadedVideoEntity(
+                    id = 5L,
+                    videoId = "abc123",
+                    url = "https://www.youtube.com/watch?v=abc123",
+                    title = "Test Video",
+                    outputPaths = listOf("/sdcard/Music/test.m4a"),
+                    mediaType = "audio",
+                )
+            coEvery { dao.findByVideoId("abc123") } returns video
+            coEvery { dao.updateOutputPaths(5L, any()) } returns 1
+
+            val added = repository.addOutputPath("abc123", "/sdcard/Music/test copy.m4a")
+
+            assertEquals(true, added)
+            val pathsSlot = slot<String>()
+            coVerify(exactly = 1) { dao.updateOutputPaths(5L, capture(pathsSlot)) }
+            assertEquals(
+                listOf("/sdcard/Music/test.m4a", "/sdcard/Music/test copy.m4a"),
+                StringListConverter.decode(pathsSlot.captured),
+            )
+        }
+
+    @Test
+    fun `addOutputPath does not add the same path twice`() =
+        runTest(testDispatcher) {
+            val video =
+                DownloadedVideoEntity(
+                    id = 5L,
+                    videoId = "abc123",
+                    url = "https://www.youtube.com/watch?v=abc123",
+                    title = "Test Video",
+                    outputPaths = listOf("/sdcard/Music/test.m4a"),
+                    mediaType = "audio",
+                )
+            coEvery { dao.findByVideoId("abc123") } returns video
+
+            val added = repository.addOutputPath("abc123", "/sdcard/Music/test.m4a")
+
+            assertEquals(true, added)
+            coVerify(exactly = 0) { dao.updateOutputPaths(any(), any()) }
+        }
+
+    @Test
+    fun `addOutputPath fails for a video that is not tracked`() =
+        runTest(testDispatcher) {
+            coEvery { dao.findByVideoId("abc123") } returns null
+
+            val added = repository.addOutputPath("abc123", "/sdcard/Music/test.m4a")
+
+            assertEquals(false, added)
+        }
+
+    @Test
+    fun `findByOutputPath returns the video that owns the path`() =
+        runTest(testDispatcher) {
+            val video =
+                DownloadedVideoEntity(
+                    id = 5L,
+                    videoId = "abc123",
+                    url = "https://www.youtube.com/watch?v=abc123",
+                    title = "Test Video",
+                    outputPaths = listOf("/sdcard/Music/test.m4a", "/sdcard/Music/test copy.m4a"),
+                    mediaType = "audio",
+                )
+            coEvery { dao.findByOutputPathCandidates(any()) } returns listOf(video)
+
+            val found = repository.findByOutputPath("/sdcard/Music/test copy.m4a")
+
+            assertEquals(video, found)
+        }
+
+    @Test
+    fun `findByOutputPath ignores a path that is only a substring of a known one`() =
+        runTest(testDispatcher) {
+            val video =
+                DownloadedVideoEntity(
+                    id = 5L,
+                    videoId = "abc123",
+                    url = "https://www.youtube.com/watch?v=abc123",
+                    title = "Test Video",
+                    outputPaths = listOf("/sdcard/Music/test.m4a"),
+                    mediaType = "audio",
+                )
+            coEvery { dao.findByOutputPathCandidates(any()) } returns listOf(video)
+
+            val found = repository.findByOutputPath("/sdcard/Music/other.m4a")
+
+            assertEquals(null, found)
         }
 
     @Test

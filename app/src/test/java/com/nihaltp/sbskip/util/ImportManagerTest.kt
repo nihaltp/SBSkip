@@ -4,9 +4,12 @@ import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
 import com.nihaltp.sbskip.data.repository.DownloadedVideoRepository
 import com.nihaltp.sbskip.notifications.ImportNotificationManager
+import io.mockk.coEvery
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -24,13 +27,18 @@ import org.robolectric.RobolectricTestRunner
 class ImportManagerTest {
     private lateinit var importManager: ImportManager
     private lateinit var importNotificationManager: ImportNotificationManager
+    private lateinit var downloadedVideoRepository: DownloadedVideoRepository
 
     @Before
     fun setup() {
         importNotificationManager = mockk<ImportNotificationManager>(relaxed = true)
+        downloadedVideoRepository = mockk<DownloadedVideoRepository>(relaxed = true)
+        // A relaxed mock would return a mocked entity instead of null.
+        coEvery { downloadedVideoRepository.findByVideoId(any()) } returns null
+        coEvery { downloadedVideoRepository.findByOutputPath(any()) } returns null
         importManager =
             ImportManager(
-                mockk<DownloadedVideoRepository>(relaxed = true),
+                downloadedVideoRepository,
                 mockk<FfmpegMetadataReader>(relaxed = true),
                 importNotificationManager,
                 ApplicationProvider.getApplicationContext(),
@@ -139,6 +147,33 @@ class ImportManagerTest {
             importManager.importQueue.value.size,
         )
     }
+
+    // ── duplicate detection during the folder import ──────────────────────────
+
+    @Test
+    fun `a file that was already imported is detected by its path`() =
+        runTest {
+            coEvery { downloadedVideoRepository.findByOutputPath("content://media/1") } returns trackedVideo()
+            coEvery { downloadedVideoRepository.findByOutputPath("content://media/2") } returns null
+
+            assertTrue(
+                "A file that was already imported has to be skipped",
+                importManager.isAlreadyImportedFile("content://media/1"),
+            )
+            assertFalse(
+                "A file that was not imported yet must not be skipped",
+                importManager.isAlreadyImportedFile("content://media/2"),
+            )
+        }
+
+    private fun trackedVideo() =
+        com.nihaltp.sbskip.model.DownloadedVideoEntity(
+            videoId = "dQw4w9WgXcQ",
+            url = "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            title = "Test Video",
+            outputPaths = listOf("content://media/1"),
+            mediaType = "video",
+        )
 
     @Test
     fun `queue never grows beyond the maximum queue size`() {
