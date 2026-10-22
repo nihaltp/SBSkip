@@ -46,8 +46,8 @@ class MainActivity : AppCompatActivity() {
             }
         }
         shareEvent = intent.toShareIntentEvent()
-        val initialSettings = runBlocking { settingsRepository.settings.first() }
         setContent {
+            val initialSettings = runBlocking { settingsRepository.settings.first() }
             val settingsState by settingsRepository.settings.collectAsState(initial = initialSettings)
             val darkTheme =
                 when (settingsState.themeMode) {

@@ -30,12 +30,11 @@ import tools.fastlane.screengrab.locale.LocaleTestRule
 
 @RunWith(AndroidJUnit4::class)
 class ScreenshotTest {
-    @get:Rule
-    val composeTestRule = createAndroidComposeRule<MainActivity>()
-
-    @Rule
-    @JvmField
+    @get:Rule(order = -1)
     val localeTestRule = LocaleTestRule()
+
+    @get:Rule(order = 0)
+    val composeTestRule = createAndroidComposeRule<MainActivity>()
 
     private lateinit var settingsRepository: SettingsRepository
     private val videoTitle = "KULASTHREE (Official Video) - ThirumaLi x ThudWiser _ Def Jam India.m4a"
@@ -43,6 +42,11 @@ class ScreenshotTest {
 
     @Before
     fun setUp() {
+        // Wait for the Activity to be fully created and Compose hierarchy to be set
+        // The MainActivity has a splash screen theme, so we need to wait for it to finish
+        composeTestRule.waitForIdle()
+        Thread.sleep(3000) // Wait for splash screen to complete
+
         val targetLocale = androidx.test.platform.app.InstrumentationRegistry.getArguments().getString("testLocale")
         if (targetLocale != null) {
             composeTestRule.activity.runOnUiThread {

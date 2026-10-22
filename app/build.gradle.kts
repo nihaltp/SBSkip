@@ -36,6 +36,9 @@ android {
 
     defaultConfig {
         applicationId = "com.nihaltp.sbskip"
+        // The instrumentation tests use their own id, so that they do not depend on the
+        // application id suffix of the build type they are run against.
+        testApplicationId = "com.nihaltp.sbskip.test"
         minSdk = 26
         targetSdk = 35
         versionCode = 19
