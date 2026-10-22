@@ -61,4 +61,41 @@ class YouTubeUrlParserTest {
             assertFalse("$input should not be recognized as YouTube", YouTubeUrlParser.isYouTubeUrl(input))
         }
     }
+
+    // ── cleanVideoId: the video id that is stored in the file metadata ─────────
+
+    @Test
+    fun `cleans a video id that carries an overwrite parameter`() {
+        assertEquals("2kjolTLZ_Mg", YouTubeUrlParser.cleanVideoId("2kjolTLZ_Mg?overwrite=true"))
+    }
+
+    @Test
+    fun `keeps a clean video id unchanged`() {
+        assertEquals("2kjolTLZ_Mg", YouTubeUrlParser.cleanVideoId("2kjolTLZ_Mg"))
+    }
+
+    @Test
+    fun `cleans a video id that carries a fragment`() {
+        assertEquals("2kjolTLZ_Mg", YouTubeUrlParser.cleanVideoId("2kjolTLZ_Mg#t=30"))
+    }
+
+    @Test
+    fun `cleans a video id out of a url`() {
+        assertEquals(
+            "2kjolTLZ_Mg",
+            YouTubeUrlParser.cleanVideoId("https://www.youtube.com/watch?v=2kjolTLZ_Mg&si=tracking"),
+        )
+    }
+
+    @Test
+    fun `returns null for an empty video id`() {
+        assertNull(YouTubeUrlParser.cleanVideoId(null))
+        assertNull(YouTubeUrlParser.cleanVideoId(""))
+        assertNull(YouTubeUrlParser.cleanVideoId("   "))
+    }
+
+    @Test
+    fun `returns null for a video id that cannot be cleaned`() {
+        assertNull(YouTubeUrlParser.cleanVideoId("not a video id"))
+    }
 }
