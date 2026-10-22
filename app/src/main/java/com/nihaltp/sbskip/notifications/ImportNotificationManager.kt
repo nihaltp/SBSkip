@@ -152,7 +152,11 @@ class ImportNotificationManager
             )
         }
 
-        private fun ensureChannel() {
+        /**
+         * Creates the notification channel of the import notifications. It is called when the app
+         * starts, so that the channel exists before the first notification is posted.
+         */
+        fun ensureChannel() {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
             val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             if (manager.getNotificationChannel(CHANNEL_ID) != null) return
