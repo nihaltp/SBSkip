@@ -80,7 +80,7 @@ class DownloadedHistoryViewModelTest {
                         title = "Test Video",
                         thumbnailUrl = "https://img.youtube.com/vi/abc123/mqdefault.jpg",
                         durationSeconds = 180L,
-                        outputPath = "/sdcard/Music/test.m4a",
+                        outputPaths = listOf("/sdcard/Music/test.m4a"),
                         mediaType = "audio",
                     ),
                 )

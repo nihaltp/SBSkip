@@ -25,8 +25,18 @@ interface DownloadedVideoDao {
     @Query("SELECT * FROM downloaded_videos WHERE videoId = :videoId LIMIT 1")
     suspend fun findByVideoId(videoId: String): DownloadedVideoEntity?
 
-    @Query("SELECT * FROM downloaded_videos WHERE outputPath = :outputPath LIMIT 1")
-    suspend fun findByOutputPath(outputPath: String): DownloadedVideoEntity?
+    /**
+     * All videos whose path list may contain [outputPath]. The paths are stored as a json list,
+     * so this is a coarse filter: the exact match is checked by the caller.
+     */
+    @Query("SELECT * FROM downloaded_videos WHERE outputPaths LIKE '%' || :outputPath || '%'")
+    suspend fun findByOutputPathCandidates(outputPath: String): List<DownloadedVideoEntity>
+
+    @Query("UPDATE downloaded_videos SET outputPaths = :outputPaths WHERE id = :id")
+    suspend fun updateOutputPaths(
+        id: Long,
+        outputPaths: String,
+    ): Int
 
     @Query("DELETE FROM downloaded_videos")
     suspend fun deleteAll()
