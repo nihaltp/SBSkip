@@ -18,9 +18,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Inbox
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.DeleteSweep
 import androidx.compose.material.icons.outlined.FileDownload
@@ -38,6 +41,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -50,6 +54,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -81,6 +87,8 @@ fun DownloadedHistoryScreen(
 ) {
     val context = LocalContext.current
     val videos by viewModel.videos.collectAsState()
+    val filteredVideos by viewModel.filteredVideos.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
     val selectedIds by viewModel.selectedIds.collectAsState()
     val selectedCount by viewModel.selectedCount.collectAsState()
     val isImporting by viewModel.isImporting.collectAsState()
@@ -128,6 +136,19 @@ fun DownloadedHistoryScreen(
 
     var isSelectEnabled by remember { mutableStateOf(false) }
 
+    // Search state: the text itself lives in the ViewModel; this flag only toggles the
+    // expanded search field in the top bar.
+    var isSearchActive by remember { mutableStateOf(false) }
+    val searchFocusRequester = remember { FocusRequester() }
+    LaunchedEffect(isSearchActive) {
+        if (isSearchActive) searchFocusRequester.requestFocus()
+    }
+
+    fun closeSearch() {
+        isSearchActive = false
+        viewModel.setSearchQuery("")
+    }
+
     // Export/Import dialog states
     var showExportDialog by remember { mutableStateOf(false) }
     var showImportDialog by remember { mutableStateOf(false) }
@@ -135,7 +156,7 @@ fun DownloadedHistoryScreen(
     // Export content for file saving
     var pendingExportContent by remember { mutableStateOf<String?>(null) }
 
-    val visibleItemCount = videos.size
+    val visibleItemCount = filteredVideos.size
 
     val isAllSelected by remember(selectedIds, visibleItemCount) {
         derivedStateOf {
@@ -222,83 +243,133 @@ fun DownloadedHistoryScreen(
             }
         }
 
-    BackHandler(isSelectEnabled) {
-        if (isSelectEnabled) {
-            isSelectEnabled = false
-            viewModel.clearSelection()
-        } else {
-            onNavigateBack()
+    BackHandler(isSearchActive || isSelectEnabled) {
+        when {
+            isSearchActive -> closeSearch()
+            isSelectEnabled -> {
+                isSelectEnabled = false
+                viewModel.clearSelection()
+            }
+            else -> onNavigateBack()
         }
     }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(stringResource(id = R.string.downloaded_history_title))
-                },
-                navigationIcon = {
-                    IconButton(
-                        onClick = onNavigateBack,
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(id = R.string.back),
+            if (isSearchActive) {
+                TopAppBar(
+                    title = {
+                        TextField(
+                            value = searchQuery,
+                            onValueChange = viewModel::setSearchQuery,
+                            placeholder = {
+                                Text(stringResource(id = R.string.downloaded_history_search_hint))
+                            },
+                            singleLine = true,
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .focusRequester(searchFocusRequester),
                         )
-                    }
-                },
-                actions = {
-                    Row {
-                        // Export button
-                        IconButton(
-                            onClick = {
-                                showExportDialog = true
-                            },
-                            modifier = Modifier,
-                        ) {
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = ::closeSearch) {
                             Icon(
-                                imageVector = Icons.Outlined.FileDownload,
-                                contentDescription = stringResource(id = R.string.export_queue),
+                                imageVector = Icons.Filled.Close,
+                                contentDescription = stringResource(id = R.string.downloaded_history_search_close),
                             )
                         }
-                        // Import button
+                    },
+                    actions = {
                         IconButton(
-                            onClick = {
-                                showImportDialog = true
-                            },
-                            modifier = Modifier,
+                            onClick = { viewModel.setSearchQuery("") },
+                            enabled = searchQuery.isNotEmpty(),
                         ) {
                             Icon(
-                                imageVector = Icons.Outlined.ContentCopy,
-                                contentDescription = stringResource(id = R.string.import_queue),
+                                imageVector = Icons.Filled.Clear,
+                                contentDescription = stringResource(id = R.string.downloaded_history_search_clear),
                             )
                         }
-                        if (videos.isNotEmpty()) {
+                    },
+                )
+            } else {
+                TopAppBar(
+                    title = {
+                        Text(stringResource(id = R.string.downloaded_history_title))
+                    },
+                    navigationIcon = {
+                        IconButton(
+                            onClick = onNavigateBack,
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(id = R.string.back),
+                            )
+                        }
+                    },
+                    actions = {
+                        Row {
+                            // Search button
+                            IconButton(
+                                onClick = { isSearchActive = true },
+                                modifier = Modifier,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Search,
+                                    contentDescription = stringResource(id = R.string.downloaded_history_search),
+                                )
+                            }
+                            // Export button
                             IconButton(
                                 onClick = {
-                                    isSelectEnabled = !isSelectEnabled
-                                    if (!isSelectEnabled) viewModel.clearSelection()
+                                    showExportDialog = true
                                 },
                                 modifier = Modifier,
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Delete,
-                                    contentDescription = null,
+                                    imageVector = Icons.Outlined.FileDownload,
+                                    contentDescription = stringResource(id = R.string.export_queue),
+                                )
+                            }
+                            // Import button
+                            IconButton(
+                                onClick = {
+                                    showImportDialog = true
+                                },
+                                modifier = Modifier,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.ContentCopy,
+                                    contentDescription = stringResource(id = R.string.import_queue),
+                                )
+                            }
+                            if (videos.isNotEmpty()) {
+                                IconButton(
+                                    onClick = {
+                                        isSelectEnabled = !isSelectEnabled
+                                        if (!isSelectEnabled) viewModel.clearSelection()
+                                    },
+                                    modifier = Modifier,
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = null,
+                                    )
+                                }
+                            }
+                            IconButton(
+                                onClick = { importLauncher.launch(null) },
+                                modifier = Modifier,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Inbox,
+                                    contentDescription = stringResource(id = R.string.import_from_folder_title),
                                 )
                             }
                         }
-                        IconButton(
-                            onClick = { importLauncher.launch(null) },
-                            modifier = Modifier,
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Inbox,
-                                contentDescription = stringResource(id = R.string.import_from_folder_title),
-                            )
-                        }
-                    }
-                },
-            )
+                    },
+                )
+            }
         },
         bottomBar = {
             if (isSelectEnabled) {
@@ -306,7 +377,7 @@ fun DownloadedHistoryScreen(
                     Checkbox(
                         checked = isAllSelected,
                         onCheckedChange = {
-                            viewModel.toggleSelectAll(videos.map { it.id })
+                            viewModel.toggleSelectAll(filteredVideos.map { it.id })
                         },
                     )
                     Text(
@@ -534,6 +605,38 @@ fun DownloadedHistoryScreen(
                     modifier = Modifier.padding(top = 8.dp),
                 )
             }
+        } else if (filteredVideos.isEmpty()) {
+            // A search is active (or the store changed) but nothing matched the query.
+            Column(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Search,
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                )
+                Text(
+                    text = stringResource(id = R.string.downloaded_history_search_no_results_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(top = 16.dp),
+                )
+                Text(
+                    text =
+                        stringResource(
+                            id = R.string.downloaded_history_search_no_results_body,
+                            searchQuery,
+                        ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
         } else {
             LazyColumn(
                 modifier =
@@ -544,7 +647,7 @@ fun DownloadedHistoryScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(
-                    items = videos,
+                    items = filteredVideos,
                     key = { it.id },
                 ) { video ->
                     with(video) {
