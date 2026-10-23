@@ -575,108 +575,105 @@ fun DownloadedHistoryScreen(
                     }
                 }
             }
-        }
-
-        if (videos.isEmpty() && !isImporting) {
-            Column(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.History,
-                    contentDescription = null,
-                    modifier = Modifier.size(64.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                )
-                Text(
-                    text = stringResource(id = R.string.downloaded_history_empty_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(top = 16.dp),
-                )
-                Text(
-                    text = stringResource(id = R.string.downloaded_history_empty_body),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    modifier = Modifier.padding(top = 8.dp),
-                )
-            }
-        } else if (filteredVideos.isEmpty()) {
-            // A search is active (or the store changed) but nothing matched the query.
-            Column(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Search,
-                    contentDescription = null,
-                    modifier = Modifier.size(64.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                )
-                Text(
-                    text = stringResource(id = R.string.downloaded_history_search_no_results_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(top = 16.dp),
-                )
-                Text(
-                    text =
-                        stringResource(
-                            id = R.string.downloaded_history_search_no_results_body,
-                            searchQuery,
-                        ),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    modifier = Modifier.padding(top = 8.dp),
-                )
-            }
-        } else {
-            LazyColumn(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .fillMaxWidth(),
-                state = lazyListState,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                items(
-                    items = filteredVideos,
-                    key = { it.id },
-                ) { video ->
-                    with(video) {
-                        MediaListItem(
-                            modifier = Modifier,
-                            title = title,
-                            author = author ?: "",
-                            thumbnailUrl = thumbnailUrl,
-                            videoPath = outputPath ?: "",
-                            fileSize = fileSize,
-                            mediaType = mediaType,
-                            isSelectEnabled = { isSelectEnabled },
-                            isSelected = { selectedIds.contains(id) },
-                            onSelect = {
-                                viewModel.toggleSelection(id)
-                            },
-                            onClick = {
-                                if (isSelectEnabled) {
+            if (searchQuery.isNotBlank() && filteredVideos.isEmpty()) {
+                // A non-blank query matched nothing, even with an empty store: the search
+                // no-results state takes precedence over the regular empty state.
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Search,
+                        contentDescription = null,
+                        modifier = Modifier.size(64.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                    )
+                    Text(
+                        text = stringResource(id = R.string.downloaded_history_search_no_results_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(top = 16.dp),
+                    )
+                    Text(
+                        text =
+                            stringResource(
+                                id = R.string.downloaded_history_search_no_results_body,
+                                searchQuery,
+                            ),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                }
+            } else if (videos.isEmpty() && !isImporting) {
+                // Blank query but no videos in the store: the regular empty state.
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.History,
+                        contentDescription = null,
+                        modifier = Modifier.size(64.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                    )
+                    Text(
+                        text = stringResource(id = R.string.downloaded_history_empty_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(top = 16.dp),
+                    )
+                    Text(
+                        text = stringResource(id = R.string.downloaded_history_empty_body),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    state = lazyListState,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items(
+                        items = filteredVideos,
+                        key = { it.id },
+                    ) { video ->
+                        with(video) {
+                            MediaListItem(
+                                modifier = Modifier,
+                                title = title,
+                                author = author ?: "",
+                                thumbnailUrl = thumbnailUrl,
+                                videoPath = outputPath ?: "",
+                                fileSize = fileSize,
+                                mediaType = mediaType,
+                                isSelectEnabled = { isSelectEnabled },
+                                isSelected = { selectedIds.contains(id) },
+                                onSelect = {
                                     viewModel.toggleSelection(id)
-                                }
-                                // Outside of selection mode a tap does nothing
-                            },
-                            onLongClick = {
-                                isSelectEnabled = true
-                                viewModel.toggleSelection(id)
-                            },
-                            onShowContextMenu = {
-                            },
-                        )
+                                },
+                                onClick = {
+                                    if (isSelectEnabled) {
+                                        viewModel.toggleSelection(id)
+                                    }
+                                    // Outside of selection mode a tap does nothing
+                                },
+                                onLongClick = {
+                                    isSelectEnabled = true
+                                    viewModel.toggleSelection(id)
+                                },
+                                onShowContextMenu = {
+                                },
+                            )
+                        }
                     }
                 }
             }
