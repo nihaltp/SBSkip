@@ -432,4 +432,10 @@
     <string name="downloaded_history_search_close">Close search</string>
     <string name="downloaded_history_search_no_results_title">No matching videos</string>
     <string name="downloaded_history_search_no_results_body">No results for "%1$s". Try a different search.</string>
+
+    <!-- Folder import queue status -->
+    <string name="downloaded_history_import_status_pending">Pending</string>
+    <string name="downloaded_history_import_status_scanning">Scanning</string>
+    <string name="downloaded_history_import_status_completed">Completed</string>
+    <string name="downloaded_history_import_status_failed">Failed</string>
 </resources>
