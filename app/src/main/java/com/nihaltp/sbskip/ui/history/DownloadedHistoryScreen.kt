@@ -21,7 +21,9 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Inbox
+import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.DeleteSweep
+import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -44,6 +46,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,7 +57,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nihaltp.sbskip.R
+import com.nihaltp.sbskip.model.ExportDestination
+import com.nihaltp.sbskip.model.ExportFormat
+import com.nihaltp.sbskip.model.ImportResult
+import com.nihaltp.sbskip.model.ImportSource
+import com.nihaltp.sbskip.ui.main.dialogs.ExportDialog
+import com.nihaltp.sbskip.ui.main.dialogs.ImportDialog
+import com.nihaltp.sbskip.util.ExportImportUtil
 import com.nihaltp.sbskip.util.FolderImportStatus
+import kotlinx.coroutines.launch
 
 /**
  * Maximum height of the import queue list. The list scrolls on its own, so a long queue never
@@ -77,6 +88,7 @@ fun DownloadedHistoryScreen(
     val importQueue by viewModel.importQueue.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
     var announcedTerminalIds by remember { mutableStateOf(emptySet<Long>()) }
 
     // Announce finished queue items (COMPLETED/FAILED) with a snackbar and then drop them from
@@ -116,6 +128,13 @@ fun DownloadedHistoryScreen(
 
     var isSelectEnabled by remember { mutableStateOf(false) }
 
+    // Export/Import dialog states
+    var showExportDialog by remember { mutableStateOf(false) }
+    var showImportDialog by remember { mutableStateOf(false) }
+
+    // Export content for file saving
+    var pendingExportContent by remember { mutableStateOf<String?>(null) }
+
     val visibleItemCount = videos.size
 
     val isAllSelected by remember(selectedIds, visibleItemCount) {
@@ -130,6 +149,76 @@ fun DownloadedHistoryScreen(
         ) { uri ->
             uri?.let {
                 viewModel.scanAndImportFolder(context, it)
+            }
+        }
+
+    // State to hold text to import
+    var textToImport by remember { mutableStateOf<String?>(null) }
+
+    // File picker for import
+    val importFileLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.GetContent(),
+        ) { uri ->
+            uri?.let { fileUri ->
+                coroutineScope.launch {
+                    val importedText = ExportImportUtil.readTextFromUri(context, fileUri)
+                    if (importedText != null) {
+                        textToImport = importedText
+                    }
+                }
+            }
+        }
+
+    // Process imported text when textToImport changes
+    LaunchedEffect(textToImport) {
+        textToImport?.let { text ->
+            val result = ExportImportUtil.parseImportedText(text)
+            when (result) {
+                is ImportResult.Success -> {
+                    val videoIds = result.items
+                    viewModel.enqueueVideoIds(videoIds, viewModel.settings.value)
+                }
+                is ImportResult.JsonSuccess -> {
+                    val videoIds = result.exportData.items.map { it.videoId }.filter { it.isNotBlank() }.distinct()
+                    viewModel.enqueueVideoIds(videoIds, viewModel.settings.value)
+                }
+                is ImportResult.Failure -> {
+                    ExportImportUtil.showToast(context, context.getString(R.string.import_failed, result.error))
+                }
+            }
+            textToImport = null
+        }
+    }
+
+    val exportFileLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.CreateDocument("text/plain"),
+        ) { uri ->
+            uri?.let { fileUri ->
+                pendingExportContent?.let { content ->
+                    coroutineScope.launch {
+                        if (!ExportImportUtil.writeTextToUri(context, fileUri, content)) {
+                            ExportImportUtil.showToast(context, context.getString(R.string.export_file_failed))
+                        }
+                    }
+                }
+            }
+        }
+
+    // File saver for JSON export
+    val exportJsonFileLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.CreateDocument("application/json"),
+        ) { uri ->
+            uri?.let { fileUri ->
+                pendingExportContent?.let { content ->
+                    coroutineScope.launch {
+                        if (!ExportImportUtil.writeTextToUri(context, fileUri, content)) {
+                            ExportImportUtil.showToast(context, context.getString(R.string.export_file_failed))
+                        }
+                    }
+                }
             }
         }
 
@@ -160,6 +249,30 @@ fun DownloadedHistoryScreen(
                 },
                 actions = {
                     Row {
+                        // Export button
+                        IconButton(
+                            onClick = {
+                                showExportDialog = true
+                            },
+                            modifier = Modifier,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.FileDownload,
+                                contentDescription = stringResource(id = R.string.export_queue),
+                            )
+                        }
+                        // Import button
+                        IconButton(
+                            onClick = {
+                                showImportDialog = true
+                            },
+                            modifier = Modifier,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.ContentCopy,
+                                contentDescription = stringResource(id = R.string.import_queue),
+                            )
+                        }
                         if (videos.isNotEmpty()) {
                             IconButton(
                                 onClick = {
@@ -197,7 +310,10 @@ fun DownloadedHistoryScreen(
                         },
                     )
                     Text(
-                        modifier = Modifier.weight(1f),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(start = 8.dp),
                         text =
                             stringResource(
                                 id = R.string.multiselect_item_count,
@@ -255,7 +371,12 @@ fun DownloadedHistoryScreen(
                                 modifier = Modifier.size(20.dp),
                                 strokeWidth = 2.dp,
                             )
-                            Column(modifier = Modifier.weight(1f)) {
+                            Column(
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp),
+                            ) {
                                 Text(
                                     text = stringResource(id = R.string.import_from_folder_scanning),
                                     style = MaterialTheme.typography.titleSmall,
@@ -316,7 +437,12 @@ fun DownloadedHistoryScreen(
                                             .padding(vertical = 4.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                    Column(modifier = Modifier.weight(1f)) {
+                                    Column(
+                                        modifier =
+                                            Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 4.dp),
+                                    ) {
                                         Text(
                                             text =
                                                 queueItem.folderName
@@ -336,7 +462,7 @@ fun DownloadedHistoryScreen(
                                         modifier =
                                             Modifier
                                                 .padding(start = 8.dp)
-                                                .weight(1f, fill = false),
+                                                .fillMaxWidth(),
                                         horizontalAlignment = Alignment.End,
                                     ) {
                                         Text(
@@ -378,80 +504,134 @@ fun DownloadedHistoryScreen(
                     }
                 }
             }
+        }
 
-            if (videos.isEmpty() && !isImporting) {
-                Column(
-                    modifier =
-                        Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.History,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                    )
-                    Text(
-                        text = stringResource(id = R.string.downloaded_history_empty_title),
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(top = 16.dp),
-                    )
-                    Text(
-                        text = stringResource(id = R.string.downloaded_history_empty_body),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                        modifier = Modifier.padding(top = 8.dp),
-                    )
-                }
-            } else {
-                LazyColumn(
-                    modifier =
-                        Modifier
-                            .weight(1f)
-                            .fillMaxWidth(),
-                    state = lazyListState,
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    items(
-                        items = videos,
-                        key = { it.id },
-                    ) { video ->
-                        with(video) {
-                            MediaListItem(
-                                modifier = Modifier,
-                                title = title,
-                                author = author ?: "",
-                                thumbnailUrl = thumbnailUrl,
-                                videoPath = outputPath ?: "",
-                                fileSize = fileSize,
-                                mediaType = mediaType,
-                                isSelectEnabled = { isSelectEnabled },
-                                isSelected = { selectedIds.contains(id) },
-                                onSelect = {
+        if (videos.isEmpty() && !isImporting) {
+            Column(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.History,
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                )
+                Text(
+                    text = stringResource(id = R.string.downloaded_history_empty_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(top = 16.dp),
+                )
+                Text(
+                    text = stringResource(id = R.string.downloaded_history_empty_body),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .fillMaxWidth(),
+                state = lazyListState,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                items(
+                    items = videos,
+                    key = { it.id },
+                ) { video ->
+                    with(video) {
+                        MediaListItem(
+                            modifier = Modifier,
+                            title = title,
+                            author = author ?: "",
+                            thumbnailUrl = thumbnailUrl,
+                            videoPath = outputPath ?: "",
+                            fileSize = fileSize,
+                            mediaType = mediaType,
+                            isSelectEnabled = { isSelectEnabled },
+                            isSelected = { selectedIds.contains(id) },
+                            onSelect = {
+                                viewModel.toggleSelection(id)
+                            },
+                            onClick = {
+                                if (isSelectEnabled) {
                                     viewModel.toggleSelection(id)
-                                },
-                                onClick = {
-                                    if (isSelectEnabled) {
-                                        viewModel.toggleSelection(id)
-                                    }
-                                    // Outside of selection mode a tap does nothing
-                                },
-                                onLongClick = {
-                                    isSelectEnabled = true
-                                    viewModel.toggleSelection(id)
-                                },
-                                onShowContextMenu = {
-                                },
-                            )
-                        }
+                                }
+                                // Outside of selection mode a tap does nothing
+                            },
+                            onLongClick = {
+                                isSelectEnabled = true
+                                viewModel.toggleSelection(id)
+                            },
+                            onShowContextMenu = {
+                            },
+                        )
                     }
                 }
             }
         }
+    }
+
+    // Export Dialog
+    if (showExportDialog) {
+        val queueItems = videos
+        ExportDialog(
+            onDismissRequest = { showExportDialog = false },
+            itemCount = queueItems.size,
+            onExport = { format, destination ->
+                val content = ExportImportUtil.exportDownloadedVideos(queueItems, format)
+                when (destination) {
+                    ExportDestination.CLIPBOARD -> {
+                        val success = ExportImportUtil.copyToClipboard(context, content)
+                        ExportImportUtil.showToast(
+                            context,
+                            if (success) {
+                                context.getString(R.string.export_copied_to_clipboard, queueItems.size)
+                            } else {
+                                context.getString(R.string.export_clipboard_failed)
+                            },
+                        )
+                    }
+                    ExportDestination.FILE -> {
+                        pendingExportContent = content
+                        // CreateDocument.launch() receives the suggested filename, not the MIME type.
+                        when (format) {
+                            ExportFormat.FULL_JSON -> exportJsonFileLauncher.launch(ExportImportUtil.generateExportFilename(format))
+                            else -> exportFileLauncher.launch(ExportImportUtil.generateExportFilename(format))
+                        }
+                    }
+                }
+            },
+        )
+    }
+
+    // Import Dialog
+    if (showImportDialog) {
+        ImportDialog(
+            onDismissRequest = { showImportDialog = false },
+            onImport = { source, clipboardText ->
+                when (source) {
+                    ImportSource.CLIPBOARD -> {
+                        clipboardText?.let { text ->
+                            if (text.isNotBlank()) {
+                                textToImport = text
+                            }
+                        }
+                    }
+                    ImportSource.FILE -> {
+                        importFileLauncher.launch("text/plain")
+                    }
+                }
+            },
+        )
     }
 }
 

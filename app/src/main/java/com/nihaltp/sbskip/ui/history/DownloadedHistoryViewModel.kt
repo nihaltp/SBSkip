@@ -5,15 +5,21 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.nihaltp.sbskip.data.repository.DownloadedVideoRepository
+import com.nihaltp.sbskip.data.repository.QueueRepository
+import com.nihaltp.sbskip.data.repository.SettingsRepository
 import com.nihaltp.sbskip.model.DownloadedVideoEntity
+import com.nihaltp.sbskip.model.MediaType
+import com.nihaltp.sbskip.util.Constants
 import com.nihaltp.sbskip.util.FfmpegMetadataReader
 import com.nihaltp.sbskip.util.FolderImportQueueItem
 import com.nihaltp.sbskip.util.ImportManager
+import com.nihaltp.sbskip.util.parser.YouTubeUrlParser
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -23,6 +29,8 @@ class DownloadedHistoryViewModel
     @Inject
     constructor(
         private val downloadedVideoRepository: DownloadedVideoRepository,
+        private val queueRepository: QueueRepository,
+        private val settingsRepository: SettingsRepository,
         private val ffmpegMetadataReader: FfmpegMetadataReader,
         private val importManager: ImportManager,
         application: Application,
@@ -42,6 +50,14 @@ class DownloadedHistoryViewModel
                     scope = viewModelScope,
                     started = SharingStarted.WhileSubscribed(5000),
                     initialValue = emptyList(),
+                )
+
+        val settings: StateFlow<com.nihaltp.sbskip.model.AppSettings> =
+            settingsRepository.settings
+                .stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.WhileSubscribed(5000),
+                    initialValue = com.nihaltp.sbskip.model.AppSettings(),
                 )
 
         private val _selectedIds = MutableStateFlow<Set<Long>>(emptySet())
@@ -135,9 +151,79 @@ class DownloadedHistoryViewModel
             importManager.dismissCompletedItem(id)
         }
 
-        private fun mediaTypeForUri(uri: Uri): String {
-            val name = uri.lastPathSegment ?: ""
-            val ext = name.substringAfterLast('.').lowercase()
-            return if (ext in setOf("mp4", "m4v", "mov", "avi", "wmv", "flv")) "video" else "audio"
+        /**
+         * Enqueues a downloaded video for SponsorBlock cleaning.
+         */
+        suspend fun enqueueDownloadedVideo(
+            videoId: String,
+            youtubeUrl: String,
+            title: String,
+            settings: com.nihaltp.sbskip.model.AppSettings,
+        ): Boolean {
+            val existingVideoIds =
+                queueRepository.observeQueue().first()
+                    .mapNotNull { YouTubeUrlParser.extractVideoId(it.url) }
+                    .toSet()
+
+            if (videoId in existingVideoIds) {
+                return false
+            }
+
+            val mediaType =
+                if (settings.defaultConvertVideoToAudio) {
+                    com.nihaltp.sbskip.model.MediaType.AUDIO
+                } else {
+                    com.nihaltp.sbskip.model.MediaType.VIDEO
+                }
+
+            val result =
+                queueRepository.enqueue(
+                    localFileUri = "", // Will be auto-detected
+                    title = title,
+                    youtubeUrl = youtubeUrl,
+                    mediaType = mediaType,
+                    convertVideoToAudio = settings.defaultConvertVideoToAudio,
+                    deleteOriginalVideo = settings.defaultDeleteOriginalVideo,
+                    audioOutputDirUri = if (mediaType == com.nihaltp.sbskip.model.MediaType.AUDIO) null else null,
+                    videoOutputDirUri = if (mediaType == com.nihaltp.sbskip.model.MediaType.VIDEO) null else null,
+                    relativePath = "",
+                )
+            return result.success
+        }
+
+        /**
+         * Enqueues multiple downloaded videos for SponsorBlock cleaning.
+         */
+        suspend fun enqueueVideoIds(
+            videoIds: List<String>,
+            settings: com.nihaltp.sbskip.model.AppSettings,
+        ): Int {
+            val existingVideoIds =
+                queueRepository.observeQueue().first()
+                    .mapNotNull { YouTubeUrlParser.extractVideoId(it.url) }
+                    .toSet()
+
+            val newVideoIds = videoIds.filter { !existingVideoIds.contains(it) }
+            val duplicateCount = videoIds.size - newVideoIds.size
+
+            if (newVideoIds.isEmpty()) {
+                return 0
+            }
+
+            var enqueuedCount = 0
+
+            newVideoIds.forEach { videoId ->
+                val youtubeUrl = Constants.buildYouTubeWatchUrl(videoId)
+                val result =
+                    enqueueDownloadedVideo(
+                        videoId = videoId,
+                        youtubeUrl = youtubeUrl,
+                        title = videoId,
+                        settings = settings,
+                    )
+                if (result) enqueuedCount++
+            }
+
+            return enqueuedCount
         }
     }

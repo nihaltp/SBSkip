@@ -3,6 +3,8 @@ package com.nihaltp.sbskip.ui.history
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import com.nihaltp.sbskip.data.repository.DownloadedVideoRepository
+import com.nihaltp.sbskip.data.repository.QueueRepository
+import com.nihaltp.sbskip.data.repository.SettingsRepository
 import com.nihaltp.sbskip.model.DownloadedVideoEntity
 import com.nihaltp.sbskip.util.FfmpegMetadataReader
 import com.nihaltp.sbskip.util.ImportManager
@@ -41,6 +43,8 @@ class DownloadedHistoryViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
 
     private lateinit var downloadedVideoRepository: DownloadedVideoRepository
+    private lateinit var queueRepository: QueueRepository
+    private lateinit var settingsRepository: SettingsRepository
     private lateinit var ffmpegMetadataReader: FfmpegMetadataReader
     private lateinit var importManager: ImportManager
     private lateinit var application: Application
@@ -50,11 +54,21 @@ class DownloadedHistoryViewModelTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         downloadedVideoRepository = mockk(relaxed = true)
+        queueRepository = mockk(relaxed = true)
+        settingsRepository = mockk(relaxed = true)
         ffmpegMetadataReader = mockk(relaxed = true)
         importManager = mockk(relaxed = true)
         application = ApplicationProvider.getApplicationContext()
         every { downloadedVideoRepository.observeDownloadedVideos } returns flowOf(emptyList())
-        viewModel = DownloadedHistoryViewModel(downloadedVideoRepository, ffmpegMetadataReader, importManager, application)
+        viewModel =
+            DownloadedHistoryViewModel(
+                downloadedVideoRepository = downloadedVideoRepository,
+                queueRepository = queueRepository,
+                settingsRepository = settingsRepository,
+                ffmpegMetadataReader = ffmpegMetadataReader,
+                importManager = importManager,
+                application = application,
+            )
     }
 
     @After
@@ -86,7 +100,15 @@ class DownloadedHistoryViewModelTest {
                 )
             every { downloadedVideoRepository.observeDownloadedVideos } returns flowOf(expected)
 
-            viewModel = DownloadedHistoryViewModel(downloadedVideoRepository, ffmpegMetadataReader, importManager, application)
+            viewModel =
+                DownloadedHistoryViewModel(
+                    downloadedVideoRepository = downloadedVideoRepository,
+                    queueRepository = queueRepository,
+                    settingsRepository = settingsRepository,
+                    ffmpegMetadataReader = ffmpegMetadataReader,
+                    importManager = importManager,
+                    application = application,
+                )
 
             // first() returns initialValue (emptyList); skip it to get the upstream emission.
             assertEquals(expected, viewModel.videos.first { it.isNotEmpty() })

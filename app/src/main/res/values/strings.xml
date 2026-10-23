@@ -221,7 +221,7 @@
     <string name="settings_sb_status_url_field_label">Server Status Page URL</string>
 
     <!-- Downloaded Videos History -->
-    <string name="downloaded_history_title">Downloaded Videos</string>
+    <string name="downloaded_history_title">Downloaded</string>
     <string name="downloaded_history_empty_title">No downloaded videos yet</string>
     <string name="downloaded_history_empty_body">Downloaded videos will appear here once tracking is enabled.</string>
     <string name="downloaded_history_clear_title">Clear Downloaded Videos</string>
@@ -373,4 +373,55 @@
     <string name="notification_import_folders_title">Importing folders</string>
     <string name="notification_import_folders_remaining">%1$d folders remaining</string>
     <string name="notification_import_cancel">Cancel scan</string>
+
+    <!-- Export/Import Queue -->
+    <string name="more_actions">More actions</string>
+    <string name="export_queue">Export Queue</string>
+    <string name="import_queue">Import Queue</string>
+
+    <string name="export_dialog_title">Export Queue</string>
+    <string name="export_dialog_message">Export %1$d queue items?</string>
+    <string name="export_format_label">Format</string>
+    <string name="export_destination_label">Destination</string>
+    <string name="export_button">Export</string>
+
+    <string name="export_format_video_ids">Video IDs only</string>
+    <string name="export_format_video_ids_desc">One 11-character YouTube ID per line</string>
+    <string name="export_format_full_urls">Full YouTube URLs</string>
+    <string name="export_format_full_urls_desc">One full watch URL per line</string>
+    <string name="export_format_full_json">Full JSON backup</string>
+    <string name="export_format_full_json_desc">Includes title, categories, and metadata</string>
+
+    <string name="export_dest_file">Save to file</string>
+    <string name="export_dest_file_desc">Choose location via file picker</string>
+    <string name="export_dest_clipboard">Copy to clipboard</string>
+    <string name="export_dest_clipboard_desc">Paste into any text field</string>
+
+    <string name="export_copied_to_clipboard">Exported %1$d items to clipboard</string>
+    <string name="export_clipboard_failed">Failed to copy to clipboard</string>
+    <string name="export_saved_to_file">Saved %1$s to Downloads</string>
+    <string name="export_file_failed">Failed to save file</string>
+    <string name="export_empty_queue">Queue is empty, nothing to export</string>
+
+    <string name="import_dialog_title">Import Queue</string>
+    <string name="import_dialog_message">Import video IDs or URLs from clipboard or file</string>
+    <string name="import_source_label">Source</string>
+    <string name="import_button">Import</string>
+
+    <string name="import_source_file">Import from file</string>
+    <string name="import_source_file_desc">Select a text or JSON file</string>
+    <string name="import_source_clipboard">Import from clipboard</string>
+    <string name="import_source_clipboard_desc">Paste video IDs or URLs</string>
+
+    <string name="import_clipboard_empty">Clipboard is empty or contains no valid video IDs</string>
+    <string name="import_failed">Import failed: %1$s</string>
+    <string name="import_all_duplicates">All %1$d video IDs already in queue</string>
+    <string name="import_partial_success">Imported %1$d new items, %2$d duplicates skipped</string>
+    <string name="import_success">Successfully imported %1$d items</string>
+    <string name="import_failed_generic">Failed to import items</string>
+
+    <string name="settings_export_queue">Export Queue</string>
+    <string name="settings_export_queue_desc">Save queue items as video IDs, URLs, or JSON</string>
+    <string name="settings_import_queue">Import Queue</string>
+    <string name="settings_import_queue_desc">Load video IDs or URLs from file or clipboard</string>
 </resources>

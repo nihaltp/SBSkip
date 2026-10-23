@@ -150,6 +150,7 @@ fun MainScreen(
     var detailsPendingDownloadItem by remember { mutableStateOf<PendingDownload?>(null) }
     var showCategoriesDialog by remember { mutableStateOf(false) }
     var isOptionsExpanded by remember { mutableStateOf(false) }
+
     val showLocalCleanButton = uiState.selectedFileUri != null && uiState.urlInput.isNotBlank()
     val showDownloadAndCleanButton = uiState.selectedFileUri == null && uiState.isNewPipeInstalled && uiState.urlInput.isNotBlank()
     val isVideoFile = uiState.selectedFileMediaType == MediaType.VIDEO
