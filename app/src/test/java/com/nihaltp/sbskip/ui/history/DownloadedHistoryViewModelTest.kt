@@ -26,6 +26,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -112,6 +113,113 @@ class DownloadedHistoryViewModelTest {
 
             // first() returns initialValue (emptyList); skip it to get the upstream emission.
             assertEquals(expected, viewModel.videos.first { it.isNotEmpty() })
+        }
+
+    @Test
+    fun `filteredVideos shows all videos for blank query`() =
+        runTest(testDispatcher) {
+            val items =
+                listOf(
+                    DownloadedVideoEntity(
+                        id = 1L,
+                        videoId = "aaa111",
+                        url = "https://www.youtube.com/watch?v=aaa111",
+                        title = "Alpha Video",
+                        author = "ChannelOne",
+                        thumbnailUrl = "https://img.youtube.com/vi/aaa111/mqdefault.jpg",
+                        durationSeconds = 60L,
+                        outputPaths = listOf("/sdcard/Music/alpha.m4a"),
+                        mediaType = "audio",
+                    ),
+                    DownloadedVideoEntity(
+                        id = 2L,
+                        videoId = "bbb222",
+                        url = "https://www.youtube.com/watch?v=bbb222",
+                        title = "Beta Video",
+                        author = "ChannelTwo",
+                        thumbnailUrl = "https://img.youtube.com/vi/bbb222/mqdefault.jpg",
+                        durationSeconds = 90L,
+                        outputPaths = listOf("/sdcard/Music/beta.m4a"),
+                        mediaType = "audio",
+                    ),
+                )
+            every { downloadedVideoRepository.observeDownloadedVideos } returns flowOf(items)
+
+            viewModel =
+                DownloadedHistoryViewModel(
+                    downloadedVideoRepository = downloadedVideoRepository,
+                    queueRepository = queueRepository,
+                    settingsRepository = settingsRepository,
+                    ffmpegMetadataReader = ffmpegMetadataReader,
+                    importManager = importManager,
+                    application = application,
+                )
+
+            assertEquals(items, viewModel.filteredVideos.first { it.isNotEmpty() })
+        }
+
+    @Test
+    fun `filteredVideos filters case-insensitively on title, author, url, and video id`() =
+        runTest(testDispatcher) {
+            val items =
+                listOf(
+                    DownloadedVideoEntity(
+                        id = 1L,
+                        videoId = "aaa111",
+                        url = "https://www.youtube.com/watch?v=aaa111",
+                        title = "Alpha Video",
+                        author = "ChannelOne",
+                        thumbnailUrl = "https://img.youtube.com/vi/aaa111/mqdefault.jpg",
+                        durationSeconds = 60L,
+                        outputPaths = listOf("/sdcard/Music/alpha.m4a"),
+                        mediaType = "audio",
+                    ),
+                    DownloadedVideoEntity(
+                        id = 2L,
+                        videoId = "bbb222",
+                        url = "https://www.youtube.com/watch?v=bbb222",
+                        title = "Beta Video",
+                        author = "ChannelTwo",
+                        thumbnailUrl = "https://img.youtube.com/vi/bbb222/mqdefault.jpg",
+                        durationSeconds = 90L,
+                        outputPaths = listOf("/sdcard/Music/beta.m4a"),
+                        mediaType = "audio",
+                    ),
+                )
+            every { downloadedVideoRepository.observeDownloadedVideos } returns flowOf(items)
+
+            viewModel =
+                DownloadedHistoryViewModel(
+                    downloadedVideoRepository = downloadedVideoRepository,
+                    queueRepository = queueRepository,
+                    settingsRepository = settingsRepository,
+                    ffmpegMetadataReader = ffmpegMetadataReader,
+                    importManager = importManager,
+                    application = application,
+                )
+
+            // Must see the unfiltered emission before narrowing, so the filter state is settled.
+            viewModel.filteredVideos.first { it.size == items.size }
+
+            // Title match, case-insensitive
+            viewModel.setSearchQuery("alpha")
+            assertEquals(listOf(items[0]), viewModel.filteredVideos.first { it == listOf(items[0]) })
+
+            // Author match, case-insensitive, when title does not match
+            viewModel.setSearchQuery("channeltwo")
+            assertEquals(listOf(items[1]), viewModel.filteredVideos.first { it == listOf(items[1]) })
+
+            // URL match
+            viewModel.setSearchQuery("watch?v=AaA111")
+            assertEquals(listOf(items[0]), viewModel.filteredVideos.first { it == listOf(items[0]) })
+
+            // Extracted video id match
+            viewModel.setSearchQuery("BBB222")
+            assertEquals(listOf(items[1]), viewModel.filteredVideos.first { it == listOf(items[1]) })
+
+            // No matches
+            viewModel.setSearchQuery("zeta")
+            assertTrue(viewModel.filteredVideos.first { it.isEmpty() }.isEmpty())
         }
 
     @Test

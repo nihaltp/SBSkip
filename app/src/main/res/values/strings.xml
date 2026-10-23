@@ -424,4 +424,12 @@
     <string name="settings_export_queue_desc">Save queue items as video IDs, URLs, or JSON</string>
     <string name="settings_import_queue">Import Queue</string>
     <string name="settings_import_queue_desc">Load video IDs or URLs from file or clipboard</string>
+
+    <!-- Downloaded video search -->
+    <string name="downloaded_history_search">Search downloaded videos</string>
+    <string name="downloaded_history_search_hint">Search downloads</string>
+    <string name="downloaded_history_search_clear">Clear search query</string>
+    <string name="downloaded_history_search_close">Close search</string>
+    <string name="downloaded_history_search_no_results_title">No matching videos</string>
+    <string name="downloaded_history_search_no_results_body">No results for "%1$s". Try a different search.</string>
 </resources>
