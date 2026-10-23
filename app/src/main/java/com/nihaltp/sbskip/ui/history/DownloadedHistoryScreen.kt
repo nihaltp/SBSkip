@@ -295,7 +295,11 @@ fun DownloadedHistoryScreen(
             } else {
                 TopAppBar(
                     title = {
-                        Text(stringResource(id = R.string.downloaded_history_title))
+                        Text(
+                            stringResource(id = R.string.downloaded_history_title),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                     },
                     navigationIcon = {
                         IconButton(
@@ -511,7 +515,7 @@ fun DownloadedHistoryScreen(
                                     Column(
                                         modifier =
                                             Modifier
-                                                .fillMaxWidth()
+                                                .weight(1f)
                                                 .padding(vertical = 4.dp),
                                     ) {
                                         Text(
@@ -523,17 +527,14 @@ fun DownloadedHistoryScreen(
                                             overflow = TextOverflow.Ellipsis,
                                         )
                                         Text(
-                                            text = queueStatusText(queueItem.status),
+                                            text = stringResource(id = queueStatusTextRes(queueItem.status)),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = queueStatusColor(queueItem.status),
                                             maxLines = 1,
                                         )
                                     }
                                     Column(
-                                        modifier =
-                                            Modifier
-                                                .padding(start = 8.dp)
-                                                .fillMaxWidth(),
+                                        modifier = Modifier.padding(start = 8.dp),
                                         horizontalAlignment = Alignment.End,
                                     ) {
                                         Text(
@@ -735,13 +736,12 @@ fun DownloadedHistoryScreen(
     }
 }
 
-@Composable
-private fun queueStatusText(status: FolderImportStatus): String =
+private fun queueStatusTextRes(status: FolderImportStatus): Int =
     when (status) {
-        FolderImportStatus.PENDING -> "Pending"
-        FolderImportStatus.SCANNING -> "Scanning"
-        FolderImportStatus.COMPLETED -> "Completed"
-        FolderImportStatus.FAILED -> "Failed"
+        FolderImportStatus.PENDING -> R.string.downloaded_history_import_status_pending
+        FolderImportStatus.SCANNING -> R.string.downloaded_history_import_status_scanning
+        FolderImportStatus.COMPLETED -> R.string.downloaded_history_import_status_completed
+        FolderImportStatus.FAILED -> R.string.downloaded_history_import_status_failed
     }
 
 @Composable
@@ -749,6 +749,8 @@ private fun queueStatusColor(status: FolderImportStatus): Color =
     when (status) {
         FolderImportStatus.PENDING -> MaterialTheme.colorScheme.onSurfaceVariant
         FolderImportStatus.SCANNING -> MaterialTheme.colorScheme.primary
-        FolderImportStatus.COMPLETED -> MaterialTheme.colorScheme.primaryContainer
+        // primaryContainer is a background color; using it for TEXT on the surfaceVariant
+        // card fails contrast, so completions use primary.
+        FolderImportStatus.COMPLETED -> MaterialTheme.colorScheme.primary
         FolderImportStatus.FAILED -> MaterialTheme.colorScheme.error
     }
