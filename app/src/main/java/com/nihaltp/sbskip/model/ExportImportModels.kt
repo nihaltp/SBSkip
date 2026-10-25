@@ -6,7 +6,14 @@ import kotlinx.serialization.Serializable
 data class ExportData(
     val version: Int = 1,
     val exportedAt: Long = System.currentTimeMillis(),
-    val items: List<ExportItem>,
+    val items: List<ExportItem> = emptyList(),
+    /**
+     * Download history entries in the full backup shape used by other SB Skip forks that implement
+     * the Seal backup format (e.g. full JSON backups from Seal). The full JSON backup writes both
+     * the [items] list and this list so that the backup can be imported by apps that only read
+     * the `downloadHistory` key.
+     */
+    val downloadHistory: List<SealDownloadHistoryEntry>? = null,
 )
 
 @Serializable
@@ -17,6 +24,22 @@ data class ExportItem(
     val author: String?,
     val thumbnailUrl: String?,
     val sponsorBlockCategories: List<String>?,
+)
+
+/**
+ * A single download history entry of a full JSON backup in the Seal compatible shape. The JSON key
+ * names mirror Seal's `database.backup.DownloadedVideoInfo` so that full JSON backups can be
+ * exchanged between SB Skip and Seal without further conversion.
+ */
+@Serializable
+data class SealDownloadHistoryEntry(
+    val id: Int,
+    val videoTitle: String,
+    val videoAuthor: String,
+    val videoUrl: String,
+    val thumbnailUrl: String,
+    val videoPath: String,
+    val extractor: String? = null,
 )
 
 enum class ExportFormat {

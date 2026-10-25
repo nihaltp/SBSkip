@@ -10,6 +10,7 @@ import com.nihaltp.sbskip.model.ExportData
 import com.nihaltp.sbskip.model.ExportFormat
 import com.nihaltp.sbskip.model.ExportItem
 import com.nihaltp.sbskip.model.ImportResult
+import com.nihaltp.sbskip.model.SealDownloadHistoryEntry
 import com.nihaltp.sbskip.util.parser.YouTubeUrlParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -19,6 +20,7 @@ object ExportImportUtil {
     private const val EXPORT_FILENAME_PREFIX = "sbskip_export_"
     private const val MIME_TYPE_TEXT = "text/plain"
     private const val MIME_TYPE_JSON = "application/json"
+    private const val EXPORT_DATA_VERSION = 1
 
     private val json =
         Json {
@@ -60,7 +62,7 @@ object ExportImportUtil {
                             sponsorBlockCategories = categories,
                         )
                     }
-                val exportData = ExportData(items = exportItems)
+                val exportData = exportItems.toExportData(queueItems.map { it.outputPath })
                 json.encodeToString(ExportData.serializer(), exportData)
             }
         }
@@ -100,11 +102,40 @@ object ExportImportUtil {
                             sponsorBlockCategories = categories,
                         )
                     }
-                val exportData = ExportData(items = exportItems)
+                val exportData = exportItems.toExportData(entities.map { it.outputPaths.firstOrNull() })
                 json.encodeToString(ExportData.serializer(), exportData)
             }
         }
     }
+
+    /**
+     * Builds the full JSON export: the SB Skip item list plus the Seal compatible download history
+     * list, so that other apps implementing the Seal backup format can import the backup.
+     */
+    private fun List<ExportItem>.toExportData(videoPaths: List<String?>): ExportData =
+        ExportData(
+            version = EXPORT_DATA_VERSION,
+            items = this,
+            downloadHistory =
+                mapIndexed { index, item ->
+                    item.toSealDownloadHistoryEntry(videoPaths[index] ?: item.url)
+                },
+        )
+
+    /**
+     * Converts an export item into its Seal backup download history counterpart. The Seal backup
+     * format expects non-null metadata fields, so empty strings are used when metadata is unknown.
+     */
+    private fun ExportItem.toSealDownloadHistoryEntry(localPath: String): SealDownloadHistoryEntry =
+        SealDownloadHistoryEntry(
+            id = 0,
+            videoTitle = title ?: "",
+            videoAuthor = author ?: "",
+            videoUrl = url,
+            thumbnailUrl = thumbnailUrl ?: "",
+            videoPath = localPath,
+            extractor = "YouTube",
+        )
 
     /**
      * Extract sponsor block categories from URL query parameter.
@@ -179,6 +210,10 @@ object ExportImportUtil {
 
     /**
      * Parse imported text to extract video IDs or URLs.
+     *
+     * Accepts plain text lists of video IDs/URLs as well as full JSON backups. Full JSON backups
+     * are read in the SB Skip export format and in the Seal backup format (`downloadHistory` key),
+     * so that backups can be exchanged between SB Skip and Seal.
      */
     fun parseImportedText(text: String): ImportResult {
         val lines =
@@ -193,17 +228,48 @@ object ExportImportUtil {
         // Try to parse as JSON first
         val firstLine = lines.first()
         if (firstLine.startsWith("{") || firstLine.startsWith("[")) {
-            return try {
-                val exportData = json.decodeFromString<ExportData>(text)
-                ImportResult.JsonSuccess(exportData)
-            } catch (e: Exception) {
-                // Not valid JSON, fall through to line-by-line parsing
-                parseLinesAsUrls(lines)
-            }
+            parseJsonBackup(text)?.let { return it }
         }
 
         return parseLinesAsUrls(lines)
     }
+
+    /**
+     * Parses a full JSON backup. Supports the SB Skip export format (`items`) as well as the Seal
+     * backup format (`downloadHistory`) and returns `null` when the text is not a usable JSON
+     * backup, so that the caller can fall back to plain line based parsing.
+     */
+    private fun parseJsonBackup(text: String): ImportResult? =
+        try {
+            val exportData = json.decodeFromString<ExportData>(text)
+            val items =
+                exportData.items.filter { it.videoId.isNotBlank() || it.url.isNotBlank() }
+                    .ifEmpty { exportData.downloadHistory.orEmpty().map { it.toExportItem() } }
+
+            if (items.isEmpty()) {
+                null
+            } else {
+                ImportResult.JsonSuccess(exportData.copy(items = items))
+            }
+        } catch (e: Exception) {
+            // Not valid JSON for our export format (e.g. a Seal backup), fall through to line based
+            // parsing.
+            null
+        }
+
+    /**
+     * Converts a Seal download history entry into an export item, so that the imported entries can
+     * be handled like any other imported backup.
+     */
+    private fun SealDownloadHistoryEntry.toExportItem(): ExportItem =
+        ExportItem(
+            videoId = YouTubeUrlParser.cleanVideoId(videoUrl) ?: "",
+            url = videoUrl,
+            title = videoTitle.ifBlank { null },
+            author = videoAuthor.ifBlank { null },
+            thumbnailUrl = thumbnailUrl.ifBlank { null },
+            sponsorBlockCategories = extractCategoriesFromUrl(videoUrl),
+        )
 
     private fun parseLinesAsUrls(lines: List<String>): ImportResult {
         val videoIdsOrUrls =
