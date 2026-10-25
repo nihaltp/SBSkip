@@ -24,8 +24,8 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.DeleteSweep
+import androidx.compose.material.icons.outlined.DriveFileMove
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Card
@@ -331,7 +331,7 @@ fun DownloadedHistoryScreen(
                                 modifier = Modifier,
                             ) {
                                 Icon(
-                                    imageVector = Icons.Outlined.FileDownload,
+                                    imageVector = Icons.Outlined.DriveFileMove,
                                     contentDescription = stringResource(id = R.string.export_queue),
                                 )
                             }
@@ -343,7 +343,7 @@ fun DownloadedHistoryScreen(
                                 modifier = Modifier,
                             ) {
                                 Icon(
-                                    imageVector = Icons.Outlined.ContentCopy,
+                                    imageVector = Icons.Outlined.FileDownload,
                                     contentDescription = stringResource(id = R.string.import_queue),
                                 )
                             }
