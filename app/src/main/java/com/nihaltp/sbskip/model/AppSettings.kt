@@ -43,6 +43,10 @@ data class AppSettings(
     val onboardingCompleted: Boolean = false,
     val pendingDownloads: List<PendingDownload> = emptyList(),
     val playlistDownloadState: PlaylistDownloadState? = null,
+    val nativeDownloaderVersion: String = "",
+    val nativeDownloaderSha: String = "",
+    val nativeQuality: String = "1080",
+    val nativeAutoUpdate: Boolean = false,
     val alreadyDownloadedBehavior: AlreadyDownloadedBehavior = AlreadyDownloadedBehavior.ASK,
     // The folder import queue, so that the imports survive a restart of the app.
     val importQueue: List<PersistedFolderImport> = emptyList(),

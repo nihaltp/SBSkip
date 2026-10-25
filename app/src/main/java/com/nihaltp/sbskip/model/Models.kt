@@ -7,6 +7,7 @@ enum class MediaType {
 
 enum class DownloaderType {
     NEWPIPE,
+    YTDLP,
 }
 
 enum class SponsorBlockCategory {

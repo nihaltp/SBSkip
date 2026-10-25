@@ -10,6 +10,12 @@ enum class DownloadQueueStatus {
     FAILED,
 }
 
+enum class DownloadSource {
+    NEWPIPE_HANDOFF,
+    LOCAL_FILE,
+    YTDLP,
+}
+
 data class DownloadQueueItem(
     val id: Long,
     val url: String,
@@ -32,6 +38,7 @@ data class DownloadQueueItem(
     val overwrite: Boolean = false,
     val bypassDurationCheck: Boolean = false,
     val noSuffix: Boolean = false,
+    val downloadSource: DownloadSource = DownloadSource.LOCAL_FILE,
 ) {
     val displayDuration: String
         get() {

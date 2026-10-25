@@ -691,6 +691,27 @@ fun SettingsScreen(
                                         Modifier
                                             .fillMaxWidth()
                                             .clickable {
+                                                viewModel.updateDownloaderType(DownloaderType.YTDLP)
+                                                activeDialogType = null
+                                            }
+                                            .padding(vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    RadioButton(
+                                        selected = selected == DownloaderType.YTDLP,
+                                        onClick = {
+                                            viewModel.updateDownloaderType(DownloaderType.YTDLP)
+                                            activeDialogType = null
+                                        },
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(stringResource(id = R.string.settings_downloader_yt_dlp))
+                                }
+                                Row(
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
                                                 viewModel.updateDownloaderType(DownloaderType.NEWPIPE)
                                                 activeDialogType = null
                                             }

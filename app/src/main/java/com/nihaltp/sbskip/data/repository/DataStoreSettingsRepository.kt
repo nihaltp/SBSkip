@@ -64,6 +64,10 @@ class DataStoreSettingsRepository
             val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
             val PENDING_DOWNLOADS = stringPreferencesKey("pending_downloads")
             val PLAYLIST_DOWNLOAD_STATE = stringPreferencesKey("playlist_download_state")
+            val NATIVE_DOWNLOADER_VERSION = stringPreferencesKey("native_downloader_version")
+            val NATIVE_DOWNLOADER_SHA = stringPreferencesKey("native_downloader_sha")
+            val NATIVE_QUALITY = stringPreferencesKey("native_quality")
+            val NATIVE_AUTO_UPDATE = booleanPreferencesKey("native_auto_update")
             val ALREADY_DOWNLOADED_BEHAVIOR = stringPreferencesKey("already_downloaded_behavior")
             val IMPORT_QUEUE = stringPreferencesKey("import_queue")
         }
@@ -79,6 +83,11 @@ class DataStoreSettingsRepository
                     runCatching {
                         DownloaderType.valueOf(preferences[PreferencesKeys.DOWNLOADER] ?: DownloaderType.NEWPIPE.name)
                     }.getOrDefault(DownloaderType.NEWPIPE)
+
+                val nativeDownloaderVersion = preferences[PreferencesKeys.NATIVE_DOWNLOADER_VERSION] ?: ""
+                val nativeDownloaderSha = preferences[PreferencesKeys.NATIVE_DOWNLOADER_SHA] ?: ""
+                val nativeQuality = preferences[PreferencesKeys.NATIVE_QUALITY] ?: "1080"
+                val nativeAutoUpdate = preferences[PreferencesKeys.NATIVE_AUTO_UPDATE] ?: false
 
                 val categories =
                     preferences[PreferencesKeys.SB_CATEGORIES]?.mapNotNull { name ->
@@ -130,6 +139,10 @@ class DataStoreSettingsRepository
                                 json.decodeFromString<PlaylistDownloadState>(it)
                             }
                         }.getOrNull(),
+                    nativeDownloaderVersion = nativeDownloaderVersion,
+                    nativeDownloaderSha = nativeDownloaderSha,
+                    nativeQuality = nativeQuality,
+                    nativeAutoUpdate = nativeAutoUpdate,
                     alreadyDownloadedBehavior =
                         runCatching {
                             AlreadyDownloadedBehavior.valueOf(
@@ -203,6 +216,10 @@ class DataStoreSettingsRepository
                                     json.decodeFromString<PlaylistDownloadState>(it)
                                 }
                             }.getOrNull(),
+                        nativeDownloaderVersion = preferences[PreferencesKeys.NATIVE_DOWNLOADER_VERSION] ?: "",
+                        nativeDownloaderSha = preferences[PreferencesKeys.NATIVE_DOWNLOADER_SHA] ?: "",
+                        nativeQuality = preferences[PreferencesKeys.NATIVE_QUALITY] ?: "1080",
+                        nativeAutoUpdate = preferences[PreferencesKeys.NATIVE_AUTO_UPDATE] ?: false,
                         alreadyDownloadedBehavior =
                             runCatching {
                                 AlreadyDownloadedBehavior.valueOf(
@@ -249,6 +266,10 @@ class DataStoreSettingsRepository
                 } else {
                     preferences.remove(PreferencesKeys.PLAYLIST_DOWNLOAD_STATE)
                 }
+                preferences[PreferencesKeys.NATIVE_DOWNLOADER_VERSION] = updated.nativeDownloaderVersion
+                preferences[PreferencesKeys.NATIVE_DOWNLOADER_SHA] = updated.nativeDownloaderSha
+                preferences[PreferencesKeys.NATIVE_QUALITY] = updated.nativeQuality
+                preferences[PreferencesKeys.NATIVE_AUTO_UPDATE] = updated.nativeAutoUpdate
                 preferences[PreferencesKeys.ALREADY_DOWNLOADED_BEHAVIOR] = updated.alreadyDownloadedBehavior.name
                 preferences[PreferencesKeys.IMPORT_QUEUE] = json.encodeToString(updated.importQueue)
             }

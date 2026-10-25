@@ -14,6 +14,7 @@ data class DownloadQueueEntity(
     val thumbnailUrl: String?,
     val durationSeconds: Long?,
     val status: DownloadQueueStatus,
+    val downloadSource: String = DownloadSource.LOCAL_FILE.name,
     val createdAtEpochMillis: Long,
     val updatedAtEpochMillis: Long,
     val errorMessage: String? = null,

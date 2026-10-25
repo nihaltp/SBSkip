@@ -6,6 +6,7 @@ import com.nihaltp.sbskip.data.local.dao.DownloadQueueDao
 import com.nihaltp.sbskip.model.DownloadQueueEntity
 import com.nihaltp.sbskip.model.DownloadQueueItem
 import com.nihaltp.sbskip.model.DownloadQueueStatus
+import com.nihaltp.sbskip.model.DownloadSource
 import com.nihaltp.sbskip.model.DownloadedVideoEntity
 import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.model.QueueActionResult
@@ -47,6 +48,7 @@ class DefaultQueueRepository
             bypassDurationCheck: Boolean,
             noSuffix: Boolean,
             skipDuplicateCheck: Boolean,
+            downloadSource: DownloadSource,
         ): QueueActionResult {
             val videoId =
                 if (youtubeUrl.isBlank() || youtubeUrl.startsWith("sbskip://")) {
@@ -101,6 +103,7 @@ class DefaultQueueRepository
                     overwrite = overwrite,
                     bypassDurationCheck = bypassDurationCheck,
                     noSuffix = noSuffix,
+                    downloadSource = downloadSource.name,
                 )
 
             val id = dao.insert(entity)
@@ -264,6 +267,9 @@ class DefaultQueueRepository
                 overwrite = overwrite,
                 bypassDurationCheck = bypassDurationCheck,
                 noSuffix = noSuffix,
+                downloadSource =
+                    runCatching { DownloadSource.valueOf(downloadSource) }
+                        .getOrDefault(DownloadSource.LOCAL_FILE),
             )
         }
     }
