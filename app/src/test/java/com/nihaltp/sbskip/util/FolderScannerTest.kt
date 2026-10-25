@@ -36,4 +36,19 @@ class FolderScannerTest {
         assertEquals(true, FolderScanner.isMediaFile("video.MP4"))
         assertEquals(true, FolderScanner.isMediaFile("song.MP3"))
     }
+
+    @Test
+    fun `isHiddenFolderName detects dot prefixed folder names`() {
+        assertEquals(true, FolderScanner.isHiddenFolderName(".git"))
+        assertEquals(true, FolderScanner.isHiddenFolderName(".cache"))
+        assertEquals(true, FolderScanner.isHiddenFolderName("."))
+    }
+
+    @Test
+    fun `isHiddenFolderName accepts regular folder names`() {
+        assertEquals(false, FolderScanner.isHiddenFolderName("Movies"))
+        assertEquals(false, FolderScanner.isHiddenFolderName("SB Skip"))
+        assertEquals(false, FolderScanner.isHiddenFolderName("Trailer 2024"))
+        assertEquals(false, FolderScanner.isHiddenFolderName(null))
+    }
 }

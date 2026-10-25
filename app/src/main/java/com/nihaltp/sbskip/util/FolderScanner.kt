@@ -50,7 +50,10 @@ object FolderScanner {
         treeUri: Uri,
     ): List<Uri> {
         val root = DocumentFile.fromTreeUri(context, treeUri) ?: return emptyList()
-        return root.listFiles()?.filter { it.isDirectory }?.mapNotNull { it.uri } ?: emptyList()
+        return root.listFiles()
+            ?.filter { it.isDirectory && !isHiddenFolderName(it.name) }
+            ?.mapNotNull { it.uri }
+            ?: emptyList()
     }
 
     /**
@@ -83,6 +86,8 @@ object FolderScanner {
         val files = doc.listFiles() ?: return
         for (file in files) {
             if (file.isDirectory) {
+                // Skip hidden folders such as ".git" during folder imports.
+                if (isHiddenFolderName(file.name)) continue
                 walk(file, collector, onMediaFile)
             } else if (file.isFile) {
                 val name = file.name ?: continue
@@ -102,4 +107,10 @@ object FolderScanner {
             false
         }
     }
+
+    /**
+     * True for folder names that start with a dot, e.g. ".git". Hidden folders are skipped during
+     * folder imports.
+     */
+    internal fun isHiddenFolderName(name: String?): Boolean = name != null && name.startsWith(".")
 }
