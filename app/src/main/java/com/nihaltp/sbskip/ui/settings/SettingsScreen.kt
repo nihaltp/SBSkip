@@ -309,11 +309,16 @@ fun SettingsScreen(
 
                 item {
                     SettingsSection(title = stringResource(id = R.string.settings_section_newpipe)) {
-                        SettingValueRow(
-                            title = stringResource(id = R.string.settings_downloader_title),
-                            value = stringResource(id = R.string.settings_downloader_newpipe),
-                            onClick = { activeDialogType = SettingsDialogType.DOWNLOADER },
-                        )
+                        val downloaderName =
+                                    when (settings.downloader) {
+                                        DownloaderType.YTDLP -> stringResource(id = R.string.settings_downloader_yt_dlp)
+                                        DownloaderType.NEWPIPE -> stringResource(id = R.string.settings_downloader_newpipe)
+                                    }
+                                SettingValueRow(
+                                    title = stringResource(id = R.string.settings_downloader_title),
+                                    value = downloaderName,
+                                    onClick = { activeDialogType = SettingsDialogType.DOWNLOADER },
+                                )
                     }
                 }
 
