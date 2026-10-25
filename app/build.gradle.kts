@@ -115,6 +115,12 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+        jniLibs {
+            // E1 exec strategy: launchers (libpython.so, libffmpeg.so, libffprobe.so) are
+            // extracted at install time into nativeLibraryDir, where execve is permitted.
+            // Payload zips (*.zip.so) land alongside and are copied out by YtDlpRuntime.
+            useLegacyPackaging = true
+        }
     }
 
     testOptions {
@@ -212,6 +218,16 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
     implementation("io.github.jamaismagic.ffmpeg:ffmpeg-kit-lts-16kb:6.1.7")
     implementation("com.mikepenz:aboutlibraries-compose-m3:11.2.3")
+
+    // yt-dlp runtime + CPython rootfs + launchers (payloads land in APK lib/<abi>/ automatically)
+    implementation("io.github.junkfood02.youtubedl-android:library:0.18.1")
+    // ffmpeg + ffprobe CLI executables + Termux FFmpeg rootfs (fp merge) — NOT the aria2c module
+    implementation("io.github.junkfood02.youtubedl-android:ffmpeg:0.18.1")
+    // youtubedl-android:common (ZipUtils, symlink-aware unzip) is implementation-scope upstream;
+    // declared explicitly because YtDlpRuntime imports it at compile time.
+    implementation("io.github.junkfood02.youtubedl-android:common:0.18.1")
+    // Same for commons-compress: required at compile time by the YtDlpRuntime Robolectric test.
+    implementation("org.apache.commons:commons-compress:1.12")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("io.mockk:mockk:1.13.11")
