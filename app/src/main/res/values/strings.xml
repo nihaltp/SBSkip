@@ -221,7 +221,7 @@
     <string name="settings_sb_status_url_field_label">Server Status Page URL</string>
 
     <!-- Downloaded Videos History -->
-    <string name="downloaded_history_title">Downloaded</string>
+    <string name="downloaded_history_title">Downloads</string>
     <string name="downloaded_history_empty_title">No downloaded videos yet</string>
     <string name="downloaded_history_empty_body">Downloaded videos will appear here once tracking is enabled.</string>
     <string name="downloaded_history_clear_title">Clear Downloaded Videos</string>
