@@ -222,6 +222,7 @@
 
     <!-- Downloaded Videos History -->
     <string name="downloaded_history_title">Downloads</string>
+    <string name="downloaded_history_scroll_to_newest">Scroll to newest</string>
     <string name="downloaded_history_empty_title">No downloaded videos yet</string>
     <string name="downloaded_history_empty_body">Downloaded videos will appear here once tracking is enabled.</string>
     <string name="downloaded_history_clear_title">Clear Downloaded Videos</string>
