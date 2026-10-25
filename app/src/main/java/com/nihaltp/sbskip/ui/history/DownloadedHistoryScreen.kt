@@ -59,6 +59,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -133,6 +134,15 @@ fun DownloadedHistoryScreen(
     }
 
     val lazyListState = rememberLazyListState()
+
+    // Seal-style scroll-aware heading: while the downloaded videos list sits at the top, the
+    // "Downloads" heading renders as a section header inside the content; once the user scrolls,
+    // the heading yields and its text moves into the top app bar title position to reclaim space.
+    val headingInTopBar by remember {
+        derivedStateOf {
+            lazyListState.firstVisibleItemIndex > 0 || lazyListState.firstVisibleItemScrollOffset > 0
+        }
+    }
 
     var isSelectEnabled by remember { mutableStateOf(false) }
 
@@ -295,11 +305,13 @@ fun DownloadedHistoryScreen(
             } else {
                 TopAppBar(
                     title = {
-                        Text(
-                            stringResource(id = R.string.downloaded_history_title),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+                        if (headingInTopBar) {
+                            Text(
+                                stringResource(id = R.string.downloaded_history_title),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
                     },
                     navigationIcon = {
                         IconButton(
@@ -312,62 +324,18 @@ fun DownloadedHistoryScreen(
                         }
                     },
                     actions = {
-                        Row {
-                            // Search button
-                            IconButton(
-                                onClick = { isSearchActive = true },
-                                modifier = Modifier,
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.Search,
-                                    contentDescription = stringResource(id = R.string.downloaded_history_search),
-                                )
-                            }
-                            // Export button
-                            IconButton(
-                                onClick = {
-                                    showExportDialog = true
-                                },
-                                modifier = Modifier,
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.DriveFileMove,
-                                    contentDescription = stringResource(id = R.string.export_queue),
-                                )
-                            }
-                            // Import button
-                            IconButton(
-                                onClick = {
-                                    showImportDialog = true
-                                },
-                                modifier = Modifier,
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.FileDownload,
-                                    contentDescription = stringResource(id = R.string.import_queue),
-                                )
-                            }
-                            if (videos.isNotEmpty()) {
-                                IconButton(
-                                    onClick = {
+                        if (headingInTopBar) {
+                            Row {
+                                DownloadedHistoryActions(
+                                    onSearchClick = { isSearchActive = true },
+                                    onExportClick = { showExportDialog = true },
+                                    onImportClick = { showImportDialog = true },
+                                    onFolderImportClick = { importLauncher.launch(null) },
+                                    onToggleSelection = {
                                         isSelectEnabled = !isSelectEnabled
                                         if (!isSelectEnabled) viewModel.clearSelection()
                                     },
-                                    modifier = Modifier,
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Delete,
-                                        contentDescription = null,
-                                    )
-                                }
-                            }
-                            IconButton(
-                                onClick = { importLauncher.launch(null) },
-                                modifier = Modifier,
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.Inbox,
-                                    contentDescription = stringResource(id = R.string.import_from_folder_title),
+                                    showSelectAction = videos.isNotEmpty(),
                                 )
                             }
                         }
@@ -419,6 +387,32 @@ fun DownloadedHistoryScreen(
                     .fillMaxSize()
                     .padding(paddingValues),
         ) {
+            if (!headingInTopBar) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.downloaded_history_title),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    DownloadedHistoryActions(
+                        onSearchClick = { isSearchActive = true },
+                        onExportClick = { showExportDialog = true },
+                        onImportClick = { showImportDialog = true },
+                        onFolderImportClick = { importLauncher.launch(null) },
+                        onToggleSelection = {
+                            isSelectEnabled = !isSelectEnabled
+                            if (!isSelectEnabled) viewModel.clearSelection()
+                        },
+                        showSelectAction = videos.isNotEmpty(),
+                    )
+                }
+            }
             if (isImporting) {
                 Card(
                     modifier =
@@ -754,3 +748,46 @@ private fun queueStatusColor(status: FolderImportStatus): Color =
         FolderImportStatus.COMPLETED -> MaterialTheme.colorScheme.primary
         FolderImportStatus.FAILED -> MaterialTheme.colorScheme.error
     }
+
+@Composable
+private fun DownloadedHistoryActions(
+    onSearchClick: () -> Unit,
+    onExportClick: () -> Unit,
+    onImportClick: () -> Unit,
+    onFolderImportClick: () -> Unit,
+    onToggleSelection: () -> Unit,
+    showSelectAction: Boolean,
+) {
+    IconButton(onClick = onSearchClick) {
+        Icon(
+            imageVector = Icons.Filled.Search,
+            contentDescription = stringResource(id = R.string.downloaded_history_search),
+        )
+    }
+    IconButton(onClick = onExportClick) {
+        Icon(
+            imageVector = Icons.Outlined.DriveFileMove,
+            contentDescription = stringResource(id = R.string.export_queue),
+        )
+    }
+    IconButton(onClick = onImportClick) {
+        Icon(
+            imageVector = Icons.Outlined.FileDownload,
+            contentDescription = stringResource(id = R.string.import_queue),
+        )
+    }
+    if (showSelectAction) {
+        IconButton(onClick = onToggleSelection) {
+            Icon(
+                imageVector = Icons.Default.Delete,
+                contentDescription = null,
+            )
+        }
+    }
+    IconButton(onClick = onFolderImportClick) {
+        Icon(
+            imageVector = Icons.Filled.Inbox,
+            contentDescription = stringResource(id = R.string.import_from_folder_title),
+        )
+    }
+}
