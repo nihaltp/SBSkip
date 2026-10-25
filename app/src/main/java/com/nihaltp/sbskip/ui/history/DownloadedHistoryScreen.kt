@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -40,6 +42,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
@@ -52,6 +55,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -72,6 +76,8 @@ import com.nihaltp.sbskip.ui.main.dialogs.ExportDialog
 import com.nihaltp.sbskip.ui.main.dialogs.ImportDialog
 import com.nihaltp.sbskip.util.ExportImportUtil
 import com.nihaltp.sbskip.util.FolderImportStatus
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
 /**
@@ -79,6 +85,12 @@ import kotlinx.coroutines.launch
  * pushes the downloaded video list off-screen.
  */
 private val IMPORT_QUEUE_MAX_HEIGHT = 240.dp
+
+/**
+ * How long the newest item must stay off-screen during a folder scan before the
+ * "scroll to newest" pill is shown. Long enough that the follow-mode snap never flashes it.
+ */
+private const val SCROLL_TO_NEWEST_PILL_DELAY_MS = 400L
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -141,6 +153,54 @@ fun DownloadedHistoryScreen(
     val headingInTopBar by remember {
         derivedStateOf {
             lazyListState.firstVisibleItemIndex > 0 || lazyListState.firstVisibleItemScrollOffset > 0
+        }
+    }
+
+    // Folder-scan auto-scroll. The list is newest-first (ORDER BY id DESC), so every scan
+    // result lands at the head of the list. While a scan runs, keep the viewport pinned to the
+    // head so each arrival is visible - but only while the user is following the newest items.
+    //
+    // followNewest is decided when a scroll settles: it is on only if the viewport came to
+    // rest at the very top. LazyColumn's anchor preservation (prepended items keep the first
+    // visible item in place without scrolling) never produces a scroll, so an arrival while
+    // reading older items cannot flip the flag, and scrolling back to the top resumes it.
+    var followNewest by remember { mutableStateOf(true) }
+    LaunchedEffect(lazyListState) {
+        var wasScrolling = false
+        snapshotFlow { lazyListState.isScrollInProgress }
+            .distinctUntilChanged()
+            .collect { scrolling ->
+                if (wasScrolling && !scrolling) {
+                    followNewest =
+                        lazyListState.firstVisibleItemIndex == 0 &&
+                        lazyListState.firstVisibleItemScrollOffset == 0
+                }
+                wasScrolling = scrolling
+            }
+    }
+
+    val headId = filteredVideos.firstOrNull()?.id
+    LaunchedEffect(headId) {
+        if (isImporting && headId != null && followNewest) {
+            lazyListState.scrollToItem(0)
+        }
+    }
+
+    // The newest head item being off-screen (while scanning) is what the pill reacts to. The
+    // delay keeps the pill from flashing during the one-frame follow-scroll above: it only
+    // appears once the head has stayed out of view.
+    val headVisible by remember(headId) {
+        derivedStateOf {
+            headId == null || lazyListState.layoutInfo.visibleItemsInfo.any { it.key == headId }
+        }
+    }
+    var showScrollToNewest by remember { mutableStateOf(false) }
+    LaunchedEffect(headVisible, isImporting) {
+        if (isImporting && headId != null && !headVisible) {
+            delay(SCROLL_TO_NEWEST_PILL_DELAY_MS)
+            showScrollToNewest = !headVisible
+        } else {
+            showScrollToNewest = false
         }
     }
 
@@ -324,21 +384,19 @@ fun DownloadedHistoryScreen(
                         }
                     },
                     actions = {
-                        if (headingInTopBar) {
-                            Row {
-                                DownloadedHistoryActions(
-                                    onSearchClick = { isSearchActive = true },
-                                    onExportClick = { showExportDialog = true },
-                                    onImportClick = { showImportDialog = true },
-                                    onFolderImportClick = { importLauncher.launch(null) },
-                                    onToggleSelection = {
-                                        isSelectEnabled = !isSelectEnabled
-                                        if (!isSelectEnabled) viewModel.clearSelection()
-                                    },
-                                    showSelectAction = videos.isNotEmpty(),
-                                )
-                            }
-                        }
+                        // The action icons always stay in the top bar; only the "Downloads"
+                        // heading text moves between the bar and the content section header.
+                        DownloadedHistoryActions(
+                            onSearchClick = { isSearchActive = true },
+                            onExportClick = { showExportDialog = true },
+                            onImportClick = { showImportDialog = true },
+                            onFolderImportClick = { importLauncher.launch(null) },
+                            onToggleSelection = {
+                                isSelectEnabled = !isSelectEnabled
+                                if (!isSelectEnabled) viewModel.clearSelection()
+                            },
+                            showSelectAction = videos.isNotEmpty(),
+                        )
                     },
                 )
             }
@@ -388,30 +446,20 @@ fun DownloadedHistoryScreen(
                     .padding(paddingValues),
         ) {
             if (!headingInTopBar) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = stringResource(id = R.string.downloaded_history_title),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                    DownloadedHistoryActions(
-                        onSearchClick = { isSearchActive = true },
-                        onExportClick = { showExportDialog = true },
-                        onImportClick = { showImportDialog = true },
-                        onFolderImportClick = { importLauncher.launch(null) },
-                        onToggleSelection = {
-                            isSelectEnabled = !isSelectEnabled
-                            if (!isSelectEnabled) viewModel.clearSelection()
-                        },
-                        showSelectAction = videos.isNotEmpty(),
-                    )
-                }
+                // Section header below the top bar. The action icons live in the top bar, so
+                // this row only carries the heading text, padded to line up with the cards
+                // and clear of the screen edge.
+                Text(
+                    text = stringResource(id = R.string.downloaded_history_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, top = 4.dp, bottom = 8.dp),
+                )
             }
             if (isImporting) {
                 Card(
@@ -632,41 +680,65 @@ fun DownloadedHistoryScreen(
                     )
                 }
             } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    state = lazyListState,
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    items(
-                        items = filteredVideos,
-                        key = { it.id },
-                    ) { video ->
-                        with(video) {
-                            MediaListItem(
-                                modifier = Modifier,
-                                title = title,
-                                author = author ?: "",
-                                thumbnailUrl = thumbnailUrl,
-                                videoPath = outputPath ?: "",
-                                fileSize = fileSize,
-                                mediaType = mediaType,
-                                isSelectEnabled = { isSelectEnabled },
-                                isSelected = { selectedIds.contains(id) },
-                                onSelect = {
-                                    viewModel.toggleSelection(id)
-                                },
-                                onClick = {
-                                    if (isSelectEnabled) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        state = lazyListState,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(
+                            items = filteredVideos,
+                            key = { it.id },
+                        ) { video ->
+                            with(video) {
+                                MediaListItem(
+                                    modifier = Modifier,
+                                    title = title,
+                                    author = author ?: "",
+                                    thumbnailUrl = thumbnailUrl,
+                                    videoPath = outputPath ?: "",
+                                    fileSize = fileSize,
+                                    mediaType = mediaType,
+                                    isSelectEnabled = { isSelectEnabled },
+                                    isSelected = { selectedIds.contains(id) },
+                                    onSelect = {
                                         viewModel.toggleSelection(id)
-                                    }
-                                    // Outside of selection mode a tap does nothing
-                                },
-                                onLongClick = {
-                                    isSelectEnabled = true
-                                    viewModel.toggleSelection(id)
-                                },
-                                onShowContextMenu = {
-                                },
+                                    },
+                                    onClick = {
+                                        if (isSelectEnabled) {
+                                            viewModel.toggleSelection(id)
+                                        }
+                                        // Outside of selection mode a tap does nothing
+                                    },
+                                    onLongClick = {
+                                        isSelectEnabled = true
+                                        viewModel.toggleSelection(id)
+                                    },
+                                    onShowContextMenu = {
+                                    },
+                                )
+                            }
+                        }
+                    }
+                    if (showScrollToNewest) {
+                        // Scan is running but the newest arrival is off-screen: offer a manual
+                        // jump instead of yanking the list away from what the user is reading.
+                        Surface(
+                            onClick = {
+                                showScrollToNewest = false
+                                coroutineScope.launch { lazyListState.scrollToItem(0) }
+                            },
+                            shape = RoundedCornerShape(percent = 50),
+                            tonalElevation = 4.dp,
+                            modifier =
+                                Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .padding(bottom = 16.dp),
+                        ) {
+                            Text(
+                                text = stringResource(id = R.string.downloaded_history_scroll_to_newest),
+                                style = MaterialTheme.typography.labelMedium,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
                             )
                         }
                     }
