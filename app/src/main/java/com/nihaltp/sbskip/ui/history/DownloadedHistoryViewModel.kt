@@ -15,6 +15,7 @@ import com.nihaltp.sbskip.util.FolderImportQueueItem
 import com.nihaltp.sbskip.util.ImportManager
 import com.nihaltp.sbskip.util.ImportPathVerifier
 import com.nihaltp.sbskip.util.parser.YouTubeUrlParser
+import com.nihaltp.sbskip.workers.ImportEnrichmentScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -32,6 +33,7 @@ class DownloadedHistoryViewModel
         private val downloadedVideoRepository: DownloadedVideoRepository,
         private val importManager: ImportManager,
         private val importPathVerifier: ImportPathVerifier,
+        private val importEnrichmentScheduler: ImportEnrichmentScheduler,
         application: Application,
     ) : AndroidViewModel(application) {
         /**
@@ -199,7 +201,11 @@ class DownloadedHistoryViewModel
                     errors += video.videoId
                 }
             }
-            return ImportOutcome(imported = imported, skipped = skipped, errors = errors)
+            return ImportOutcome(imported = imported, skipped = skipped, errors = errors).also {
+                if (imported > 0) {
+                    importEnrichmentScheduler.schedule()
+                }
+            }
         }
 
         /**

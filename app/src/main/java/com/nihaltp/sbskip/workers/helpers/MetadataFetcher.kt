@@ -79,6 +79,7 @@ class MetadataFetcher
                                             musicVideoType = extractionResult.type,
                                             musicConfidence = extractionResult.confidence,
                                             musicMetadata = extractionResult.musicMetadata,
+                                            durationSeconds = extractionResult.rawDurationSeconds,
                                         )
 
                                     metadataCache[videoId] = CachedMetadata(cacheVersion, System.currentTimeMillis(), ytMetadata)
