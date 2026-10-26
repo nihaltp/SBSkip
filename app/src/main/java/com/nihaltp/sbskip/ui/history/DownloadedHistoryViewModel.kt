@@ -9,9 +9,11 @@ import com.nihaltp.sbskip.model.DownloadedVideoEntity
 import com.nihaltp.sbskip.model.ExportData
 import com.nihaltp.sbskip.model.ImportResult
 import com.nihaltp.sbskip.model.MediaType
+import com.nihaltp.sbskip.util.AppLogger
 import com.nihaltp.sbskip.util.Constants
 import com.nihaltp.sbskip.util.FolderImportQueueItem
 import com.nihaltp.sbskip.util.ImportManager
+import com.nihaltp.sbskip.util.ImportPathVerifier
 import com.nihaltp.sbskip.util.parser.YouTubeUrlParser
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,6 +31,7 @@ class DownloadedHistoryViewModel
     constructor(
         private val downloadedVideoRepository: DownloadedVideoRepository,
         private val importManager: ImportManager,
+        private val importPathVerifier: ImportPathVerifier,
         application: Application,
     ) : AndroidViewModel(application) {
         /**
@@ -171,41 +174,50 @@ class DownloadedHistoryViewModel
          * Tracks the videos of an imported clipboard or file backup in the downloaded history.
          *
          * Importing only writes `downloaded_videos`: it never enqueues download work, so no
-         * download queue row is created and no Worker is scheduled. A video that is already
-         * tracked is never inserted twice; a local file known from the backup is added to the
-         * existing entry instead.
+         * download queue row is created and no Worker is scheduled. Local files named by the backup
+         * are checked first, so a video whose file is missing is still listed but stays unverified.
+         * A failure on one video never aborts the rest of the import.
          *
-         * @return the number of videos that were newly tracked.
+         * @return what was newly tracked, what was already known, and which videos failed.
          */
-        suspend fun importVideos(result: ImportResult): Int {
-            val importedVideos =
+        suspend fun importVideos(result: ImportResult): ImportOutcome {
+            val videos =
                 when (result) {
                     is ImportResult.JsonSuccess -> result.exportData.toImportedVideos()
-                    is ImportResult.Success -> result.items.map { videoId -> ImportedVideo(videoId) }
-                    is ImportResult.Failure -> return 0
+                    is ImportResult.Success -> result.toImportedVideos()
+                    is ImportResult.Failure -> return ImportOutcome(errors = listOf(result.error))
                 }
 
-            var importedCount = 0
-            for (video in importedVideos) {
-                if (trackImportedVideo(video)) {
-                    importedCount++
+            var imported = 0
+            var skipped = 0
+            val errors = mutableListOf<String>()
+            for (video in videos) {
+                try {
+                    if (trackImportedVideo(video)) imported++ else skipped++
+                } catch (e: Exception) {
+                    AppLogger.error("DownloadedHistory", e, "Import failed for video ${video.videoId}")
+                    errors += video.videoId
                 }
             }
-            return importedCount
+            return ImportOutcome(imported = imported, skipped = skipped, errors = errors)
         }
 
         /**
-         * Inserts an imported video, or attaches its local file to the already tracked video.
+         * Inserts an imported video, or attaches its verified local files to the already tracked
+         * video. Complete duplicates are skipped.
          *
          * @return true when a new video was tracked.
          */
         private suspend fun trackImportedVideo(video: ImportedVideo): Boolean {
+            val verifiedPaths = importPathVerifier.verify(video.outputPaths)
             val existing = downloadedVideoRepository.findByVideoId(video.videoId)
-            val outputPath = video.outputPath
             if (existing != null) {
-                // Already tracked: at most its local file is new, which is not a new video.
-                if (outputPath != null && !existing.outputPaths.contains(outputPath)) {
-                    downloadedVideoRepository.addOutputPath(video.videoId, outputPath)
+                val newPaths = verifiedPaths.filterNot { existing.outputPaths.contains(it) }
+                newPaths.forEach { path ->
+                    downloadedVideoRepository.addOutputPath(video.videoId, path)
+                }
+                if (newPaths.isNotEmpty() && !existing.isVerified) {
+                    downloadedVideoRepository.setVerified(existing.id, isVerified = true)
                 }
                 return false
             }
@@ -218,18 +230,27 @@ class DownloadedHistoryViewModel
                     author = video.author,
                     thumbnailUrl = video.thumbnailUrl,
                     durationSeconds = null,
-                    outputPaths = listOfNotNull(outputPath),
+                    outputPaths = verifiedPaths,
                     fileSize = null,
                     mediaType = MediaType.VIDEO.name,
+                    isVerified = verifiedPaths.isNotEmpty(),
+                    needsEnrichment = true,
                 ),
             )
             return true
         }
     }
 
+/** What an import changed: newly tracked videos, already known videos, and videos that failed. */
+data class ImportOutcome(
+    val imported: Int = 0,
+    val skipped: Int = 0,
+    val errors: List<String> = emptyList(),
+)
+
 /**
  * A video parsed from an import, holding only the metadata that the import actually provides. The
- * local file is absent for plain text imports and for backups without a download history.
+ * local files are absent for plain text imports and for backups without a download history.
  */
 private data class ImportedVideo(
     val videoId: String,
@@ -237,36 +258,57 @@ private data class ImportedVideo(
     val title: String = videoId,
     val author: String? = null,
     val thumbnailUrl: String? = null,
-    val outputPath: String? = null,
+    val outputPaths: List<String> = emptyList(),
 )
 
+/** Plain text imports only carry video ids, so there is nothing else to map. */
+private fun ImportResult.Success.toImportedVideos(): List<ImportedVideo> =
+    items
+        .map(String::trim)
+        .filter(String::isNotEmpty)
+        .distinct()
+        .map(::ImportedVideo)
+
 /**
- * Maps an imported backup to the videos it describes. The local file of an export item is looked up
- * in the backup's download history, first by the item URL and then by its watch URL.
+ * Maps an imported backup to the videos it describes. Entries sharing a video id are merged, so a
+ * backup that lists the same video twice with different files yields one video with both paths. The
+ * local file of an entry is taken from the download history at the same position; a backup whose
+ * two lists do not line up falls back to matching by item URL and then by watch URL.
  */
 private fun ExportData.toImportedVideos(): List<ImportedVideo> {
-    val historyByUrl = downloadHistory.orEmpty().associateBy { it.videoUrl }
-    return items
-        .mapNotNull { item ->
-            val videoId = item.videoId.ifBlank { YouTubeUrlParser.cleanVideoId(item.url).orEmpty() }
-            if (videoId.isBlank()) {
-                return@mapNotNull null
+    val history = downloadHistory.orEmpty()
+    val indexedHistory = history.size == items.size
+    val videos = LinkedHashMap<String, ImportedVideo>()
+    items.forEachIndexed { index, item ->
+        val videoId = item.videoId.ifBlank { YouTubeUrlParser.cleanVideoId(item.url).orEmpty() }
+        if (videoId.isBlank()) {
+            return@forEachIndexed
+        }
+
+        val url = item.url.ifBlank { Constants.buildYouTubeWatchUrl(videoId) }
+        val videoPath =
+            (if (indexedHistory) history[index].videoPath else null)?.takeIf(String::isNotBlank)
+                ?: history.firstOrNull { it.videoUrl == url }?.videoPath?.takeIf(String::isNotBlank)
+                ?: history.firstOrNull { it.videoUrl == Constants.buildYouTubeWatchUrl(videoId) }
+                    ?.videoPath
+                    ?.takeIf(String::isNotBlank)
+
+        val existing = videos[videoId]
+        videos[videoId] =
+            if (existing == null) {
+                ImportedVideo(
+                    videoId = videoId,
+                    url = url,
+                    title = item.title?.takeIf(String::isNotBlank) ?: videoId,
+                    author = item.author?.takeIf(String::isNotBlank),
+                    thumbnailUrl = item.thumbnailUrl?.takeIf(String::isNotBlank),
+                    outputPaths = listOfNotNull(videoPath),
+                )
+            } else {
+                existing.copy(
+                    outputPaths = (existing.outputPaths + listOfNotNull(videoPath)).distinct(),
+                )
             }
-
-            val url = item.url.ifBlank { Constants.buildYouTubeWatchUrl(videoId) }
-            val videoPath =
-                historyByUrl[url]?.videoPath?.takeIf { it.isNotBlank() }
-                    ?: historyByUrl[Constants.buildYouTubeWatchUrl(videoId)]
-                        ?.videoPath
-                        ?.takeIf { it.isNotBlank() }
-
-            ImportedVideo(
-                videoId = videoId,
-                url = url,
-                title = item.title?.takeIf { it.isNotBlank() } ?: videoId,
-                author = item.author?.takeIf { it.isNotBlank() },
-                thumbnailUrl = item.thumbnailUrl?.takeIf { it.isNotBlank() },
-                outputPath = videoPath,
-            )
-        }.distinctBy { it.videoId }
+    }
+    return videos.values.toList()
 }
