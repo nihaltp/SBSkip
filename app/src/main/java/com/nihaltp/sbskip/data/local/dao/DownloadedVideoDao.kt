@@ -38,6 +38,41 @@ interface DownloadedVideoDao {
         outputPaths: String,
     ): Int
 
+    /**
+     * Videos whose metadata still has to be resolved, oldest first, so a background worker can
+     * enrich them in bounded batches.
+     */
+    @Query("SELECT * FROM downloaded_videos WHERE needsEnrichment = 1 ORDER BY id ASC LIMIT :limit")
+    suspend fun findNeedingEnrichment(limit: Int): List<DownloadedVideoEntity>
+
+    @Query(
+        """
+        UPDATE downloaded_videos
+        SET title = :title,
+            author = :author,
+            thumbnailUrl = :thumbnailUrl,
+            durationSeconds = :durationSeconds,
+            needsEnrichment = 0
+        WHERE id = :id
+        """,
+    )
+    suspend fun updateMetadata(
+        id: Long,
+        title: String,
+        author: String?,
+        thumbnailUrl: String?,
+        durationSeconds: Long?,
+    ): Int
+
+    @Query("UPDATE downloaded_videos SET needsEnrichment = 0 WHERE id = :id")
+    suspend fun clearNeedsEnrichment(id: Long): Int
+
+    @Query("UPDATE downloaded_videos SET isVerified = :isVerified WHERE id = :id")
+    suspend fun updateVerified(
+        id: Long,
+        isVerified: Boolean,
+    ): Int
+
     @Query("DELETE FROM downloaded_videos")
     suspend fun deleteAll()
 }

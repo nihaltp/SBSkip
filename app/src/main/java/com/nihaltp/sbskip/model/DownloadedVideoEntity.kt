@@ -26,6 +26,17 @@ data class DownloadedVideoEntity(
     val outputPaths: List<String> = emptyList(),
     val fileSize: Long? = null,
     val mediaType: String,
+    /**
+     * Whether at least one of [outputPaths] was confirmed to exist on this device. Videos found by
+     * a folder scan are verified by definition; imported videos are verified when their backup path
+     * still resolves, and stay unverified when the file is missing.
+     */
+    val isVerified: Boolean = true,
+    /**
+     * Whether the metadata of this video still has to be resolved from its local file or from
+     * YouTube. Imported videos are queued for enrichment; scanned videos are already complete.
+     */
+    val needsEnrichment: Boolean = false,
 ) {
     /** The first known file of the video, used as its representative path. */
     val outputPath: String? get() = outputPaths.firstOrNull()

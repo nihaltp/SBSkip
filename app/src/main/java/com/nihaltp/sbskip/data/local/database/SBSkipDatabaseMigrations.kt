@@ -50,7 +50,9 @@ object SBSkipDatabaseMigrations {
                         `durationSeconds` INTEGER,
                         `outputPaths` TEXT NOT NULL,
                         `fileSize` INTEGER,
-                        `mediaType` TEXT NOT NULL
+                        `mediaType` TEXT NOT NULL,
+                        `isVerified` INTEGER NOT NULL,
+                        `needsEnrichment` INTEGER NOT NULL
                     )
                     """.trimIndent(),
                 )
