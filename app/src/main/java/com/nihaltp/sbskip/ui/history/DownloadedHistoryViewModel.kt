@@ -5,13 +5,11 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.nihaltp.sbskip.data.repository.DownloadedVideoRepository
-import com.nihaltp.sbskip.data.repository.SettingsRepository
 import com.nihaltp.sbskip.model.DownloadedVideoEntity
 import com.nihaltp.sbskip.model.ExportData
 import com.nihaltp.sbskip.model.ImportResult
 import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.util.Constants
-import com.nihaltp.sbskip.util.FfmpegMetadataReader
 import com.nihaltp.sbskip.util.FolderImportQueueItem
 import com.nihaltp.sbskip.util.ImportManager
 import com.nihaltp.sbskip.util.parser.YouTubeUrlParser
@@ -30,8 +28,6 @@ class DownloadedHistoryViewModel
     @Inject
     constructor(
         private val downloadedVideoRepository: DownloadedVideoRepository,
-        private val settingsRepository: SettingsRepository,
-        private val ffmpegMetadataReader: FfmpegMetadataReader,
         private val importManager: ImportManager,
         application: Application,
     ) : AndroidViewModel(application) {
@@ -79,14 +75,6 @@ class DownloadedHistoryViewModel
         fun setSearchQuery(query: String) {
             _searchQuery.value = query
         }
-
-        val settings: StateFlow<com.nihaltp.sbskip.model.AppSettings> =
-            settingsRepository.settings
-                .stateIn(
-                    scope = viewModelScope,
-                    started = SharingStarted.WhileSubscribed(5000),
-                    initialValue = com.nihaltp.sbskip.model.AppSettings(),
-                )
 
         private val _selectedIds = MutableStateFlow<Set<Long>>(emptySet())
         val selectedIds: StateFlow<Set<Long>> = _selectedIds.asStateFlow()

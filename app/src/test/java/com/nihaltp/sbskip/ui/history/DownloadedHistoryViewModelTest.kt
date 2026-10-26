@@ -3,7 +3,6 @@ package com.nihaltp.sbskip.ui.history
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import com.nihaltp.sbskip.data.repository.DownloadedVideoRepository
-import com.nihaltp.sbskip.data.repository.SettingsRepository
 import com.nihaltp.sbskip.model.DownloadedVideoEntity
 import com.nihaltp.sbskip.model.ExportData
 import com.nihaltp.sbskip.model.ExportItem
@@ -11,7 +10,6 @@ import com.nihaltp.sbskip.model.ImportResult
 import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.model.SealDownloadHistoryEntry
 import com.nihaltp.sbskip.util.Constants
-import com.nihaltp.sbskip.util.FfmpegMetadataReader
 import com.nihaltp.sbskip.util.ImportManager
 import io.mockk.Runs
 import io.mockk.coEvery
@@ -50,8 +48,6 @@ class DownloadedHistoryViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
 
     private lateinit var downloadedVideoRepository: DownloadedVideoRepository
-    private lateinit var settingsRepository: SettingsRepository
-    private lateinit var ffmpegMetadataReader: FfmpegMetadataReader
     private lateinit var importManager: ImportManager
     private lateinit var application: Application
     private lateinit var viewModel: DownloadedHistoryViewModel
@@ -60,16 +56,12 @@ class DownloadedHistoryViewModelTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         downloadedVideoRepository = mockk(relaxed = true)
-        settingsRepository = mockk(relaxed = true)
-        ffmpegMetadataReader = mockk(relaxed = true)
         importManager = mockk(relaxed = true)
         application = ApplicationProvider.getApplicationContext()
         every { downloadedVideoRepository.observeDownloadedVideos } returns flowOf(emptyList())
         viewModel =
             DownloadedHistoryViewModel(
                 downloadedVideoRepository = downloadedVideoRepository,
-                settingsRepository = settingsRepository,
-                ffmpegMetadataReader = ffmpegMetadataReader,
                 importManager = importManager,
                 application = application,
             )
@@ -107,8 +99,6 @@ class DownloadedHistoryViewModelTest {
             viewModel =
                 DownloadedHistoryViewModel(
                     downloadedVideoRepository = downloadedVideoRepository,
-                    settingsRepository = settingsRepository,
-                    ffmpegMetadataReader = ffmpegMetadataReader,
                     importManager = importManager,
                     application = application,
                 )
@@ -150,8 +140,6 @@ class DownloadedHistoryViewModelTest {
             viewModel =
                 DownloadedHistoryViewModel(
                     downloadedVideoRepository = downloadedVideoRepository,
-                    settingsRepository = settingsRepository,
-                    ffmpegMetadataReader = ffmpegMetadataReader,
                     importManager = importManager,
                     application = application,
                 )
@@ -192,8 +180,6 @@ class DownloadedHistoryViewModelTest {
             viewModel =
                 DownloadedHistoryViewModel(
                     downloadedVideoRepository = downloadedVideoRepository,
-                    settingsRepository = settingsRepository,
-                    ffmpegMetadataReader = ffmpegMetadataReader,
                     importManager = importManager,
                     application = application,
                 )
