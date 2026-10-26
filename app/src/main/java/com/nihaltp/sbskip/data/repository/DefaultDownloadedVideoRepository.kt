@@ -41,4 +41,32 @@ class DefaultDownloadedVideoRepository
         override suspend fun deleteAll() {
             dao.deleteAll()
         }
+
+        override suspend fun findNeedingEnrichment(limit: Int): List<DownloadedVideoEntity> = dao.findNeedingEnrichment(limit)
+
+        override suspend fun updateMetadata(
+            id: Long,
+            title: String,
+            author: String?,
+            thumbnailUrl: String?,
+            durationSeconds: Long?,
+        ): Boolean =
+            dao.updateMetadata(
+                id = id,
+                title = title,
+                author = author,
+                thumbnailUrl = thumbnailUrl,
+                durationSeconds = durationSeconds,
+            ) > 0
+
+        override suspend fun clearNeedsEnrichment(id: Long) {
+            dao.clearNeedsEnrichment(id)
+        }
+
+        override suspend fun setVerified(
+            id: Long,
+            isVerified: Boolean,
+        ) {
+            dao.updateVerified(id, isVerified)
+        }
     }
