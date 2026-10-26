@@ -3,9 +3,14 @@ package com.nihaltp.sbskip.ui.history
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import com.nihaltp.sbskip.data.repository.DownloadedVideoRepository
-import com.nihaltp.sbskip.data.repository.QueueRepository
 import com.nihaltp.sbskip.data.repository.SettingsRepository
 import com.nihaltp.sbskip.model.DownloadedVideoEntity
+import com.nihaltp.sbskip.model.ExportData
+import com.nihaltp.sbskip.model.ExportItem
+import com.nihaltp.sbskip.model.ImportResult
+import com.nihaltp.sbskip.model.MediaType
+import com.nihaltp.sbskip.model.SealDownloadHistoryEntry
+import com.nihaltp.sbskip.util.Constants
 import com.nihaltp.sbskip.util.FfmpegMetadataReader
 import com.nihaltp.sbskip.util.ImportManager
 import io.mockk.Runs
@@ -14,6 +19,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
+import io.mockk.slot
 import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -44,7 +50,6 @@ class DownloadedHistoryViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
 
     private lateinit var downloadedVideoRepository: DownloadedVideoRepository
-    private lateinit var queueRepository: QueueRepository
     private lateinit var settingsRepository: SettingsRepository
     private lateinit var ffmpegMetadataReader: FfmpegMetadataReader
     private lateinit var importManager: ImportManager
@@ -55,7 +60,6 @@ class DownloadedHistoryViewModelTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         downloadedVideoRepository = mockk(relaxed = true)
-        queueRepository = mockk(relaxed = true)
         settingsRepository = mockk(relaxed = true)
         ffmpegMetadataReader = mockk(relaxed = true)
         importManager = mockk(relaxed = true)
@@ -64,7 +68,6 @@ class DownloadedHistoryViewModelTest {
         viewModel =
             DownloadedHistoryViewModel(
                 downloadedVideoRepository = downloadedVideoRepository,
-                queueRepository = queueRepository,
                 settingsRepository = settingsRepository,
                 ffmpegMetadataReader = ffmpegMetadataReader,
                 importManager = importManager,
@@ -104,7 +107,6 @@ class DownloadedHistoryViewModelTest {
             viewModel =
                 DownloadedHistoryViewModel(
                     downloadedVideoRepository = downloadedVideoRepository,
-                    queueRepository = queueRepository,
                     settingsRepository = settingsRepository,
                     ffmpegMetadataReader = ffmpegMetadataReader,
                     importManager = importManager,
@@ -148,7 +150,6 @@ class DownloadedHistoryViewModelTest {
             viewModel =
                 DownloadedHistoryViewModel(
                     downloadedVideoRepository = downloadedVideoRepository,
-                    queueRepository = queueRepository,
                     settingsRepository = settingsRepository,
                     ffmpegMetadataReader = ffmpegMetadataReader,
                     importManager = importManager,
@@ -191,7 +192,6 @@ class DownloadedHistoryViewModelTest {
             viewModel =
                 DownloadedHistoryViewModel(
                     downloadedVideoRepository = downloadedVideoRepository,
-                    queueRepository = queueRepository,
                     settingsRepository = settingsRepository,
                     ffmpegMetadataReader = ffmpegMetadataReader,
                     importManager = importManager,
@@ -297,4 +297,128 @@ class DownloadedHistoryViewModelTest {
 
             verify(exactly = 1) { importManager.removeQueueItem(3L) }
         }
+
+    @Test
+    fun `import plain video ids inserts videos into the downloaded history`() =
+        runTest(testDispatcher) {
+            val inserted = slot<DownloadedVideoEntity>()
+            coEvery { downloadedVideoRepository.findByVideoId(any()) } returns null
+            coEvery { downloadedVideoRepository.insert(capture(inserted)) } returns 1L
+
+            val importedCount = viewModel.importVideos(ImportResult.Success(listOf("abc123")))
+
+            assertEquals(1, importedCount)
+            assertEquals("abc123", inserted.captured.videoId)
+            assertEquals(Constants.buildYouTubeWatchUrl("abc123"), inserted.captured.url)
+            assertEquals("abc123", inserted.captured.title)
+            assertEquals(emptyList<String>(), inserted.captured.outputPaths)
+            assertEquals(MediaType.VIDEO.name, inserted.captured.mediaType)
+        }
+
+    @Test
+    fun `import json backup carries metadata and local file from the download history`() =
+        runTest(testDispatcher) {
+            val inserted = slot<DownloadedVideoEntity>()
+            coEvery { downloadedVideoRepository.findByVideoId("abc123") } returns null
+            coEvery { downloadedVideoRepository.insert(capture(inserted)) } returns 1L
+
+            val importedCount =
+                viewModel.importVideos(jsonBackup("abc123", "/sdcard/Download/video.mp4"))
+
+            assertEquals(1, importedCount)
+            val entity = inserted.captured
+            assertEquals("abc123", entity.videoId)
+            assertEquals("https://youtu.be/abc123", entity.url)
+            assertEquals("Imported title", entity.title)
+            assertEquals("Imported author", entity.author)
+            assertEquals("https://example.com/thumb.jpg", entity.thumbnailUrl)
+            assertEquals(listOf("/sdcard/Download/video.mp4"), entity.outputPaths)
+        }
+
+    @Test
+    fun `import of an already tracked video adds the new local file instead of a second row`() =
+        runTest(testDispatcher) {
+            val existing =
+                DownloadedVideoEntity(
+                    id = 1L,
+                    videoId = "abc123",
+                    url = Constants.buildYouTubeWatchUrl("abc123"),
+                    title = "Existing title",
+                    outputPaths = listOf("/sdcard/Download/old.mp4"),
+                    mediaType = MediaType.VIDEO.name,
+                )
+            coEvery { downloadedVideoRepository.findByVideoId("abc123") } returns existing
+            coEvery {
+                downloadedVideoRepository.addOutputPath("abc123", "/sdcard/Download/new.mp4")
+            } returns true
+
+            val importedCount =
+                viewModel.importVideos(jsonBackup("abc123", "/sdcard/Download/new.mp4"))
+
+            assertEquals(0, importedCount)
+            coVerify(exactly = 0) { downloadedVideoRepository.insert(any()) }
+            coVerify(exactly = 1) {
+                downloadedVideoRepository.addOutputPath("abc123", "/sdcard/Download/new.mp4")
+            }
+        }
+
+    @Test
+    fun `import of an already tracked file is skipped`() =
+        runTest(testDispatcher) {
+            val existing =
+                DownloadedVideoEntity(
+                    id = 1L,
+                    videoId = "abc123",
+                    url = Constants.buildYouTubeWatchUrl("abc123"),
+                    title = "Existing title",
+                    outputPaths = listOf("/sdcard/Download/video.mp4"),
+                    mediaType = MediaType.VIDEO.name,
+                )
+            coEvery { downloadedVideoRepository.findByVideoId("abc123") } returns existing
+
+            val importedCount =
+                viewModel.importVideos(jsonBackup("abc123", "/sdcard/Download/video.mp4"))
+
+            assertEquals(0, importedCount)
+            coVerify(exactly = 0) { downloadedVideoRepository.insert(any()) }
+            coVerify(exactly = 0) { downloadedVideoRepository.addOutputPath(any(), any()) }
+        }
+
+    /**
+     * A full JSON backup whose download history carries [videoPath] for the item, so that the
+     * watch URL fallback of the import has to be used to find the local file.
+     */
+    private fun jsonBackup(
+        videoId: String,
+        videoPath: String?,
+    ): ImportResult.JsonSuccess =
+        ImportResult.JsonSuccess(
+            ExportData(
+                items =
+                    listOf(
+                        ExportItem(
+                            videoId = videoId,
+                            url = "https://youtu.be/$videoId",
+                            title = "Imported title",
+                            author = "Imported author",
+                            thumbnailUrl = "https://example.com/thumb.jpg",
+                            sponsorBlockCategories = null,
+                        ),
+                    ),
+                downloadHistory =
+                    listOfNotNull(
+                        videoPath?.let { path ->
+                            SealDownloadHistoryEntry(
+                                id = 0,
+                                videoTitle = "Imported title",
+                                videoAuthor = "Imported author",
+                                videoUrl = Constants.buildYouTubeWatchUrl(videoId),
+                                thumbnailUrl = "https://example.com/thumb.jpg",
+                                videoPath = path,
+                                extractor = "YouTube",
+                            )
+                        },
+                    ),
+            ),
+        )
 }

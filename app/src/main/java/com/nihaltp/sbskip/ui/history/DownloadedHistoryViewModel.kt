@@ -5,9 +5,10 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.nihaltp.sbskip.data.repository.DownloadedVideoRepository
-import com.nihaltp.sbskip.data.repository.QueueRepository
 import com.nihaltp.sbskip.data.repository.SettingsRepository
 import com.nihaltp.sbskip.model.DownloadedVideoEntity
+import com.nihaltp.sbskip.model.ExportData
+import com.nihaltp.sbskip.model.ImportResult
 import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.util.Constants
 import com.nihaltp.sbskip.util.FfmpegMetadataReader
@@ -20,7 +21,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -30,7 +30,6 @@ class DownloadedHistoryViewModel
     @Inject
     constructor(
         private val downloadedVideoRepository: DownloadedVideoRepository,
-        private val queueRepository: QueueRepository,
         private val settingsRepository: SettingsRepository,
         private val ffmpegMetadataReader: FfmpegMetadataReader,
         private val importManager: ImportManager,
@@ -181,78 +180,105 @@ class DownloadedHistoryViewModel
         }
 
         /**
-         * Enqueues a downloaded video for SponsorBlock cleaning.
+         * Tracks the videos of an imported clipboard or file backup in the downloaded history.
+         *
+         * Importing only writes `downloaded_videos`: it never enqueues download work, so no
+         * download queue row is created and no Worker is scheduled. A video that is already
+         * tracked is never inserted twice; a local file known from the backup is added to the
+         * existing entry instead.
+         *
+         * @return the number of videos that were newly tracked.
          */
-        suspend fun enqueueDownloadedVideo(
-            videoId: String,
-            youtubeUrl: String,
-            title: String,
-            settings: com.nihaltp.sbskip.model.AppSettings,
-        ): Boolean {
-            val existingVideoIds =
-                queueRepository.observeQueue().first()
-                    .mapNotNull { YouTubeUrlParser.extractVideoId(it.url) }
-                    .toSet()
-
-            if (videoId in existingVideoIds) {
-                return false
-            }
-
-            val mediaType =
-                if (settings.defaultConvertVideoToAudio) {
-                    com.nihaltp.sbskip.model.MediaType.AUDIO
-                } else {
-                    com.nihaltp.sbskip.model.MediaType.VIDEO
+        suspend fun importVideos(result: ImportResult): Int {
+            val importedVideos =
+                when (result) {
+                    is ImportResult.JsonSuccess -> result.exportData.toImportedVideos()
+                    is ImportResult.Success -> result.items.map { videoId -> ImportedVideo(videoId) }
+                    is ImportResult.Failure -> return 0
                 }
 
-            val result =
-                queueRepository.enqueue(
-                    localFileUri = "", // Will be auto-detected
-                    title = title,
-                    youtubeUrl = youtubeUrl,
-                    mediaType = mediaType,
-                    convertVideoToAudio = settings.defaultConvertVideoToAudio,
-                    deleteOriginalVideo = settings.defaultDeleteOriginalVideo,
-                    audioOutputDirUri = if (mediaType == com.nihaltp.sbskip.model.MediaType.AUDIO) null else null,
-                    videoOutputDirUri = if (mediaType == com.nihaltp.sbskip.model.MediaType.VIDEO) null else null,
-                    relativePath = "",
-                )
-            return result.success
+            var importedCount = 0
+            for (video in importedVideos) {
+                if (trackImportedVideo(video)) {
+                    importedCount++
+                }
+            }
+            return importedCount
         }
 
         /**
-         * Enqueues multiple downloaded videos for SponsorBlock cleaning.
+         * Inserts an imported video, or attaches its local file to the already tracked video.
+         *
+         * @return true when a new video was tracked.
          */
-        suspend fun enqueueVideoIds(
-            videoIds: List<String>,
-            settings: com.nihaltp.sbskip.model.AppSettings,
-        ): Int {
-            val existingVideoIds =
-                queueRepository.observeQueue().first()
-                    .mapNotNull { YouTubeUrlParser.extractVideoId(it.url) }
-                    .toSet()
-
-            val newVideoIds = videoIds.filter { !existingVideoIds.contains(it) }
-            val duplicateCount = videoIds.size - newVideoIds.size
-
-            if (newVideoIds.isEmpty()) {
-                return 0
+        private suspend fun trackImportedVideo(video: ImportedVideo): Boolean {
+            val existing = downloadedVideoRepository.findByVideoId(video.videoId)
+            val outputPath = video.outputPath
+            if (existing != null) {
+                // Already tracked: at most its local file is new, which is not a new video.
+                if (outputPath != null && !existing.outputPaths.contains(outputPath)) {
+                    downloadedVideoRepository.addOutputPath(video.videoId, outputPath)
+                }
+                return false
             }
 
-            var enqueuedCount = 0
-
-            newVideoIds.forEach { videoId ->
-                val youtubeUrl = Constants.buildYouTubeWatchUrl(videoId)
-                val result =
-                    enqueueDownloadedVideo(
-                        videoId = videoId,
-                        youtubeUrl = youtubeUrl,
-                        title = videoId,
-                        settings = settings,
-                    )
-                if (result) enqueuedCount++
-            }
-
-            return enqueuedCount
+            downloadedVideoRepository.insert(
+                DownloadedVideoEntity(
+                    videoId = video.videoId,
+                    url = video.url,
+                    title = video.title,
+                    author = video.author,
+                    thumbnailUrl = video.thumbnailUrl,
+                    durationSeconds = null,
+                    outputPaths = listOfNotNull(outputPath),
+                    fileSize = null,
+                    mediaType = MediaType.VIDEO.name,
+                ),
+            )
+            return true
         }
     }
+
+/**
+ * A video parsed from an import, holding only the metadata that the import actually provides. The
+ * local file is absent for plain text imports and for backups without a download history.
+ */
+private data class ImportedVideo(
+    val videoId: String,
+    val url: String = Constants.buildYouTubeWatchUrl(videoId),
+    val title: String = videoId,
+    val author: String? = null,
+    val thumbnailUrl: String? = null,
+    val outputPath: String? = null,
+)
+
+/**
+ * Maps an imported backup to the videos it describes. The local file of an export item is looked up
+ * in the backup's download history, first by the item URL and then by its watch URL.
+ */
+private fun ExportData.toImportedVideos(): List<ImportedVideo> {
+    val historyByUrl = downloadHistory.orEmpty().associateBy { it.videoUrl }
+    return items
+        .mapNotNull { item ->
+            val videoId = item.videoId.ifBlank { YouTubeUrlParser.cleanVideoId(item.url).orEmpty() }
+            if (videoId.isBlank()) {
+                return@mapNotNull null
+            }
+
+            val url = item.url.ifBlank { Constants.buildYouTubeWatchUrl(videoId) }
+            val videoPath =
+                historyByUrl[url]?.videoPath?.takeIf { it.isNotBlank() }
+                    ?: historyByUrl[Constants.buildYouTubeWatchUrl(videoId)]
+                        ?.videoPath
+                        ?.takeIf { it.isNotBlank() }
+
+            ImportedVideo(
+                videoId = videoId,
+                url = url,
+                title = item.title?.takeIf { it.isNotBlank() } ?: videoId,
+                author = item.author?.takeIf { it.isNotBlank() },
+                thumbnailUrl = item.thumbnailUrl?.takeIf { it.isNotBlank() },
+                outputPath = videoPath,
+            )
+        }.distinctBy { it.videoId }
+}

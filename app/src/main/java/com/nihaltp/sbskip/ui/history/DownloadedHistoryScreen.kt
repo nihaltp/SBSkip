@@ -266,13 +266,8 @@ fun DownloadedHistoryScreen(
         textToImport?.let { text ->
             val result = ExportImportUtil.parseImportedText(text)
             when (result) {
-                is ImportResult.Success -> {
-                    val videoIds = result.items
-                    viewModel.enqueueVideoIds(videoIds, viewModel.settings.value)
-                }
-                is ImportResult.JsonSuccess -> {
-                    val videoIds = result.exportData.items.map { it.videoId }.filter { it.isNotBlank() }.distinct()
-                    viewModel.enqueueVideoIds(videoIds, viewModel.settings.value)
+                is ImportResult.Success, is ImportResult.JsonSuccess -> {
+                    viewModel.importVideos(result)
                 }
                 is ImportResult.Failure -> {
                     ExportImportUtil.showToast(context, context.getString(R.string.import_failed, result.error))
