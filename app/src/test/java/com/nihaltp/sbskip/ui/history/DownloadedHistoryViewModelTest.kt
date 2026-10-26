@@ -12,6 +12,7 @@ import com.nihaltp.sbskip.model.SealDownloadHistoryEntry
 import com.nihaltp.sbskip.util.Constants
 import com.nihaltp.sbskip.util.ImportManager
 import com.nihaltp.sbskip.util.ImportPathVerifier
+import com.nihaltp.sbskip.workers.ImportEnrichmentScheduler
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -51,6 +52,7 @@ class DownloadedHistoryViewModelTest {
     private lateinit var downloadedVideoRepository: DownloadedVideoRepository
     private lateinit var importManager: ImportManager
     private lateinit var importPathVerifier: ImportPathVerifier
+    private lateinit var importEnrichmentScheduler: ImportEnrichmentScheduler
     private lateinit var application: Application
     private lateinit var viewModel: DownloadedHistoryViewModel
 
@@ -60,6 +62,7 @@ class DownloadedHistoryViewModelTest {
         downloadedVideoRepository = mockk(relaxed = true)
         importManager = mockk(relaxed = true)
         importPathVerifier = mockk(relaxed = true)
+        importEnrichmentScheduler = mockk(relaxed = true)
         coEvery { importPathVerifier.verify(any()) } coAnswers { firstArg() }
         application = ApplicationProvider.getApplicationContext()
         every { downloadedVideoRepository.observeDownloadedVideos } returns flowOf(emptyList())
@@ -68,6 +71,7 @@ class DownloadedHistoryViewModelTest {
                 downloadedVideoRepository = downloadedVideoRepository,
                 importManager = importManager,
                 importPathVerifier = importPathVerifier,
+                importEnrichmentScheduler = importEnrichmentScheduler,
                 application = application,
             )
     }
@@ -106,6 +110,7 @@ class DownloadedHistoryViewModelTest {
                     downloadedVideoRepository = downloadedVideoRepository,
                     importManager = importManager,
                     importPathVerifier = importPathVerifier,
+                    importEnrichmentScheduler = importEnrichmentScheduler,
                     application = application,
                 )
 
@@ -148,6 +153,7 @@ class DownloadedHistoryViewModelTest {
                     downloadedVideoRepository = downloadedVideoRepository,
                     importManager = importManager,
                     importPathVerifier = importPathVerifier,
+                    importEnrichmentScheduler = importEnrichmentScheduler,
                     application = application,
                 )
 
@@ -189,6 +195,7 @@ class DownloadedHistoryViewModelTest {
                     downloadedVideoRepository = downloadedVideoRepository,
                     importManager = importManager,
                     importPathVerifier = importPathVerifier,
+                    importEnrichmentScheduler = importEnrichmentScheduler,
                     application = application,
                 )
 
@@ -376,6 +383,31 @@ class DownloadedHistoryViewModelTest {
             assertEquals(0, outcome.imported)
             coVerify(exactly = 0) { downloadedVideoRepository.insert(any()) }
             coVerify(exactly = 0) { downloadedVideoRepository.addOutputPath(any(), any()) }
+        }
+
+    @Test
+    fun `import schedules metadata enrichment only when a video was added`() =
+        runTest(testDispatcher) {
+            coEvery { downloadedVideoRepository.findByVideoId(any()) } returns null
+            coEvery { downloadedVideoRepository.insert(any()) } returns 1L
+
+            viewModel.importVideos(ImportResult.Success(listOf("abc123")))
+
+            verify(exactly = 1) { importEnrichmentScheduler.schedule() }
+
+            val existing =
+                DownloadedVideoEntity(
+                    id = 1L,
+                    videoId = "abc123",
+                    url = Constants.buildYouTubeWatchUrl("abc123"),
+                    title = "Existing",
+                    mediaType = MediaType.VIDEO.name,
+                )
+            coEvery { downloadedVideoRepository.findByVideoId("abc123") } returns existing
+
+            viewModel.importVideos(ImportResult.Success(listOf("abc123")))
+
+            verify(exactly = 1) { importEnrichmentScheduler.schedule() }
         }
 
     @Test

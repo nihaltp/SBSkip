@@ -23,6 +23,7 @@ object YouTubeMetadataParser {
         val rawChannelName: String?,
         val rawDescription: String?,
         val rawCategoryId: Int?,
+        val rawDurationSeconds: Long? = null,
     )
 
     fun parse(html: String): ExtractionResult {
@@ -37,6 +38,7 @@ object YouTubeMetadataParser {
         var description: String? = null
         var categoryId: Int? = null
         var channelName: String? = null
+        var durationSeconds: Long? = null
 
         var initialData: JsonObject? = null
         if (ytInitialDataStr != null) {
@@ -62,6 +64,13 @@ object YouTubeMetadataParser {
             title = videoDetails?.get("title")?.jsonPrimitive?.content
             description = videoDetails?.get("shortDescription")?.jsonPrimitive?.content
             channelName = videoDetails?.get("author")?.jsonPrimitive?.content
+            durationSeconds =
+                videoDetails
+                    ?.get("lengthSeconds")
+                    ?.jsonPrimitive
+                    ?.content
+                    ?.toLongOrNull()
+                    ?.takeIf { it > 0 }
 
             val microformat =
                 pr["microformat"]?.jsonObject
@@ -100,6 +109,7 @@ object YouTubeMetadataParser {
             rawChannelName = channelName,
             rawDescription = description,
             rawCategoryId = categoryId,
+            rawDurationSeconds = durationSeconds,
         )
     }
 
