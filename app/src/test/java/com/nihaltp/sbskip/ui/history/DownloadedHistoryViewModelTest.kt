@@ -315,6 +315,7 @@ class DownloadedHistoryViewModelTest {
             assertEquals(Constants.buildYouTubeThumbnailUrl("abc123"), inserted.captured.thumbnailUrl)
             assertEquals(emptyList<String>(), inserted.captured.outputPaths)
             assertEquals(MediaType.VIDEO.name, inserted.captured.mediaType)
+            assertTrue(inserted.captured.needsEnrichment)
         }
 
     @Test

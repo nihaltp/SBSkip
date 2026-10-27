@@ -39,7 +39,7 @@ class ImportEnrichmentScheduler
                     .build()
             WorkManager
                 .getInstance(context)
-                .enqueueUniqueWork(WORK_NAME, ExistingWorkPolicy.KEEP, request)
+                .enqueueUniqueWork(WORK_NAME, ExistingWorkPolicy.APPEND_OR_REPLACE, request)
         }
 
         companion object {
