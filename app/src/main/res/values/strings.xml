@@ -37,7 +37,6 @@
     <string name="fetching_metadata">Fetching metadata</string>
     <string name="error_invalid_youtube_url">Invalid YouTube URL</string>
     <string name="yt_dlp_failed">yt-dlp failed to read metadata</string>
-    <string name="unable_fetch_metadata">Unable to fetch metadata</string>
 
     <string name="download_missing_url">Missing URL</string>
     <string name="download_scaffold_message">Queue pipeline scaffolded; native downloader integration comes next.</string>

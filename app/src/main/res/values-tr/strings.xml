@@ -34,7 +34,6 @@
     <string name="fetching_metadata">Meta veriler alınıyor</string>
     <string name="error_invalid_youtube_url">Geçersiz YouTube URL\'si</string>
     <string name="yt_dlp_failed">yt-dlp meta verileri okuyamadı</string>
-    <string name="unable_fetch_metadata">Meta veriler alınamıyor</string>
 
     <string name="download_missing_url">Eksik URL</string>
     <string name="download_scaffold_message">Sıra ardışık düzeni iskeleti oluşturuldu; yerel indirici entegrasyonu sırada.</string>
