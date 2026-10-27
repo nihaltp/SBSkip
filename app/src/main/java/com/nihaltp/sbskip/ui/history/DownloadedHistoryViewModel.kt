@@ -234,7 +234,7 @@ class DownloadedHistoryViewModel
                     url = video.url,
                     title = video.title,
                     author = video.author,
-                    thumbnailUrl = video.thumbnailUrl,
+                    thumbnailUrl = video.thumbnailUrl ?: Constants.buildYouTubeThumbnailUrl(video.videoId),
                     durationSeconds = null,
                     outputPaths = verifiedPaths,
                     fileSize = null,
