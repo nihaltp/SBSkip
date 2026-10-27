@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Album
+import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -29,6 +30,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.nihaltp.sbskip.R
@@ -43,6 +45,7 @@ fun MediaListItem(
     thumbnailUrl: String? = null,
     videoPath: String = "",
     fileSize: Long? = null,
+    isFileMissing: Boolean = false,
     mediaType: String = "video",
     isSelectEnabled: () -> Boolean = { false },
     isSelected: () -> Boolean = { false },
@@ -105,16 +108,40 @@ fun MediaListItem(
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     )
                 }
-                Text(
-                    modifier = Modifier.padding(top = 3.dp),
-                    text = if (isFileAvailable) fileSizeText else context.getString(R.string.unavailable),
-                    style = MaterialTheme.typography.labelSmall,
-                    color =
-                        with(MaterialTheme.colorScheme) {
-                            if (isFileAvailable) onSurfaceVariant else error
-                        },
-                    maxLines = 1,
-                )
+                if (isFileMissing) {
+                    // The video was imported from a backup, but its file is not on this device. It
+                    // is still listed so the entry is not lost; the badge says why it cannot play.
+                    Row(
+                        modifier = Modifier.padding(top = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Icon(
+                            modifier = Modifier.size(14.dp),
+                            imageVector = Icons.Outlined.Warning,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                        )
+                        Text(
+                            text = stringResource(id = R.string.downloaded_history_file_missing),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        )
+                    }
+                } else {
+                    Text(
+                        modifier = Modifier.padding(top = 3.dp),
+                        text = if (isFileAvailable) fileSizeText else context.getString(R.string.unavailable),
+                        style = MaterialTheme.typography.labelSmall,
+                        color =
+                            with(MaterialTheme.colorScheme) {
+                                if (isFileAvailable) onSurfaceVariant else error
+                            },
+                        maxLines = 1,
+                    )
+                }
             }
         }
     }

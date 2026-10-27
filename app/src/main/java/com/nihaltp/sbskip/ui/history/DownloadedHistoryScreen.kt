@@ -72,6 +72,7 @@ import com.nihaltp.sbskip.model.ExportDestination
 import com.nihaltp.sbskip.model.ExportFormat
 import com.nihaltp.sbskip.model.ImportResult
 import com.nihaltp.sbskip.model.ImportSource
+import com.nihaltp.sbskip.ui.history.dialogs.ImportErrorDialog
 import com.nihaltp.sbskip.ui.main.dialogs.ExportDialog
 import com.nihaltp.sbskip.ui.main.dialogs.ImportDialog
 import com.nihaltp.sbskip.util.ExportImportUtil
@@ -246,6 +247,10 @@ fun DownloadedHistoryScreen(
     // State to hold text to import
     var textToImport by remember { mutableStateOf<String?>(null) }
 
+    // Videos that could not be imported. A snackbar is too short lived for a list of ids, so the
+    // failures stay in a dialog until the user closes it.
+    var importErrors by remember { mutableStateOf(emptyList<String>()) }
+
     // File picker for import
     val importFileLauncher =
         rememberLauncherForActivityResult(
@@ -267,7 +272,23 @@ fun DownloadedHistoryScreen(
             val result = ExportImportUtil.parseImportedText(text)
             when (result) {
                 is ImportResult.Success, is ImportResult.JsonSuccess -> {
-                    viewModel.importVideos(result)
+                    val outcome = viewModel.importVideos(result)
+                    importErrors = outcome.errors
+                    // Announce what changed. Importing a backup that is already in the history is a
+                    // normal outcome, so it says so instead of looking like a failed import.
+                    val message =
+                        when {
+                            outcome.imported > 0 ->
+                                context.getString(
+                                    R.string.import_result_summary,
+                                    outcome.imported,
+                                    outcome.skipped,
+                                )
+                            outcome.skipped > 0 ->
+                                context.getString(R.string.import_result_nothing_new, outcome.skipped)
+                            else -> null
+                        }
+                    message?.let { snackbarHostState.showSnackbar(it) }
                 }
                 is ImportResult.Failure -> {
                     ExportImportUtil.showToast(context, context.getString(R.string.import_failed, result.error))
@@ -693,6 +714,7 @@ fun DownloadedHistoryScreen(
                                     thumbnailUrl = thumbnailUrl,
                                     videoPath = outputPath ?: "",
                                     fileSize = fileSize,
+                                    isFileMissing = !isVerified,
                                     mediaType = mediaType,
                                     isSelectEnabled = { isSelectEnabled },
                                     isSelected = { selectedIds.contains(id) },
@@ -795,6 +817,12 @@ fun DownloadedHistoryScreen(
             },
         )
     }
+
+    // Import result Dialog
+    ImportErrorDialog(
+        videoIds = importErrors,
+        onDismiss = { importErrors = emptyList() },
+    )
 }
 
 private fun queueStatusTextRes(status: FolderImportStatus): Int =
