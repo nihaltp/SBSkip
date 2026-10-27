@@ -25,7 +25,7 @@ import com.nihaltp.sbskip.storage.DownloadStorage
 import com.nihaltp.sbskip.util.AppLogger
 import com.nihaltp.sbskip.util.Constants
 import com.nihaltp.sbskip.util.NetworkErrorClassifier
-import com.nihaltp.sbskip.util.NetworkRetry
+import com.nihaltp.sbskip.util.fetcher.YouTubeOEmbedFetcher
 import com.nihaltp.sbskip.util.parser.YouTubeUrlParser
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -40,13 +40,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
-import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import java.io.IOException
 import java.util.Locale
 import javax.inject.Inject
 
@@ -60,9 +53,6 @@ class MainViewModel
         private val downloadStorage: DownloadStorage,
         @ApplicationContext private val context: Context,
     ) : ViewModel() {
-        private val httpClient = OkHttpClient()
-        private val json = Json { ignoreUnknownKeys = true }
-
         private val _uiState = MutableStateFlow(MainUiState())
         val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
 
@@ -645,7 +635,7 @@ class MainViewModel
                 }
 
             val metadata =
-                runCatching { fetchYouTubeOEmbed(normalizedUrl) }.getOrElse {
+                runCatching { YouTubeOEmbedFetcher.fetch(videoId) }.getOrElse {
                     YouTubeMetadata(
                         title = state.urlInput.ifBlank { videoId },
                         authorName = null,
@@ -1245,7 +1235,7 @@ class MainViewModel
             // Fetch metadata and video duration concurrently after NewPipe has been invoked.
             val metadataDeferred =
                 viewModelScope.async {
-                    runCatching { fetchYouTubeOEmbed(normalizedUrl) }.getOrElse {
+                    runCatching { YouTubeOEmbedFetcher.fetch(videoId) }.getOrElse {
                         YouTubeMetadata(
                             title = url.ifBlank { videoId },
                             authorName = null,
@@ -1453,39 +1443,6 @@ class MainViewModel
                 confirmDetectedFile(updatedPendingDownload)
             }
         }
-
-        private suspend fun fetchYouTubeOEmbed(videoUrl: String): YouTubeMetadata =
-            withContext(Dispatchers.IO) {
-                val oEmbedUrl =
-                    videoUrl.toHttpUrlOrNull()
-                        ?.newBuilder()
-                        ?.scheme("https")
-                        ?.host("www.youtube.com")
-                        ?.encodedPath("/oembed")
-                        ?.addQueryParameter("url", videoUrl)
-                        ?.addQueryParameter("format", "json")
-                        ?.build()
-                        ?: throw IOException(context.getString(R.string.unable_fetch_metadata))
-
-                NetworkRetry.execute {
-                    val request = Request.Builder().url(oEmbedUrl).build()
-                    httpClient.newCall(request).execute().use { response ->
-                        if (!response.isSuccessful) {
-                            throw IOException("oEmbed request failed: ${response.code}")
-                        }
-                        val body = response.body?.string().orEmpty()
-                        val parsed = json.decodeFromString(YouTubeOEmbedResponse.serializer(), body)
-                        val videoId = YouTubeUrlParser.extractVideoId(videoUrl)
-                        val customThumbnailUrl = videoId?.let { Constants.buildYouTubeThumbnailUrl(it) } ?: parsed.thumbnailUrl
-                        YouTubeMetadata(
-                            title = parsed.title,
-                            authorName = parsed.authorName,
-                            authorUrl = parsed.authorUrl,
-                            thumbnailUrl = customThumbnailUrl,
-                        )
-                    }
-                }
-            }
 
         private fun launchNewPipe(youtubeUrl: String) {
             val intent =
@@ -1882,14 +1839,6 @@ class MainViewModel
             /** The user has to confirm the download in the duplicate dialog. */
             ASKED,
         }
-
-        @Serializable
-        private data class YouTubeOEmbedResponse(
-            val title: String? = null,
-            @SerialName("author_name") val authorName: String? = null,
-            @SerialName("author_url") val authorUrl: String? = null,
-            @SerialName("thumbnail_url") val thumbnailUrl: String? = null,
-        )
 
         fun showToast(
             message: String,
