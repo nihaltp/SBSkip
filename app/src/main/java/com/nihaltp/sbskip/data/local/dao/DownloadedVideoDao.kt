@@ -39,10 +39,10 @@ interface DownloadedVideoDao {
     ): Int
 
     /**
-     * Videos whose metadata still has to be resolved, oldest first, so a background worker can
-     * enrich them in bounded batches.
+     * Videos whose metadata still has to be resolved, newest first, so that the rows at the top of
+     * the downloaded history — the ones the user is looking at — are described first.
      */
-    @Query("SELECT * FROM downloaded_videos WHERE needsEnrichment = 1 ORDER BY id ASC LIMIT :limit")
+    @Query("SELECT * FROM downloaded_videos WHERE needsEnrichment = 1 ORDER BY id DESC LIMIT :limit")
     suspend fun findNeedingEnrichment(limit: Int): List<DownloadedVideoEntity>
 
     @Query(
