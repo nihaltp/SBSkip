@@ -411,7 +411,12 @@ fun DownloadedHistoryScreen(
                                 isSelectEnabled = !isSelectEnabled
                                 if (!isSelectEnabled) viewModel.clearSelection()
                             },
-                            showSelectAction = videos.isNotEmpty(),
+                            selectionAction =
+                                when {
+                                    isSelectEnabled -> SelectionAction.ACTIVE
+                                    videos.isNotEmpty() -> SelectionAction.AVAILABLE
+                                    else -> SelectionAction.HIDDEN
+                                },
                         )
                     },
                 )
@@ -828,6 +833,13 @@ fun DownloadedHistoryScreen(
     )
 }
 
+/**
+ * What the selection button in the top bar offers: entering selection mode, leaving it, or nothing
+ * at all. The two flags it replaces (selection is active, the history has videos) are never both
+ * interesting at once, so a single value keeps them from disagreeing.
+ */
+private enum class SelectionAction { HIDDEN, AVAILABLE, ACTIVE }
+
 private fun queueStatusTextRes(status: FolderImportStatus): Int =
     when (status) {
         FolderImportStatus.PENDING -> R.string.downloaded_history_import_status_pending
@@ -854,7 +866,7 @@ private fun DownloadedHistoryActions(
     onImportClick: () -> Unit,
     onFolderImportClick: () -> Unit,
     onToggleSelection: () -> Unit,
-    showSelectAction: Boolean,
+    selectionAction: SelectionAction,
 ) {
     IconButton(onClick = onSearchClick) {
         Icon(
@@ -874,12 +886,19 @@ private fun DownloadedHistoryActions(
             contentDescription = stringResource(id = R.string.import_queue),
         )
     }
-    if (showSelectAction) {
+    if (selectionAction != SelectionAction.HIDDEN) {
         IconButton(onClick = onToggleSelection) {
-            Icon(
-                imageVector = Icons.Default.Delete,
-                contentDescription = null,
-            )
+            if (selectionAction == SelectionAction.ACTIVE) {
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = stringResource(id = R.string.cancel),
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = stringResource(id = R.string.multiselect_mode),
+                )
+            }
         }
     }
     IconButton(onClick = onFolderImportClick) {
