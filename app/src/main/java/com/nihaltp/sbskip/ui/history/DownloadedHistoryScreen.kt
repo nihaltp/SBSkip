@@ -427,9 +427,12 @@ fun DownloadedHistoryScreen(
                         },
                     )
                     Text(
+                        // Weight, not fillMaxWidth: the count must give up the space the delete
+                        // button needs, otherwise the button is laid out past the bar's right edge
+                        // and rendered clipped, leaving it invisible but still tappable.
                         modifier =
                             Modifier
-                                .fillMaxWidth()
+                                .weight(1f)
                                 .padding(start = 8.dp),
                         text =
                             stringResource(
