@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
@@ -287,6 +288,7 @@ private val ImportSource.icon
         when (this) {
             ImportSource.FILE -> Icons.Outlined.FileDownload
             ImportSource.CLIPBOARD -> Icons.Outlined.ContentCopy
+            ImportSource.FOLDER -> Icons.Outlined.FolderOpen
         }
 
 private val ImportSource.stringResId: Int
@@ -294,6 +296,7 @@ private val ImportSource.stringResId: Int
         when (this) {
             ImportSource.FILE -> R.string.import_source_file
             ImportSource.CLIPBOARD -> R.string.import_source_clipboard
+            ImportSource.FOLDER -> R.string.import_source_folder
         }
 
 private val ImportSource.descriptionResId: Int
@@ -301,4 +304,5 @@ private val ImportSource.descriptionResId: Int
         when (this) {
             ImportSource.FILE -> R.string.import_source_file_desc
             ImportSource.CLIPBOARD -> R.string.import_source_clipboard_desc
+            ImportSource.FOLDER -> R.string.import_source_folder_desc
         }

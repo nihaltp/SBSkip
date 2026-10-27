@@ -24,7 +24,6 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.DeleteSweep
 import androidx.compose.material.icons.outlined.DriveFileMove
@@ -406,7 +405,6 @@ fun DownloadedHistoryScreen(
                             onSearchClick = { isSearchActive = true },
                             onExportClick = { showExportDialog = true },
                             onImportClick = { showImportDialog = true },
-                            onFolderImportClick = { importLauncher.launch(null) },
                             onToggleSelection = {
                                 isSelectEnabled = !isSelectEnabled
                                 if (!isSelectEnabled) viewModel.clearSelection()
@@ -810,6 +808,9 @@ fun DownloadedHistoryScreen(
         ImportDialog(
             onDismissRequest = { showImportDialog = false },
             onImport = { source, clipboardText ->
+                // The dialog has done its job once a source is confirmed; the file and folder
+                // pickers then open over the list instead of over the dialog.
+                showImportDialog = false
                 when (source) {
                     ImportSource.CLIPBOARD -> {
                         clipboardText?.let { text ->
@@ -820,6 +821,9 @@ fun DownloadedHistoryScreen(
                     }
                     ImportSource.FILE -> {
                         importFileLauncher.launch("text/plain")
+                    }
+                    ImportSource.FOLDER -> {
+                        importLauncher.launch(null)
                     }
                 }
             },
@@ -864,7 +868,6 @@ private fun DownloadedHistoryActions(
     onSearchClick: () -> Unit,
     onExportClick: () -> Unit,
     onImportClick: () -> Unit,
-    onFolderImportClick: () -> Unit,
     onToggleSelection: () -> Unit,
     selectionAction: SelectionAction,
 ) {
@@ -900,11 +903,5 @@ private fun DownloadedHistoryActions(
                 )
             }
         }
-    }
-    IconButton(onClick = onFolderImportClick) {
-        Icon(
-            imageVector = Icons.Filled.Inbox,
-            contentDescription = stringResource(id = R.string.import_from_folder_title),
-        )
     }
 }

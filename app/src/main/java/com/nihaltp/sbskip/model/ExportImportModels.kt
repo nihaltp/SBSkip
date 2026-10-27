@@ -50,7 +50,7 @@ enum class ExportFormat {
 
 enum class ExportDestination { FILE, CLIPBOARD }
 
-enum class ImportSource { FILE, CLIPBOARD }
+enum class ImportSource { FILE, CLIPBOARD, FOLDER }
 
 sealed class ImportResult {
     data class Success(val items: List<String>) : ImportResult() // video IDs or URLs
