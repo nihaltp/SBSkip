@@ -1,10 +1,8 @@
 package com.nihaltp.sbskip.workers.helpers
 
-import android.content.Context
 import android.media.MediaMetadataRetriever
 import com.nihaltp.sbskip.util.AppLogger
 import com.nihaltp.sbskip.util.NetworkRetry
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -14,9 +12,7 @@ import javax.inject.Inject
 
 class CoverArtManager
     @Inject
-    constructor(
-        @ApplicationContext private val context: Context,
-    ) {
+    constructor() {
         private val httpClient =
             OkHttpClient.Builder()
                 .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)

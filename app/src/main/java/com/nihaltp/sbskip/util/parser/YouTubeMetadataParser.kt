@@ -79,7 +79,7 @@ object YouTubeMetadataParser {
         val (metadata, confidenceBoost) =
             extractStructuredMusicMetadata(initialData)
                 ?: extractFromDescription(description)
-                ?: extractFromTitle(title, channelName)
+                ?: extractFromTitle(title)
                 ?: Pair(null, 0f)
 
         val finalConfidence =
@@ -183,10 +183,7 @@ object YouTubeMetadataParser {
         return null
     }
 
-    private fun extractFromTitle(
-        title: String?,
-        channelName: String?,
-    ): Pair<MusicMetadata, Float>? {
+    private fun extractFromTitle(title: String?): Pair<MusicMetadata, Float>? {
         if (title == null) return null
         // e.g., "Artist - Song (Official Video)"
         val split = title.split(" - ", limit = 2)

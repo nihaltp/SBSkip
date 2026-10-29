@@ -1,11 +1,9 @@
 package com.nihaltp.sbskip.workers.helpers
 
-import android.content.Context
 import com.nihaltp.sbskip.data.repository.SettingsRepository
 import com.nihaltp.sbskip.model.MediaFileMetadata
 import com.nihaltp.sbskip.storage.DownloadStorage
 import com.nihaltp.sbskip.util.AppLogger
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
 import java.io.IOException
 import javax.inject.Inject
@@ -13,7 +11,6 @@ import javax.inject.Inject
 class DurationValidator
     @Inject
     constructor(
-        @ApplicationContext private val context: Context,
         private val downloadStorage: DownloadStorage,
         private val settingsRepository: SettingsRepository,
     ) {

@@ -103,7 +103,6 @@ fun MainScreen(
     onDownloadQueueItem: (DownloadQueueItem) -> Unit,
     onDismissToast: (String) -> Unit,
     onRetryQueueItem: (Long, Boolean) -> Unit,
-    onSnackbarShown: () -> Unit,
     onProceedAnyway: () -> Unit,
     onCancelMismatchDialog: () -> Unit,
     onFindFile: () -> Unit,
@@ -132,15 +131,6 @@ fun MainScreen(
         ) { results ->
             filesPermissionGranted = PermissionHelper.hasFilesPermission(context)
             AppLogger.metadata("Permissions: Files permission result from MainScreen: $results, hasPermission=$filesPermissionGranted")
-        }
-    val allPermissionsLauncher =
-        rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.RequestMultiplePermissions(),
-        ) { results ->
-            filesPermissionGranted = PermissionHelper.hasFilesPermission(context)
-            AppLogger.metadata(
-                "Permissions: All permissions result from MainScreen startup: $results, hasFilesPermission=$filesPermissionGranted",
-            )
         }
     val requestFilesPermissionWithRationale = {
         AppLogger.metadata("Permissions: Showing files permission rationale Toast and launching picker request...")
