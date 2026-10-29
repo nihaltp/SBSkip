@@ -31,3 +31,13 @@ repos:
         pass_filenames: false
         files: '\.(kt|kts)$'
         stages: [pre-commit]
+
+      - id: detekt
+        name: detekt
+        entry: ./gradlew :app:detekt
+        language: system
+        description: "Run detekt static analysis via Gradle (dead code, unused members, etc.)"
+        types: [kotlin]
+        pass_filenames: false
+        files: '\.(kt|kts)$'
+        stages: [pre-commit]

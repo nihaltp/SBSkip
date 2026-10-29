@@ -1,0 +1,11 @@
+style:
+  UnusedPrivateMember:
+    active: true
+  UnusedImports:
+    active: true
+  UnusedPrivateClass:
+    active: true
+  UnusedParameter:
+    active: true
+  UnusedPrivateProperty:
+    active: true

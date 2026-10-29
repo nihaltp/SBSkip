@@ -2,6 +2,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jlleitschuh.gradle.ktlint")
+    id("io.gitlab.arturbosch.detekt")
     id("org.jetbrains.kotlin.kapt")
     id("org.jetbrains.kotlin.plugin.serialization")
     id("org.jetbrains.kotlin.plugin.compose")
@@ -10,6 +11,7 @@ plugins {
 }
 
 import java.util.Properties
+import io.gitlab.arturbosch.detekt.Detekt
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 val keystorePropertiesFile = rootProject.file("keystore.properties")
@@ -138,6 +140,24 @@ ktlint {
         // Avoid formatting Gradle Kotlin scripts and generated build files
         exclude("**/*.gradle.kts")
         exclude("**/build/**")
+    }
+}
+
+tasks.withType<Detekt> {
+    jvmTarget = "17"
+    source = project.fileTree("${project.projectDir}/src/main") {
+        include("**/*.kt")
+    }
+    config = files(rootProject.file("detekt.yml"))
+    reports {
+        xml {
+            required.set(true)
+            outputLocation.set(file("build/reports/detekt/detekt.xml"))
+        }
+        html {
+            required.set(true)
+            outputLocation.set(file("build/reports/detekt/detekt.html"))
+        }
     }
 }
 
