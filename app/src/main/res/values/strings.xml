@@ -161,6 +161,8 @@
     <string name="error_details_intro">The cleaning pipeline encountered a failure:</string>
     <string name="error_report_explanation">You can report this bug to the GitHub issue page. A formatted report containing the stack trace and file details will be pre-populated for you.</string>
     <string name="report_to_github">Report to GitHub</string>
+    <string name="copy_error_message">Copy Error Message</string>
+    <string name="error_copied_toast">Error message copied to clipboard</string>
     <string name="dismiss">Dismiss</string>
 
     <!-- Media Details Dialog -->

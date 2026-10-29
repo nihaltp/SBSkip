@@ -2,6 +2,7 @@ package com.nihaltp.sbskip.ui.main.dialogs
 
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -22,14 +24,17 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.nihaltp.sbskip.BuildConfig
 import com.nihaltp.sbskip.R
 import com.nihaltp.sbskip.model.DownloadQueueItem
 import com.nihaltp.sbskip.util.NetworkErrorClassifier
+import com.nihaltp.sbskip.util.buildGithubBugReportBody
 import com.nihaltp.sbskip.util.buildGithubBugReportUrl
 
 @Composable
@@ -42,6 +47,7 @@ fun ErrorDetailsDialog(
     if (item == null) return
 
     val context = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
     val errorMessage = item.errorMessage.orEmpty()
     val isDurationMismatch = errorMessage.startsWith("Picked file duration")
     val shouldHideReportButton = NetworkErrorClassifier.isNetworkErrorMessage(errorMessage)
@@ -116,6 +122,21 @@ fun ErrorDetailsDialog(
                             modifier = Modifier.padding(12.dp),
                             style = MaterialTheme.typography.bodyMedium,
                         )
+                    }
+                    TextButton(
+                        onClick = {
+                            val reportBody = buildGithubBugReportBody(BuildConfig.VERSION_NAME, item)
+                            clipboardManager.setText(AnnotatedString(reportBody))
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.error_copied_toast),
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                        },
+                    ) {
+                        Icon(Icons.Filled.ContentCopy, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(id = R.string.copy_error_message))
                     }
                     if (!shouldHideReportButton) {
                         Text(
