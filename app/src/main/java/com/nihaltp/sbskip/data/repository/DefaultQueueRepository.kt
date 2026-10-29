@@ -23,6 +23,7 @@ class DefaultQueueRepository
     @Inject
     constructor(
         private val dao: DownloadQueueDao,
+        private val downloadedVideoRepository: DownloadedVideoRepository,
         private val workScheduler: DownloadWorkScheduler,
         @ApplicationContext private val context: Context,
     ) : QueueRepository {
@@ -52,6 +53,18 @@ class DefaultQueueRepository
                     YouTubeUrlParser.extractVideoId(youtubeUrl)
                         ?: return QueueActionResult(success = false, message = context.getString(R.string.enter_valid_url))
                 }
+
+            // Skip if this video is already tracked in the downloaded-videos database.
+            if (videoId != null) {
+                val alreadyTracked = downloadedVideoRepository.findByVideoId(videoId)
+                if (alreadyTracked != null) {
+                    AppLogger.queue("skipped duplicate enqueue for videoId=$videoId")
+                    return QueueActionResult(
+                        success = false,
+                        message = context.getString(R.string.duplicate_download_skipped),
+                    )
+                }
+            }
 
             // Normalize the YouTube URL without smuggled query flags. Flags (overwrite,
             // bypassDurationCheck, noSuffix) are stored as explicit entity columns instead of
