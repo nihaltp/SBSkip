@@ -147,6 +147,8 @@ tasks.withType<Detekt> {
     jvmTarget = "17"
     source = project.fileTree("${project.projectDir}/src/main") {
         include("**/*.kt")
+    } + project.fileTree("${project.projectDir}/src/test") {
+        include("**/*.kt")
     }
     config = files(rootProject.file("detekt.yml"))
     reports {
