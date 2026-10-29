@@ -368,13 +368,6 @@ class ImportManager
                 try {
                     _importProgressMessage.value = fileName
 
-                    // A file that was already imported is skipped without probing it: the probe
-                    // is the expensive part of the import.
-                    if (isAlreadyImportedFile(fileUri.toString())) {
-                        AppLogger.metadata("ImportFolder: Skipping already imported file $fileName")
-                        continue
-                    }
-
                     val metadata =
                         ffmpegMetadataReader.readMetadata(contentResolver, fileUri, cacheDir)
                     val youtubeId = metadata.youtubeId
@@ -383,8 +376,18 @@ class ImportManager
                     val cleanYoutubeId = youtubeId?.let { YouTubeUrlParser.cleanVideoId(it) }
 
                     if (cleanYoutubeId != null) {
+                        // A file whose YouTube video id is already tracked is skipped without
+                        // probing it: the probe is the expensive part of the import.
+                        if (downloadedVideoRepository.findByVideoId(cleanYoutubeId) != null) {
+                            AppLogger.metadata("ImportFolder: Skipping already tracked video $cleanYoutubeId")
+                            continue
+                        }
+                    }
+
+                    if (cleanYoutubeId != null) {
                         // A video is tracked by its YouTube id: when it is already tracked, the
-                        // file is added to the existing entry instead of creating a second row.
+                        // file is skipped. No path is stored, so the file is not merged into the
+                        // existing entry.
                         val existingVideo = downloadedVideoRepository.findByVideoId(cleanYoutubeId)
                         if (existingVideo == null) {
                             val entity =
@@ -398,7 +401,6 @@ class ImportManager
                                     thumbnailUrl =
                                         Constants.buildYouTubeThumbnailUrl(cleanYoutubeId),
                                     durationSeconds = null,
-                                    outputPaths = listOf(fileUri.toString()),
                                     fileSize = metadata.fileSize,
                                     mediaType = mediaTypeForUri(fileUri),
                                 )
@@ -408,21 +410,9 @@ class ImportManager
                                 "ImportFolder: Imported video $cleanYoutubeId ($fileName)",
                             )
                         } else {
-                            val added =
-                                downloadedVideoRepository.addOutputPath(
-                                    videoId = cleanYoutubeId,
-                                    outputPath = fileUri.toString(),
-                                )
-                            if (added) {
-                                importedCount++
-                                AppLogger.metadata(
-                                    "ImportFolder: Added $fileName to the already tracked video $cleanYoutubeId",
-                                )
-                            } else {
-                                AppLogger.metadata(
-                                    "ImportFolder: Skipping duplicate $cleanYoutubeId ($fileName)",
-                                )
-                            }
+                            AppLogger.metadata(
+                                "ImportFolder: Skipping duplicate $cleanYoutubeId ($fileName)",
+                            )
                         }
                     }
                 } catch (e: Exception) {
@@ -467,13 +457,6 @@ class ImportManager
 
             return importedCount
         }
-
-        /**
-         * True when the file at [outputPath] was already imported. Such a file is skipped without
-         * probing it, because the probe is the expensive part of the import.
-         */
-        internal suspend fun isAlreadyImportedFile(outputPath: String): Boolean =
-            downloadedVideoRepository.findByOutputPath(outputPath) != null
 
         /**
          * Scans a single folder in a job of its own, so that the running scan can be cancelled by

@@ -11,7 +11,6 @@ import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.model.SealDownloadHistoryEntry
 import com.nihaltp.sbskip.util.Constants
 import com.nihaltp.sbskip.util.ImportManager
-import com.nihaltp.sbskip.util.ImportPathVerifier
 import com.nihaltp.sbskip.workers.ImportEnrichmentScheduler
 import io.mockk.Runs
 import io.mockk.coEvery
@@ -51,7 +50,6 @@ class DownloadedHistoryViewModelTest {
 
     private lateinit var downloadedVideoRepository: DownloadedVideoRepository
     private lateinit var importManager: ImportManager
-    private lateinit var importPathVerifier: ImportPathVerifier
     private lateinit var importEnrichmentScheduler: ImportEnrichmentScheduler
     private lateinit var application: Application
     private lateinit var viewModel: DownloadedHistoryViewModel
@@ -61,16 +59,13 @@ class DownloadedHistoryViewModelTest {
         Dispatchers.setMain(testDispatcher)
         downloadedVideoRepository = mockk(relaxed = true)
         importManager = mockk(relaxed = true)
-        importPathVerifier = mockk(relaxed = true)
         importEnrichmentScheduler = mockk(relaxed = true)
-        coEvery { importPathVerifier.verify(any()) } coAnswers { firstArg() }
         application = ApplicationProvider.getApplicationContext()
         every { downloadedVideoRepository.observeDownloadedVideos } returns flowOf(emptyList())
         viewModel =
             DownloadedHistoryViewModel(
                 downloadedVideoRepository = downloadedVideoRepository,
                 importManager = importManager,
-                importPathVerifier = importPathVerifier,
                 importEnrichmentScheduler = importEnrichmentScheduler,
                 application = application,
             )
@@ -99,7 +94,6 @@ class DownloadedHistoryViewModelTest {
                         title = "Test Video",
                         thumbnailUrl = "https://img.youtube.com/vi/abc123/mqdefault.jpg",
                         durationSeconds = 180L,
-                        outputPaths = listOf("/sdcard/Music/test.m4a"),
                         mediaType = "audio",
                     ),
                 )
@@ -109,7 +103,6 @@ class DownloadedHistoryViewModelTest {
                 DownloadedHistoryViewModel(
                     downloadedVideoRepository = downloadedVideoRepository,
                     importManager = importManager,
-                    importPathVerifier = importPathVerifier,
                     importEnrichmentScheduler = importEnrichmentScheduler,
                     application = application,
                 )
@@ -131,7 +124,6 @@ class DownloadedHistoryViewModelTest {
                         author = "ChannelOne",
                         thumbnailUrl = "https://img.youtube.com/vi/aaa111/mqdefault.jpg",
                         durationSeconds = 60L,
-                        outputPaths = listOf("/sdcard/Music/alpha.m4a"),
                         mediaType = "audio",
                     ),
                     DownloadedVideoEntity(
@@ -142,7 +134,6 @@ class DownloadedHistoryViewModelTest {
                         author = "ChannelTwo",
                         thumbnailUrl = "https://img.youtube.com/vi/bbb222/mqdefault.jpg",
                         durationSeconds = 90L,
-                        outputPaths = listOf("/sdcard/Music/beta.m4a"),
                         mediaType = "audio",
                     ),
                 )
@@ -152,7 +143,6 @@ class DownloadedHistoryViewModelTest {
                 DownloadedHistoryViewModel(
                     downloadedVideoRepository = downloadedVideoRepository,
                     importManager = importManager,
-                    importPathVerifier = importPathVerifier,
                     importEnrichmentScheduler = importEnrichmentScheduler,
                     application = application,
                 )
@@ -173,7 +163,6 @@ class DownloadedHistoryViewModelTest {
                         author = "ChannelOne",
                         thumbnailUrl = "https://img.youtube.com/vi/aaa111/mqdefault.jpg",
                         durationSeconds = 60L,
-                        outputPaths = listOf("/sdcard/Music/alpha.m4a"),
                         mediaType = "audio",
                     ),
                     DownloadedVideoEntity(
@@ -184,7 +173,6 @@ class DownloadedHistoryViewModelTest {
                         author = "ChannelTwo",
                         thumbnailUrl = "https://img.youtube.com/vi/bbb222/mqdefault.jpg",
                         durationSeconds = 90L,
-                        outputPaths = listOf("/sdcard/Music/beta.m4a"),
                         mediaType = "audio",
                     ),
                 )
@@ -194,7 +182,6 @@ class DownloadedHistoryViewModelTest {
                 DownloadedHistoryViewModel(
                     downloadedVideoRepository = downloadedVideoRepository,
                     importManager = importManager,
-                    importPathVerifier = importPathVerifier,
                     importEnrichmentScheduler = importEnrichmentScheduler,
                     application = application,
                 )
@@ -313,13 +300,12 @@ class DownloadedHistoryViewModelTest {
             assertEquals(Constants.buildYouTubeWatchUrl("abc123"), inserted.captured.url)
             assertEquals("abc123", inserted.captured.title)
             assertEquals(Constants.buildYouTubeThumbnailUrl("abc123"), inserted.captured.thumbnailUrl)
-            assertEquals(emptyList<String>(), inserted.captured.outputPaths)
             assertEquals(MediaType.VIDEO.name, inserted.captured.mediaType)
             assertTrue(inserted.captured.needsEnrichment)
         }
 
     @Test
-    fun `import json backup carries metadata and local file from the download history`() =
+    fun `import json backup carries metadata without storing local file path`() =
         runTest(testDispatcher) {
             val inserted = slot<DownloadedVideoEntity>()
             coEvery { downloadedVideoRepository.findByVideoId("abc123") } returns null
@@ -335,11 +321,12 @@ class DownloadedHistoryViewModelTest {
             assertEquals("Imported title", entity.title)
             assertEquals("Imported author", entity.author)
             assertEquals("https://example.com/thumb.jpg", entity.thumbnailUrl)
-            assertEquals(listOf("/sdcard/Download/video.mp4"), entity.outputPaths)
+            // Paths are no longer persisted
+            assertTrue(entity.needsEnrichment)
         }
 
     @Test
-    fun `import of an already tracked video adds the new local file instead of a second row`() =
+    fun `import of an already tracked video is skipped without adding files`() =
         runTest(testDispatcher) {
             val existing =
                 DownloadedVideoEntity(
@@ -347,26 +334,19 @@ class DownloadedHistoryViewModelTest {
                     videoId = "abc123",
                     url = Constants.buildYouTubeWatchUrl("abc123"),
                     title = "Existing title",
-                    outputPaths = listOf("/sdcard/Download/old.mp4"),
                     mediaType = MediaType.VIDEO.name,
                 )
             coEvery { downloadedVideoRepository.findByVideoId("abc123") } returns existing
-            coEvery {
-                downloadedVideoRepository.addOutputPath("abc123", "/sdcard/Download/new.mp4")
-            } returns true
 
             val outcome =
                 viewModel.importVideos(jsonBackup("abc123", "/sdcard/Download/new.mp4"))
 
             assertEquals(0, outcome.imported)
             coVerify(exactly = 0) { downloadedVideoRepository.insert(any()) }
-            coVerify(exactly = 1) {
-                downloadedVideoRepository.addOutputPath("abc123", "/sdcard/Download/new.mp4")
-            }
         }
 
     @Test
-    fun `import of an already tracked file is skipped`() =
+    fun `import skips a video that is already tracked`() =
         runTest(testDispatcher) {
             val existing =
                 DownloadedVideoEntity(
@@ -374,7 +354,6 @@ class DownloadedHistoryViewModelTest {
                     videoId = "abc123",
                     url = Constants.buildYouTubeWatchUrl("abc123"),
                     title = "Existing title",
-                    outputPaths = listOf("/sdcard/Download/video.mp4"),
                     mediaType = MediaType.VIDEO.name,
                 )
             coEvery { downloadedVideoRepository.findByVideoId("abc123") } returns existing
@@ -384,7 +363,6 @@ class DownloadedHistoryViewModelTest {
 
             assertEquals(0, outcome.imported)
             coVerify(exactly = 0) { downloadedVideoRepository.insert(any()) }
-            coVerify(exactly = 0) { downloadedVideoRepository.addOutputPath(any(), any()) }
         }
 
     @Test
@@ -413,22 +391,6 @@ class DownloadedHistoryViewModelTest {
         }
 
     @Test
-    fun `import skips a path that does not exist and marks the video unverified`() =
-        runTest(testDispatcher) {
-            coEvery { importPathVerifier.verify(any()) } returns emptyList()
-            val inserted = slot<DownloadedVideoEntity>()
-            coEvery { downloadedVideoRepository.findByVideoId("abc123") } returns null
-            coEvery { downloadedVideoRepository.insert(capture(inserted)) } returns 1L
-
-            val outcome = viewModel.importVideos(jsonBackup("abc123", "/sdcard/Download/missing.mp4"))
-
-            assertEquals(1, outcome.imported)
-            assertEquals(emptyList<String>(), inserted.captured.outputPaths)
-            assertEquals(false, inserted.captured.isVerified)
-            assertEquals(true, inserted.captured.needsEnrichment)
-        }
-
-    @Test
     fun `import lists a video id only once when the import repeats it`() =
         runTest(testDispatcher) {
             val inserted = slot<DownloadedVideoEntity>()
@@ -439,59 +401,6 @@ class DownloadedHistoryViewModelTest {
 
             assertEquals(1, outcome.imported)
             coVerify(exactly = 1) { downloadedVideoRepository.insert(any()) }
-        }
-
-    @Test
-    fun `import merges the files of a video listed twice in one backup`() =
-        runTest(testDispatcher) {
-            val inserted = slot<DownloadedVideoEntity>()
-            coEvery { downloadedVideoRepository.findByVideoId("abc123") } returns null
-            coEvery { downloadedVideoRepository.insert(capture(inserted)) } returns 1L
-            val backup =
-                ImportResult.JsonSuccess(
-                    ExportData(
-                        items =
-                            listOf(
-                                exportItem("abc123", "https://youtu.be/abc123"),
-                                exportItem("abc123", "https://youtu.be/abc123"),
-                            ),
-                        downloadHistory =
-                            listOf(
-                                sealEntry("https://youtu.be/abc123", "/sdcard/a.mp4"),
-                                sealEntry("https://youtu.be/abc123", "/sdcard/b.mp4"),
-                            ),
-                    ),
-                )
-
-            val outcome = viewModel.importVideos(backup)
-
-            assertEquals(1, outcome.imported)
-            coVerify(exactly = 1) { downloadedVideoRepository.insert(any()) }
-            assertEquals(listOf("/sdcard/a.mp4", "/sdcard/b.mp4"), inserted.captured.outputPaths)
-        }
-
-    @Test
-    fun `import of a missing file already listed verifies the tracked video`() =
-        runTest(testDispatcher) {
-            val existing =
-                DownloadedVideoEntity(
-                    id = 9L,
-                    videoId = "abc123",
-                    url = Constants.buildYouTubeWatchUrl("abc123"),
-                    title = "Tracked but unverified",
-                    mediaType = MediaType.VIDEO.name,
-                    isVerified = false,
-                    needsEnrichment = true,
-                )
-            coEvery { downloadedVideoRepository.findByVideoId("abc123") } returns existing
-
-            val outcome = viewModel.importVideos(jsonBackup("abc123", "/sdcard/Download/video.mp4"))
-
-            assertEquals(0, outcome.imported)
-            coVerify(exactly = 1) {
-                downloadedVideoRepository.addOutputPath("abc123", "/sdcard/Download/video.mp4")
-            }
-            coVerify(exactly = 1) { downloadedVideoRepository.setVerified(9L, true) }
         }
 
     @Test
@@ -536,8 +445,8 @@ class DownloadedHistoryViewModelTest {
         )
 
     /**
-     * A full JSON backup whose download history carries [videoPath] for the item, so that the
-     * watch URL fallback of the import has to be used to find the local file.
+     * A full JSON backup whose download history carries [videoPath] for the item. Import ignores
+     * the path entirely — metadata is resolved from YouTube only.
      */
     private fun jsonBackup(
         videoId: String,

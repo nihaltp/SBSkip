@@ -65,7 +65,6 @@ class MainViewModelTest {
         // A relaxed mock would return a mocked entity instead of null, which would make every
         // video look like a duplicate.
         coEvery { downloadedVideoRepository.findByVideoId(any()) } returns null
-        coEvery { downloadedVideoRepository.findByOutputPath(any()) } returns null
 
         viewModel =
             MainViewModel(
@@ -543,7 +542,6 @@ class MainViewModelTest {
                 videoId = videoId,
                 url = "https://www.youtube.com/watch?v=$videoId",
                 title = "Already Downloaded",
-                outputPaths = listOf("content://media/$videoId"),
                 mediaType = MediaType.VIDEO.name,
             )
     }

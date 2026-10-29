@@ -74,9 +74,9 @@ class DatabaseMigrationTest {
                 "author",
                 "thumbnailUrl",
                 "durationSeconds",
-                "outputPaths",
                 "fileSize",
                 "mediaType",
+                "needsEnrichment",
             )
 
         assertEquals(expectedColumns, columnNames)
@@ -100,7 +100,6 @@ class DatabaseMigrationTest {
                     author = "Test Author",
                     thumbnailUrl = null,
                     durationSeconds = 180L,
-                    outputPaths = listOf("/sdcard/Download/video.m4a"),
                     fileSize = 1024L,
                     mediaType = "video",
                 )

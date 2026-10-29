@@ -118,7 +118,7 @@
       },
       {
         "tableName": "downloaded_videos",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `videoId` TEXT, `url` TEXT NOT NULL, `title` TEXT NOT NULL, `author` TEXT, `thumbnailUrl` TEXT, `durationSeconds` INTEGER, `outputPaths` TEXT NOT NULL, `fileSize` INTEGER, `mediaType` TEXT NOT NULL, `isVerified` INTEGER NOT NULL, `needsEnrichment` INTEGER NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `videoId` TEXT, `url` TEXT NOT NULL, `title` TEXT NOT NULL, `author` TEXT, `thumbnailUrl` TEXT, `durationSeconds` INTEGER, `fileSize` INTEGER, `mediaType` TEXT NOT NULL, `needsEnrichment` INTEGER NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -159,12 +159,6 @@
             "affinity": "INTEGER"
           },
           {
-            "fieldPath": "outputPaths",
-            "columnName": "outputPaths",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
             "fieldPath": "fileSize",
             "columnName": "fileSize",
             "affinity": "INTEGER"
@@ -173,12 +167,6 @@
             "fieldPath": "mediaType",
             "columnName": "mediaType",
             "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "isVerified",
-            "columnName": "isVerified",
-            "affinity": "INTEGER",
             "notNull": true
           },
           {

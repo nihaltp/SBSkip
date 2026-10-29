@@ -62,7 +62,7 @@ object ExportImportUtil {
                             sponsorBlockCategories = categories,
                         )
                     }
-                val exportData = exportItems.toExportData(queueItems.map { it.outputPath })
+                val exportData = exportItems.toExportData()
                 json.encodeToString(ExportData.serializer(), exportData)
             }
         }
@@ -102,7 +102,7 @@ object ExportImportUtil {
                             sponsorBlockCategories = categories,
                         )
                     }
-                val exportData = exportItems.toExportData(entities.map { it.outputPaths.firstOrNull() })
+                val exportData = exportItems.toExportData()
                 json.encodeToString(ExportData.serializer(), exportData)
             }
         }
@@ -112,13 +112,13 @@ object ExportImportUtil {
      * Builds the full JSON export: the SB Skip item list plus the Seal compatible download history
      * list, so that other apps implementing the Seal backup format can import the backup.
      */
-    private fun List<ExportItem>.toExportData(videoPaths: List<String?>): ExportData =
+    private fun List<ExportItem>.toExportData(): ExportData =
         ExportData(
             version = EXPORT_DATA_VERSION,
             items = this,
             downloadHistory =
-                mapIndexed { index, item ->
-                    item.toSealDownloadHistoryEntry(videoPaths[index] ?: item.url)
+                map { item ->
+                    item.toSealDownloadHistoryEntry("")
                 },
         )
 
