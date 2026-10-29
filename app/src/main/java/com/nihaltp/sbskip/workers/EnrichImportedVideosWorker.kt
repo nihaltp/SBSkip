@@ -87,8 +87,13 @@ class EnrichImportedVideosWorker
             }
 
             // Out of attempts: keep what is known rather than retrying these videos forever.
-            repository.findNeedingEnrichment(BATCH_SIZE).forEach { video ->
-                repository.clearNeedsEnrichment(video.id)
+            // Drain every remaining row so none stay pending forever.
+            var remaining = repository.findNeedingEnrichment(BATCH_SIZE)
+            while (remaining.isNotEmpty()) {
+                remaining.forEach { video ->
+                    repository.clearNeedsEnrichment(video.id)
+                }
+                remaining = repository.findNeedingEnrichment(BATCH_SIZE)
             }
             return Result.success()
         }
