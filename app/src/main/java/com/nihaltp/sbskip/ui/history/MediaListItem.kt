@@ -32,8 +32,6 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.nihaltp.sbskip.R
 
-private const val AUDIO_REGEX = "\\.(mp3|aac|opus|m4a|flac|wav)"
-
 @Composable
 fun MediaListItem(
     modifier: Modifier = Modifier,
