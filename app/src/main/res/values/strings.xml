@@ -300,4 +300,20 @@
     <string name="dialog_download_options_title">Download Options</string>
     <string name="dialog_download_options_proceed">Proceed</string>
     <string name="options_button">Options</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_exit">Exit</string>
+    <string name="onboarding_allow">Allow</string>
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_continue">Continue</string>
+    <string name="onboarding_step_files_title">Files &amp; Media Access</string>
+    <string name="onboarding_step_files_desc">SBSkip needs permission to find and select your downloaded media files. You can change this later in Settings.</string>
+    <string name="onboarding_step_files_denied">Permission denied permanently. You can enable it later in Settings &gt; Permissions.</string>
+    <string name="onboarding_step_notifications_title">Notifications</string>
+    <string name="onboarding_step_notifications_desc">Show silent download and progress notifications. Not required to use the app. You can enable or disable this anytime in Settings.</string>
+    <string name="onboarding_step_notifications_denied">Notification permission denied permanently. You can enable it later in Settings &gt; Notifications.</string>
+    <string name="onboarding_step_watchlist_title">Watchlist Folders</string>
+    <string name="onboarding_step_watchlist_desc">Add folders SBSkip should scan for downloaded files. This helps auto-detect your media. You can add, remove, or change folders anytime in Settings.</string>
+    <string name="onboarding_step_watchlist_add">Add Folder</string>
+    <string name="onboarding_step_watchlist_added">Folder added</string>
 </resources>

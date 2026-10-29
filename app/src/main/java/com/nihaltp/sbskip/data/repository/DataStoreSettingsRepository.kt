@@ -59,6 +59,7 @@ class DataStoreSettingsRepository
             val BYPASS_SMALL_DURATION_DIFFERENCE = booleanPreferencesKey("bypass_small_duration_difference")
             val MAX_DURATION_DIFFERENCE_SECONDS = intPreferencesKey("max_duration_difference_seconds")
             val WATCHLIST = stringPreferencesKey("watchlist")
+            val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
             val PENDING_DOWNLOADS = stringPreferencesKey("pending_downloads")
             val PLAYLIST_DOWNLOAD_STATE = stringPreferencesKey("playlist_download_state")
         }
@@ -114,6 +115,7 @@ class DataStoreSettingsRepository
                         runCatching {
                             json.decodeFromString<List<WatchlistFolder>>(preferences[PreferencesKeys.WATCHLIST] ?: "[]")
                         }.getOrElse { emptyList() },
+                    onboardingCompleted = preferences[PreferencesKeys.ONBOARDING_COMPLETED] ?: false,
                     pendingDownloads =
                         runCatching {
                             json.decodeFromString<List<PendingDownload>>(preferences[PreferencesKeys.PENDING_DOWNLOADS] ?: "[]")
@@ -173,6 +175,7 @@ class DataStoreSettingsRepository
                             runCatching {
                                 json.decodeFromString<List<WatchlistFolder>>(preferences[PreferencesKeys.WATCHLIST] ?: "[]")
                             }.getOrElse { emptyList() },
+                        onboardingCompleted = preferences[PreferencesKeys.ONBOARDING_COMPLETED] ?: false,
                         pendingDownloads =
                             runCatching {
                                 json.decodeFromString<List<PendingDownload>>(preferences[PreferencesKeys.PENDING_DOWNLOADS] ?: "[]")
@@ -209,6 +212,7 @@ class DataStoreSettingsRepository
                 preferences[PreferencesKeys.BYPASS_SMALL_DURATION_DIFFERENCE] = updated.bypassSmallDurationDifference
                 preferences[PreferencesKeys.MAX_DURATION_DIFFERENCE_SECONDS] = updated.maxDurationDifferenceSeconds
                 preferences[PreferencesKeys.WATCHLIST] = json.encodeToString(updated.watchlist)
+                preferences[PreferencesKeys.ONBOARDING_COMPLETED] = updated.onboardingCompleted
                 preferences[PreferencesKeys.PENDING_DOWNLOADS] = json.encodeToString(updated.pendingDownloads)
                 if (updated.playlistDownloadState != null) {
                     preferences[PreferencesKeys.PLAYLIST_DOWNLOAD_STATE] = json.encodeToString(updated.playlistDownloadState)

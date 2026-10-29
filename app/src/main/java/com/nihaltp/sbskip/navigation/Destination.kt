@@ -1,6 +1,8 @@
 package com.nihaltp.sbskip.navigation
 
 abstract class Destination(val route: String) {
+    data object Onboarding : Destination("onboarding")
+
     data object Home : Destination("home")
 
     data object DownloadConfig : Destination("download_config")
