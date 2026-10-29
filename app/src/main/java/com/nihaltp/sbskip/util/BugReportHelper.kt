@@ -3,13 +3,11 @@ package com.nihaltp.sbskip.util
 import android.net.Uri
 import com.nihaltp.sbskip.model.DownloadQueueItem
 
-fun buildGithubBugReportUrl(
+fun buildGithubBugReportBody(
     versionName: String,
     item: DownloadQueueItem,
 ): String {
-    val titleParam = Uri.encode("[Bug] Pipeline clean failed: ${item.errorMessage?.take(45)}")
-    val bodyTemplate =
-        """
+    return """
         |### SB Skip Pipeline Error Report
         |
         |* **App Version**: $versionName
@@ -22,6 +20,13 @@ fun buildGithubBugReportUrl(
         |${item.errorMessage}
         |```
         """.trimMargin()
-    val bodyParam = Uri.encode(bodyTemplate)
+}
+
+fun buildGithubBugReportUrl(
+    versionName: String,
+    item: DownloadQueueItem,
+): String {
+    val titleParam = Uri.encode("[Bug] Pipeline clean failed: ${item.errorMessage?.take(45)}")
+    val bodyParam = Uri.encode(buildGithubBugReportBody(versionName, item))
     return Constants.buildGithubIssueUrl(titleParam, bodyParam)
 }
