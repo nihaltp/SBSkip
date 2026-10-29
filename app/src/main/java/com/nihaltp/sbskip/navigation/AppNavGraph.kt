@@ -16,6 +16,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.nihaltp.sbskip.ui.main.MainScreen
 import com.nihaltp.sbskip.ui.main.MainViewModel
+import com.nihaltp.sbskip.ui.onboarding.OnboardingScreen
 import com.nihaltp.sbskip.ui.settings.SettingsScreen
 
 @Composable
@@ -34,9 +35,18 @@ fun AppNavGraph(
 
     NavHost(
         navController = navController,
-        startDestination = Destination.Home.route,
+        startDestination = Destination.Onboarding.route,
         modifier = modifier,
     ) {
+        composable(Destination.Onboarding.route) {
+            OnboardingScreen(
+                onExit = {
+                    navController.navigate(Destination.Home.route) {
+                        popUpTo(Destination.Onboarding.route) { inclusive = true }
+                    }
+                },
+            )
+        }
         composable(Destination.Home.route) {
             MainScreen(
                 uiState = uiState,

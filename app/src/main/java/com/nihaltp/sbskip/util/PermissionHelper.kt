@@ -44,6 +44,9 @@ object PermissionHelper {
         }
     }
 
+    /** True when the notification permission exists as a runtime prompt on this device. */
+    fun hasNotificationPermissionTarget(): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+
     fun getAllRequiredPermissions(): Array<String> {
         return getRequiredFilesPermissions() + getRequiredNotificationPermissions()
     }

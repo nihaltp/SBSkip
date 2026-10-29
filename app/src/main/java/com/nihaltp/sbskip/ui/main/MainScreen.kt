@@ -189,14 +189,9 @@ fun MainScreen(
         }
 
     LaunchedEffect(Unit) {
-        // Skip permission requests in automated tests to avoid blocking Compose hierarchy detection
-        val isTest = context.packageName.endsWith(".test") || context.packageName.endsWith(".debug")
-        if (!isTest && !PermissionHelper.hasAllRequiredPermissions(context)) {
-            AppLogger.metadata("Permissions: App launched. Requesting files and notifications permissions...")
-            allPermissionsLauncher.launch(PermissionHelper.getAllRequiredPermissions())
-        } else {
-            AppLogger.metadata("Permissions: App launched. All required permissions are already granted or test environment.")
-        }
+        // Permission requests now happen in the onboarding flow (first launch only).
+        // The deferred per-feature re-asking lives in the ViewModel / Settings screen.
+        AppLogger.metadata("Permissions: App launched. Onboarding handles first-run permission requests.")
     }
 
     // No Snackbar handling here anymore
