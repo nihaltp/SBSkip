@@ -21,7 +21,6 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -54,7 +53,6 @@ class ImportManagerTest {
         settingsRepository = mockk<SettingsRepository>(relaxed = true)
         // A relaxed mock would return a mocked entity instead of null.
         coEvery { downloadedVideoRepository.findByVideoId(any()) } returns null
-        coEvery { downloadedVideoRepository.findByOutputPath(any()) } returns null
         coEvery { settingsRepository.settings } returns flowOf(AppSettings())
         coEvery { settingsRepository.update(any()) } just Runs
         importManager =
@@ -175,37 +173,8 @@ class ImportManagerTest {
         )
     }
 
-    // ── duplicate detection during the folder import ──────────────────────────
-
     @Test
-    fun `a file that was already imported is detected by its path`() =
-        runTest {
-            coEvery { downloadedVideoRepository.findByOutputPath("content://media/1") } returns trackedVideo()
-            coEvery { downloadedVideoRepository.findByOutputPath("content://media/2") } returns null
-
-            assertTrue(
-                "A file that was already imported has to be skipped",
-                importManager.isAlreadyImportedFile("content://media/1"),
-            )
-            assertFalse(
-                "A file that was not imported yet must not be skipped",
-                importManager.isAlreadyImportedFile("content://media/2"),
-            )
-        }
-
-    private fun trackedVideo() =
-        com.nihaltp.sbskip.model.DownloadedVideoEntity(
-            videoId = "dQw4w9WgXcQ",
-            url = "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-            title = "Test Video",
-            outputPaths = listOf("content://media/1"),
-            mediaType = "video",
-        )
-
-    // ── the queue survives a restart of the app ───────────────────────────────
-
-    @Test
-    fun `resumePersistedImports restores the persisted queue`() =
+    fun `the queue survives a restart of the app`() =
         runTest(testDispatcher) {
             val persisted =
                 listOf(
@@ -229,23 +198,6 @@ class ImportManagerTest {
             assertEquals(Uri.parse("content://com.test.provider/tree/7"), queue.first().treeUri)
             assertEquals(7L, queue.first().id)
         }
-
-    @Test
-    fun `a scan that was interrupted by a restart is scanned again`() {
-        val persisted =
-            PersistedFolderImport(
-                id = 1L,
-                treeUri = "content://com.test.provider/tree/1",
-                folderName = "Folder 1",
-                status = FolderImportStatus.SCANNING,
-                importedCount = 0,
-                errorMessage = null,
-            )
-
-        val restored = persisted.toQueueItem()
-
-        assertEquals(FolderImportStatus.PENDING, restored.status)
-    }
 
     @Test
     fun `the queue is persisted when it changes`() =

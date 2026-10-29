@@ -26,19 +26,6 @@ interface DownloadedVideoDao {
     suspend fun findByVideoId(videoId: String): DownloadedVideoEntity?
 
     /**
-     * All videos whose path list may contain [outputPath]. The paths are stored as a json list,
-     * so this is a coarse filter: the exact match is checked by the caller.
-     */
-    @Query("SELECT * FROM downloaded_videos WHERE outputPaths LIKE '%' || :outputPath || '%'")
-    suspend fun findByOutputPathCandidates(outputPath: String): List<DownloadedVideoEntity>
-
-    @Query("UPDATE downloaded_videos SET outputPaths = :outputPaths WHERE id = :id")
-    suspend fun updateOutputPaths(
-        id: Long,
-        outputPaths: String,
-    ): Int
-
-    /**
      * Videos whose metadata still has to be resolved, newest first, so that the rows at the top of
      * the downloaded history — the ones the user is looking at — are described first.
      */
@@ -66,12 +53,6 @@ interface DownloadedVideoDao {
 
     @Query("UPDATE downloaded_videos SET needsEnrichment = 0 WHERE id = :id")
     suspend fun clearNeedsEnrichment(id: Long): Int
-
-    @Query("UPDATE downloaded_videos SET isVerified = :isVerified WHERE id = :id")
-    suspend fun updateVerified(
-        id: Long,
-        isVerified: Boolean,
-    ): Int
 
     @Query("DELETE FROM downloaded_videos")
     suspend fun deleteAll()

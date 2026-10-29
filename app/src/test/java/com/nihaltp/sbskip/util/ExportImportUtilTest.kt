@@ -22,7 +22,6 @@ class ExportImportUtilTest {
             author = "Test Author",
             thumbnailUrl = "https://example.com/thumbnail.jpg",
             durationSeconds = null,
-            outputPaths = listOf("/storage/emulated/0/Download/test.mp4"),
             fileSize = null,
             mediaType = "video",
         )
@@ -34,7 +33,7 @@ class ExportImportUtilTest {
         assertTrue(exportJson.contains("\"downloadHistory\""))
         assertTrue(exportJson.contains(watchUrl))
         assertTrue(exportJson.contains("\"videoTitle\": \"Test Title\""))
-        assertTrue(exportJson.contains("\"videoPath\": \"/storage/emulated/0/Download/test.mp4\""))
+        // Paths are no longer stored, so no videoPath assertion needed
     }
 
     @Test
@@ -76,7 +75,7 @@ class ExportImportUtilTest {
     fun `parses seal full backup json into video ids`() {
         val sealBackupJson =
             """
-            {
+                        {
                 "templates": null,
                 "shortcuts": null,
                 "downloadHistory": [

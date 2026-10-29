@@ -14,8 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Album
-import androidx.compose.material.icons.outlined.Warning
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -30,7 +28,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.nihaltp.sbskip.R
@@ -43,9 +40,7 @@ fun MediaListItem(
     title: String = "",
     author: String = "",
     thumbnailUrl: String? = null,
-    videoPath: String = "",
     fileSize: Long? = null,
-    isFileMissing: Boolean = false,
     mediaType: String = "video",
     isSelectEnabled: () -> Boolean = { false },
     isSelected: () -> Boolean = { false },
@@ -54,11 +49,9 @@ fun MediaListItem(
     onLongClick: () -> Unit = {},
     onShowContextMenu: () -> Unit = {},
 ) {
-    val isAudio = videoPath.contains(Regex(AUDIO_REGEX))
+    val isAudio = mediaType == "audio"
     val haptic = LocalHapticFeedback.current
     val context = LocalContext.current
-    val isFileAvailable = fileSize != null && fileSize > 0
-    val fileSizeText = fileSize?.let { formatFileSize(it) } ?: context.getString(R.string.unavailable)
 
     Box(
         modifier =
@@ -75,7 +68,7 @@ fun MediaListItem(
     ) {
         Row(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
             if (isSelectEnabled()) {
-                Checkbox(
+                androidx.compose.material3.Checkbox(
                     modifier = Modifier.padding(start = 4.dp, end = 16.dp),
                     checked = isSelected(),
                     onCheckedChange = null,
@@ -108,40 +101,13 @@ fun MediaListItem(
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     )
                 }
-                if (isFileMissing) {
-                    // The video was imported from a backup, but its file is not on this device. It
-                    // is still listed so the entry is not lost; the badge says why it cannot play.
-                    Row(
-                        modifier = Modifier.padding(top = 3.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Icon(
-                            modifier = Modifier.size(14.dp),
-                            imageVector = Icons.Outlined.Warning,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.error,
-                        )
-                        Text(
-                            text = stringResource(id = R.string.downloaded_history_file_missing),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.error,
-                            maxLines = 1,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                        )
-                    }
-                } else {
-                    Text(
-                        modifier = Modifier.padding(top = 3.dp),
-                        text = if (isFileAvailable) fileSizeText else context.getString(R.string.unavailable),
-                        style = MaterialTheme.typography.labelSmall,
-                        color =
-                            with(MaterialTheme.colorScheme) {
-                                if (isFileAvailable) onSurfaceVariant else error
-                            },
-                        maxLines = 1,
-                    )
-                }
+                Text(
+                    modifier = Modifier.padding(top = 3.dp),
+                    text = fileSize?.let { formatFileSize(it) } ?: context.getString(R.string.unavailable),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
             }
         }
     }
@@ -155,16 +121,14 @@ fun MediaImage(
     hasThumbnail: Boolean = false,
 ) {
     val imageModel = if (!hasThumbnail) null else imageUrl
-    // The fallback icon is shown while the thumbnail is loading and when the load fails, so a
-    // broken or corrupted thumbnail url never renders as an empty box.
     var showFallback by remember(imageModel) { mutableStateOf(true) }
 
+    val aspectRatio = if (!isAudio) 16f / 9f else 1f
     Box(
         modifier =
-            modifier
-                .height(90.dp)
-                .aspectRatio(if (!isAudio) 16f / 9f else 1f, matchHeightConstraintsFirst = true)
-                .clip(MaterialTheme.shapes.extraSmall),
+            modifier.height(90.dp).aspectRatio(aspectRatio, matchHeightConstraintsFirst = true).clip(
+                MaterialTheme.shapes.extraSmall,
+            ),
     ) {
         if (hasThumbnail) {
             AsyncImage(

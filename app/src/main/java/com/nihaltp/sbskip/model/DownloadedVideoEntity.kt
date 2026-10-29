@@ -7,8 +7,8 @@ import androidx.room.PrimaryKey
 /**
  * A downloaded video.
  *
- * A video is tracked by its YouTube id: the very same video is never stored twice, even when it
- * exists as multiple files. All files of a video are collected in [outputPaths].
+ * A video is tracked by its YouTube id: the very same video is never stored twice. Metadata such
+ * as the title, author and duration is resolved from YouTube via oEmbed for imported videos.
  */
 @Entity(
     tableName = "downloaded_videos",
@@ -23,21 +23,11 @@ data class DownloadedVideoEntity(
     val author: String? = null,
     val thumbnailUrl: String? = null,
     val durationSeconds: Long? = null,
-    val outputPaths: List<String> = emptyList(),
     val fileSize: Long? = null,
     val mediaType: String,
     /**
-     * Whether at least one of [outputPaths] was confirmed to exist on this device. Videos found by
-     * a folder scan are verified by definition; imported videos are verified when their backup path
-     * still resolves, and stay unverified when the file is missing.
-     */
-    val isVerified: Boolean = true,
-    /**
-     * Whether the metadata of this video still has to be resolved from its local file or from
-     * YouTube. Imported videos are queued for enrichment; scanned videos are already complete.
+     * Whether the metadata of this video still has to be resolved from YouTube. Imported videos
+     * are queued for enrichment; videos created by a folder scan already carry file metadata.
      */
     val needsEnrichment: Boolean = false,
-) {
-    /** The first known file of the video, used as its representative path. */
-    val outputPath: String? get() = outputPaths.firstOrNull()
-}
+)
