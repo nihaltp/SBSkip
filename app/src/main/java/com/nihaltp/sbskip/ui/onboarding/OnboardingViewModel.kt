@@ -7,10 +7,12 @@ import com.nihaltp.sbskip.data.repository.SettingsRepository
 import com.nihaltp.sbskip.model.WatchlistFolder
 import com.nihaltp.sbskip.util.PermissionHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -38,6 +40,10 @@ class OnboardingViewModel
 
         private val _state = MutableStateFlow(State())
         val state: StateFlow<State> = _state.asStateFlow()
+
+        /** Watchlist folders from settings, exposed for display. */
+        val watchlistFolders: Flow<List<WatchlistFolder>> =
+            settingsRepository.settings.map { it.watchlist }
 
         /** Total number of steps shown on this device. */
         val stepCount: Int
@@ -76,6 +82,14 @@ class OnboardingViewModel
                     }
                 }
                 _state.value = _state.value.copy(watchlistAdded = true)
+            }
+        }
+
+        fun removeWatchlistFolder(folder: WatchlistFolder) {
+            viewModelScope.launch {
+                settingsRepository.update { settings ->
+                    settings.copy(watchlist = settings.watchlist.filter { it.uri != folder.uri })
+                }
             }
         }
 

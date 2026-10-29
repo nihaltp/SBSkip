@@ -38,8 +38,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.nihaltp.sbskip.R
+import com.nihaltp.sbskip.model.WatchlistFolder
 import com.nihaltp.sbskip.util.AppLogger
 import com.nihaltp.sbskip.util.PermissionHelper
 import kotlinx.coroutines.launch
@@ -52,6 +54,7 @@ fun OnboardingScreen(
 ) {
     val context = LocalContext.current
     val state by viewModel.state.collectAsState()
+    val watchlistFolders by viewModel.watchlistFolders.collectAsState(initial = emptyList())
     val coroutineScope = rememberCoroutineScope()
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { viewModel.stepCount })
 
@@ -163,8 +166,9 @@ fun OnboardingScreen(
                         )
                     2 ->
                         WatchlistStep(
-                            watchlistAdded = state.watchlistAdded,
+                            watchlistFolders = watchlistFolders,
                             onAddFolder = { watchlistFolderLauncher.launch(null) },
+                            onRemoveFolder = { viewModel.removeWatchlistFolder(it) },
                             onSkip = {
                                 viewModel.completeOnboarding()
                                 onExit()
@@ -236,8 +240,9 @@ private fun NotificationsStep(
 
 @Composable
 private fun WatchlistStep(
-    watchlistAdded: Boolean,
+    watchlistFolders: List<WatchlistFolder>,
     onAddFolder: () -> Unit,
+    onRemoveFolder: (WatchlistFolder) -> Unit,
     onSkip: () -> Unit,
 ) {
     Column(
@@ -259,13 +264,31 @@ private fun WatchlistStep(
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        if (watchlistAdded) {
-            Spacer(modifier = Modifier.height(8.dp))
+        if (watchlistFolders.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = stringResource(id = R.string.onboarding_step_watchlist_added),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary,
             )
+            Spacer(modifier = Modifier.height(8.dp))
+            watchlistFolders.forEach { folder ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = folder.path,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    TextButton(onClick = { onRemoveFolder(folder) }) {
+                        Text(stringResource(id = R.string.remove))
+                    }
+                }
+            }
         }
         Spacer(modifier = Modifier.height(32.dp))
         Column(
@@ -285,7 +308,7 @@ private fun WatchlistStep(
                 Text(
                     text =
                         stringResource(
-                            id = if (watchlistAdded) R.string.onboarding_continue else R.string.onboarding_skip,
+                            id = if (watchlistFolders.isNotEmpty()) R.string.onboarding_continue else R.string.onboarding_skip,
                         ),
                 )
             }
