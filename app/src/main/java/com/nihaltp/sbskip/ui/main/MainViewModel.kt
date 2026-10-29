@@ -1182,6 +1182,26 @@ class MainViewModel
                             return@launch
                         }
 
+                        // Reorder playlist: move already-downloaded videos to the end so they
+                        // are easy to skip when the user reaches them.
+                        val alreadyDownloadedIds = mutableSetOf<String>()
+                        for (video in videos) {
+                            val existing =
+                                runCatching { downloadedVideoRepository.findByVideoId(video.videoId) }.getOrNull()
+                            if (existing != null) alreadyDownloadedIds.add(video.videoId)
+                        }
+                        val orderedVideos =
+                            if (alreadyDownloadedIds.isEmpty()) {
+                                videos
+                            } else {
+                                val (newVideos, dupVideos) = videos.partition { it.videoId !in alreadyDownloadedIds }
+                                newVideos + dupVideos
+                            }
+
+                        if (alreadyDownloadedIds.isNotEmpty()) {
+                            showToast("${alreadyDownloadedIds.size} already downloaded video(s) moved to the end of the playlist")
+                        }
+
                         _uiState.update { st ->
                             st.copy(
                                 urlInput = "",
@@ -1191,7 +1211,7 @@ class MainViewModel
                                     com.nihaltp.sbskip.model.PlaylistDownloadState(
                                         playlistId = playlistId,
                                         title = "Playlist",
-                                        videos = videos,
+                                        videos = orderedVideos,
                                         currentIndex = 0,
                                         convertVideoToAudio = convertVideoToAudio,
                                         deleteOriginalVideo = deleteOriginalVideo,
