@@ -126,7 +126,6 @@ fun OnboardingScreen(
                     .padding(paddingValues),
         ) {
             StepIndicator(
-                currentIndex = pagerState.currentPage,
                 stepCount = viewModel.stepCount,
                 modifier = Modifier.padding(16.dp),
             )
@@ -182,7 +181,6 @@ fun OnboardingScreen(
 
 @Composable
 private fun StepIndicator(
-    currentIndex: Int,
     stepCount: Int,
     modifier: Modifier = Modifier,
 ) {

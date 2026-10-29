@@ -66,7 +66,6 @@ fun AppNavGraph(
                 onDownloadQueueItem = viewModel::downloadQueueItemViaNewPipe,
                 onDismissToast = viewModel::dismissToast,
                 onRetryQueueItem = { id, bypass -> viewModel.retryQueueItem(id, bypass) },
-                onSnackbarShown = viewModel::consumeSnackbarMessage,
                 onProceedAnyway = viewModel::proceedWithMismatch,
                 onCancelMismatchDialog = viewModel::dismissDurationMismatchDialog,
                 onFindFile = viewModel::findFileForUrl,

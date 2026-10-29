@@ -122,26 +122,6 @@ fun SettingsScreen(
                 openAppSettings()
             }
         }
-    var showLogsDialog by remember { mutableStateOf(false) }
-    var logRefreshKey by remember { mutableStateOf(0) }
-    var logsToExport by remember { mutableStateOf("") }
-    val exportLogsLauncher =
-        rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.CreateDocument("text/plain"),
-        ) { uri ->
-            if (uri != null && logsToExport.isNotEmpty()) {
-                try {
-                    context.contentResolver.openOutputStream(uri)?.use { outputStream ->
-                        outputStream.write(logsToExport.toByteArray())
-                    }
-                    Toast.makeText(context, context.getString(R.string.logs_exported_toast), Toast.LENGTH_SHORT).show()
-                } catch (e: Exception) {
-                    AppLogger.error("Settings", e, "Failed to export logs")
-                    Toast.makeText(context, context.getString(R.string.logs_export_failed_toast), Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-
     val videoFolderLauncher =
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.OpenDocumentTree(),
