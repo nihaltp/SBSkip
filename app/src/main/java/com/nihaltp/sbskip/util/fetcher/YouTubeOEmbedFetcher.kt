@@ -27,10 +27,23 @@ object YouTubeOEmbedFetcher {
     private val json = Json { ignoreUnknownKeys = true }
 
     /**
+     * Thrown when an oEmbed request cannot be completed.
+     *
+     * [statusCode] is the HTTP response status code when the server responded with an error
+     * (e.g. 404 for a deleted video, 503 for a temporary outage), or `null` when the failure
+     * was a transport-level error (DNS, timeout, refused connection) before any response arrived.
+     */
+    class OEmbedFetchException(
+        val statusCode: Int?,
+        message: String?,
+        cause: Throwable? = null,
+    ) : IOException(message ?: "oEmbed request failed", cause)
+
+    /**
      * @return the video's metadata. The thumbnail is derived from [videoId] rather than taken from
      *   the response, so it is always present and always the size the list expects.
-     * @throws IOException when the video cannot be described, which includes the videos oEmbed
-     *   refuses: private, deleted, or blocked in the current region.
+     * @throws OEmbedFetchException when the video cannot be described, which includes the videos
+     *   oEmbed refuses: private, deleted, or blocked in the current region.
      */
     suspend fun fetch(videoId: String): YouTubeMetadata =
         withContext(Dispatchers.IO) {
@@ -38,7 +51,10 @@ object YouTubeOEmbedFetcher {
                 val request = Request.Builder().url(oEmbedUrl(videoId)).build()
                 client.newCall(request).execute().use { response ->
                     if (!response.isSuccessful) {
-                        throw IOException("oEmbed request failed: ${response.code}")
+                        throw OEmbedFetchException(
+                            statusCode = response.code,
+                            message = "oEmbed request failed: ${response.code}",
+                        )
                     }
                     val body = response.body?.string().orEmpty()
                     val parsed = json.decodeFromString(YouTubeOEmbedResponse.serializer(), body)

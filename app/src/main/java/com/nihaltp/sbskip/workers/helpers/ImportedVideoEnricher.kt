@@ -4,6 +4,7 @@ import com.nihaltp.sbskip.model.DownloadedVideoEntity
 import com.nihaltp.sbskip.util.AppLogger
 import com.nihaltp.sbskip.util.Constants
 import com.nihaltp.sbskip.util.fetcher.YouTubeOEmbedFetcher
+import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -42,6 +43,10 @@ data class EnrichedVideoMetadata(
  *
  * Nothing is ever clobbered with a wrong title: a fallback to the stored id only happens after every
  * source has been tried, and a missing title flips the result to [ImportedVideoEnrichment.Retry].
+ *
+ * Transient failures (5xx responses, I/O errors) return [ImportedVideoEnrichment.Retry] so the
+ * worker backs off and tries again later. Only genuinely unavailable videos (4xx responses) return
+ * [ImportedVideoEnrichment.Unavailable], which causes the worker to stop asking forever.
  */
 @Singleton
 class ImportedVideoEnricher
@@ -69,9 +74,23 @@ class ImportedVideoEnricher
                             ),
                     )
                 }
-            } catch (e: java.io.IOException) {
-                // oEmbed refuses deleted, private or region-blocked videos: nothing to describe.
-                ImportedVideoEnrichment.Unavailable
+            } catch (e: YouTubeOEmbedFetcher.OEmbedFetchException) {
+                // A 4xx response means the video is deleted, private, or region-blocked: it will
+                // never be describable through oEmbed, so stop asking forever.
+                // A 5xx response means the server is temporarily overworked: retry later.
+                // A null statusCode means a transport-level failure (DNS, timeout, refused): retry later.
+                val code = e.statusCode
+                if (code != null && code in 400 until 500) {
+                    ImportedVideoEnrichment.Unavailable
+                } else {
+                    AppLogger.worker("Transient oEmbed failure for $id (status=$code): will retry")
+                    ImportedVideoEnrichment.Retry
+                }
+            } catch (e: IOException) {
+                // Any other I/O failure (should not happen now that OEmbedFetchException covers
+                // HTTP errors, but stay safe): transient, retry later.
+                AppLogger.error("ImportedVideoEnricher", e, "I/O failure for $id")
+                ImportedVideoEnrichment.Retry
             } catch (e: Exception) {
                 AppLogger.error("ImportedVideoEnricher", e, "Metadata request failed for $id")
                 ImportedVideoEnrichment.Retry
