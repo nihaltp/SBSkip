@@ -74,10 +74,20 @@ abstract class AppModule {
                         db.execSQL("ALTER TABLE download_queue ADD COLUMN outputDurationSeconds INTEGER")
                     }
                 }
+            val migration7To8 =
+                object : androidx.room.migration.Migration(7, 8) {
+                    override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                        db.execSQL("ALTER TABLE download_queue ADD COLUMN overwrite INTEGER NOT NULL DEFAULT 0")
+                        db.execSQL(
+                            "ALTER TABLE download_queue ADD COLUMN bypassDurationCheck INTEGER NOT NULL DEFAULT 0",
+                        )
+                        db.execSQL("ALTER TABLE download_queue ADD COLUMN noSuffix INTEGER NOT NULL DEFAULT 0")
+                    }
+                }
 
             return Room.databaseBuilder(context, SBSkipDatabase::class.java, "sbskip.db")
                 .enableMultiInstanceInvalidation()
-                .addMigrations(migration4To5, migration5To6, migration6To7)
+                .addMigrations(migration4To5, migration5To6, migration6To7, migration7To8)
                 .fallbackToDestructiveMigration()
                 .build()
         }

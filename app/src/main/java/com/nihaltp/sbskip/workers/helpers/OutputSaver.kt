@@ -30,14 +30,14 @@ class OutputSaver
             val settings = settingsRepository.settings.first()
 
             return if (item.convertVideoToAudio) {
-                val outputSuffix = if (item.url.contains("noSuffix=true")) "" else settings.autoCleanSuffix
+                val outputSuffix = if (item.noSuffix) "" else settings.autoCleanSuffix
                 val baseTitle =
                     if (taskTitle.endsWith(".${localMetadata.extension}", ignoreCase = true)) {
                         taskTitle.substring(0, taskTitle.length - localMetadata.extension.length - 1)
                     } else {
                         taskTitle
                     }
-                val forceOverwrite = settings.overwriteBehavior || item.url.contains("overwrite=true") || item.deleteOriginalVideo
+                val forceOverwrite = settings.overwriteBehavior || item.overwrite || item.deleteOriginalVideo
                 val savedUri =
                     downloadStorage.saveToPublicStorage(
                         tempFile = tempOutputFile,
@@ -74,7 +74,7 @@ class OutputSaver
                 }
 
                 savedUri
-            } else if (settings.overwriteBehavior || item.url.contains("overwrite=true") || item.deleteOriginalVideo) {
+            } else if (settings.overwriteBehavior || item.overwrite || item.deleteOriginalVideo) {
                 val resolver = context.contentResolver
                 val targetUri = android.net.Uri.parse(item.localFileUri)
 
@@ -105,7 +105,7 @@ class OutputSaver
                 AppLogger.worker("Successfully overwrote the original file where it was picked from: ${item.localFileUri}")
                 item.localFileUri
             } else {
-                val outputSuffix = if (item.url.contains("noSuffix=true")) "" else settings.autoCleanSuffix
+                val outputSuffix = if (item.noSuffix) "" else settings.autoCleanSuffix
                 val baseTitle =
                     if (taskTitle.endsWith(".${localMetadata.extension}", ignoreCase = true)) {
                         taskTitle.substring(0, taskTitle.length - localMetadata.extension.length - 1)

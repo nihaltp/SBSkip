@@ -18,6 +18,9 @@ interface QueueRepository {
         audioOutputDirUri: String? = null,
         videoOutputDirUri: String? = null,
         relativePath: String? = null,
+        overwrite: Boolean = false,
+        bypassDurationCheck: Boolean = false,
+        noSuffix: Boolean = false,
     ): QueueActionResult
 
     suspend fun retry(

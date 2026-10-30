@@ -41,6 +41,9 @@ class DefaultQueueRepository
             audioOutputDirUri: String?,
             videoOutputDirUri: String?,
             relativePath: String?,
+            overwrite: Boolean,
+            bypassDurationCheck: Boolean,
+            noSuffix: Boolean,
         ): QueueActionResult {
             val videoId =
                 if (youtubeUrl.isBlank() || youtubeUrl.startsWith("sbskip://")) {
@@ -50,26 +53,13 @@ class DefaultQueueRepository
                         ?: return QueueActionResult(success = false, message = context.getString(R.string.enter_valid_url))
                 }
 
+            // Normalize the YouTube URL without smuggled query flags. Flags (overwrite,
+            // bypassDurationCheck, noSuffix) are stored as explicit entity columns instead of
+            // being appended to the URL, which previously produced malformed double-? URLs like
+            // "...watch?v=VIDEO_ID?overwrite=true".
             val normalizedUrl =
                 if (videoId != null) {
-                    val params = mutableListOf<String>()
-                    if (youtubeUrl.contains("bypassDurationCheck=true")) {
-                        params.add("bypassDurationCheck=true")
-                    }
-                    if (youtubeUrl.contains("overwrite=true")) {
-                        params.add("overwrite=true")
-                    }
-                    if (youtubeUrl.contains("noSuffix=true")) {
-                        params.add("noSuffix=true")
-                    }
-                    if (youtubeUrl.contains("categories=")) {
-                        val startIndex = youtubeUrl.indexOf("categories=")
-                        val categoriesSubStr = youtubeUrl.substring(startIndex)
-                        val value = categoriesSubStr.substringBefore("&").substringAfter("=")
-                        params.add("categories=" + value)
-                    }
-                    val queryString = if (params.isNotEmpty()) "?" + params.joinToString("&") else ""
-                    Constants.buildYouTubeWatchUrl(videoId) + queryString
+                    Constants.buildYouTubeWatchUrl(videoId)
                 } else {
                     youtubeUrl
                 }
@@ -93,6 +83,9 @@ class DefaultQueueRepository
                     audioOutputDirUri = audioOutputDirUri,
                     videoOutputDirUri = videoOutputDirUri,
                     relativePath = relativePath,
+                    overwrite = overwrite,
+                    bypassDurationCheck = bypassDurationCheck,
+                    noSuffix = noSuffix,
                 )
 
             val id = dao.insert(entity)
@@ -109,28 +102,21 @@ class DefaultQueueRepository
                 dao.findById(itemId)
                     ?: return QueueActionResult(success = false, message = context.getString(R.string.error_item_not_found))
 
-            val updatedUrl =
-                if (bypassDurationCheck) {
-                    val url = item.url
-                    if (!url.startsWith("sbskip://") && !url.contains("bypassDurationCheck=true")) {
-                        val hasParams = url.contains("?")
-                        val separator = if (hasParams) "&" else "?"
-                        "$url${separator}bypassDurationCheck=true"
-                    } else {
-                        url
-                    }
-                } else {
-                    item.url
-                }
-
             dao.updateUrlAndStatus(
                 id = itemId,
-                url = updatedUrl,
+                url = item.url,
                 status = DownloadQueueStatus.QUEUED,
                 errorMessage = null,
                 updatedAtEpochMillis = System.currentTimeMillis(),
             )
-            AppLogger.queue("retry item id=$itemId bypassDurationCheck=$bypassDurationCheck url=$updatedUrl")
+            if (bypassDurationCheck && !item.bypassDurationCheck) {
+                dao.updateBypassDurationCheck(
+                    id = itemId,
+                    bypassDurationCheck = true,
+                    updatedAtEpochMillis = System.currentTimeMillis(),
+                )
+            }
+            AppLogger.queue("retry item id=$itemId bypassDurationCheck=$bypassDurationCheck")
             workScheduler.schedule(itemId)
             return QueueActionResult(success = true, message = context.getString(R.string.retry_started))
         }
@@ -251,6 +237,9 @@ class DefaultQueueRepository
                 audioOutputDirUri = audioOutputDirUri,
                 videoOutputDirUri = videoOutputDirUri,
                 relativePath = relativePath,
+                overwrite = overwrite,
+                bypassDurationCheck = bypassDurationCheck,
+                noSuffix = noSuffix,
             )
         }
     }
