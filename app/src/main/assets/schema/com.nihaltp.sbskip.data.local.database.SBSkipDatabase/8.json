@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 8,
-    "identityHash": "e81e885be6517a236e653a0885b2f70e",
+    "identityHash": "6f2ddf14ba6ea2ae214a33f3c811f769",
     "entities": [
       {
         "tableName": "download_queue",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `url` TEXT NOT NULL, `title` TEXT NOT NULL, `localFileUri` TEXT NOT NULL, `mediaType` TEXT NOT NULL, `thumbnailUrl` TEXT, `durationSeconds` INTEGER, `status` TEXT NOT NULL, `createdAtEpochMillis` INTEGER NOT NULL, `updatedAtEpochMillis` INTEGER NOT NULL, `errorMessage` TEXT, `outputPath` TEXT, `outputDurationSeconds` INTEGER, `convertVideoToAudio` INTEGER NOT NULL, `deleteOriginalVideo` INTEGER NOT NULL, `audioOutputDirUri` TEXT, `videoOutputDirUri` TEXT, `relativePath` TEXT)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `url` TEXT NOT NULL, `title` TEXT NOT NULL, `localFileUri` TEXT NOT NULL, `mediaType` TEXT NOT NULL, `thumbnailUrl` TEXT, `durationSeconds` INTEGER, `status` TEXT NOT NULL, `createdAtEpochMillis` INTEGER NOT NULL, `updatedAtEpochMillis` INTEGER NOT NULL, `errorMessage` TEXT, `outputPath` TEXT, `outputDurationSeconds` INTEGER, `convertVideoToAudio` INTEGER NOT NULL, `deleteOriginalVideo` INTEGER NOT NULL, `audioOutputDirUri` TEXT, `videoOutputDirUri` TEXT, `relativePath` TEXT, `overwrite` INTEGER NOT NULL, `bypassDurationCheck` INTEGER NOT NULL, `noSuffix` INTEGER NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -107,6 +107,24 @@
             "fieldPath": "relativePath",
             "columnName": "relativePath",
             "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "overwrite",
+            "columnName": "overwrite",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bypassDurationCheck",
+            "columnName": "bypassDurationCheck",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "noSuffix",
+            "columnName": "noSuffix",
+            "affinity": "INTEGER",
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -197,7 +215,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'e81e885be6517a236e653a0885b2f70e')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '6f2ddf14ba6ea2ae214a33f3c811f769')"
     ]
   }
 }

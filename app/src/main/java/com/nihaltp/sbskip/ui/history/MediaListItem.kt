@@ -27,7 +27,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.nihaltp.sbskip.R
@@ -44,11 +43,8 @@ fun MediaListItem(
     isSelected: () -> Boolean = { false },
     onSelect: () -> Unit = {},
     onClick: () -> Unit = {},
-    onLongClick: () -> Unit = {},
-    onShowContextMenu: () -> Unit = {},
 ) {
     val isAudio = mediaType == "audio"
-    val haptic = LocalHapticFeedback.current
     val context = LocalContext.current
 
     Box(
