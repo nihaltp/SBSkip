@@ -147,10 +147,7 @@ class DownloadedHistoryViewModel
          * Enqueues a folder for import on the process-lifetime ImportManager.
          * Navigating away no longer cancels the scan.
          */
-        fun scanAndImportFolder(
-            context: android.content.Context,
-            treeUri: Uri,
-        ) {
+        fun scanAndImportFolder(treeUri: Uri) {
             importManager.scanAndImportFolder(treeUri)
         }
 

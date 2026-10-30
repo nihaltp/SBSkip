@@ -418,32 +418,6 @@ class DownloadedHistoryViewModelTest {
             coVerify(exactly = 1) { downloadedVideoRepository.insert(match { it.videoId == "bbb222" }) }
         }
 
-    private fun exportItem(
-        videoId: String,
-        url: String,
-    ): ExportItem =
-        ExportItem(
-            videoId = videoId,
-            url = url,
-            title = "Imported title",
-            author = "Imported author",
-            thumbnailUrl = "https://example.com/thumb.jpg",
-            sponsorBlockCategories = null,
-        )
-
-    private fun sealEntry(
-        url: String,
-        videoPath: String,
-    ): SealDownloadHistoryEntry =
-        SealDownloadHistoryEntry(
-            id = 0,
-            videoTitle = "Imported title",
-            videoAuthor = "Imported author",
-            videoUrl = url,
-            thumbnailUrl = "https://example.com/thumb.jpg",
-            videoPath = videoPath,
-        )
-
     /**
      * A full JSON backup whose download history carries [videoPath] for the item. Import ignores
      * the path entirely — metadata is resolved from YouTube only.

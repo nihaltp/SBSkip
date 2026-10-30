@@ -158,10 +158,9 @@ class ImportManagerTest {
             importManager.enqueueForTesting(item(1L, FolderImportStatus.PENDING))
 
             // Start the queue processor in a coroutine so it can run while we cancel.
-            val processJob =
-                async {
-                    importManager.processQueue()
-                }
+            async {
+                importManager.processQueue()
+            }
 
             // Wait until the scan job has been created and is active.
             advanceUntilIdle()
@@ -194,10 +193,9 @@ class ImportManagerTest {
             importManager.enqueueForTesting(item(1L, FolderImportStatus.PENDING))
 
             // Start the queue processor in a coroutine so it can run while we cancel.
-            val processJob =
-                async {
-                    importManager.processQueue()
-                }
+            async {
+                importManager.processQueue()
+            }
 
             // Wait until the scan job has been created and is active.
             advanceUntilIdle()

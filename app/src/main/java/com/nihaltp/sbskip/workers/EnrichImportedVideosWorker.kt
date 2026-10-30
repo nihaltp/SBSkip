@@ -124,7 +124,6 @@ class EnrichImportedVideosWorker
         }
 
         companion object {
-            private const val TAG = "EnrichImportedVideosWorker"
             private const val WORK_NAME = "EnrichImportedVideos"
             private const val BATCH_SIZE = 10
             private const val ENRICHMENT_CONCURRENCY = 3

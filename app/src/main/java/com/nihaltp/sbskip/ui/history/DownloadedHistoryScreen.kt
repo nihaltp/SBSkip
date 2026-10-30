@@ -239,7 +239,7 @@ fun DownloadedHistoryScreen(
             contract = ActivityResultContracts.OpenDocumentTree(),
         ) { uri ->
             uri?.let {
-                viewModel.scanAndImportFolder(context, it)
+                viewModel.scanAndImportFolder(it)
             }
         }
 
@@ -730,12 +730,6 @@ fun DownloadedHistoryScreen(
                                             viewModel.toggleSelection(id)
                                         }
                                         // Outside of selection mode a tap does nothing
-                                    },
-                                    onLongClick = {
-                                        isSelectEnabled = true
-                                        viewModel.toggleSelection(id)
-                                    },
-                                    onShowContextMenu = {
                                     },
                                 )
                             }

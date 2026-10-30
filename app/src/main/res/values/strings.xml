@@ -441,6 +441,8 @@
 
     <string name="downloaded_history_file_missing">File not found on this device</string>
 
+    <!-- Import Queue Notifications -->
+
     <!-- Folder import queue status -->
     <string name="downloaded_history_import_status_pending">Pending</string>
     <string name="downloaded_history_import_status_scanning">Scanning</string>

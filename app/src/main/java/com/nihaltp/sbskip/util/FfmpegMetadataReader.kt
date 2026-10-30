@@ -5,7 +5,6 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import com.arthenica.ffmpegkit.FFprobeKit
 import com.nihaltp.sbskip.util.parser.YouTubeUrlParser
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
@@ -36,9 +35,7 @@ private data class CommentMetadata(
 
 class FfmpegMetadataReader
     @Inject
-    constructor(
-        @ApplicationContext private val context: android.content.Context,
-    ) {
+    constructor() {
         private val json = Json { ignoreUnknownKeys = true }
 
         fun readMetadata(
