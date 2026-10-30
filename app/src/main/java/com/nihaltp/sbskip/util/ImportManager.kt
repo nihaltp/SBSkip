@@ -187,10 +187,9 @@ class ImportManager
 
         /**
          * Appends an item to the queue while enforcing [MAX_QUEUE_SIZE]. When the queue is full
-         * the oldest PENDING items are dropped first (the item being added is never dropped);
-         * if there are not enough PENDING items, the oldest already finished items are dropped
-         * as well. This keeps the queue bounded even when the UI is not around to announce
-         * finished folders.
+         * the oldest PENDING items are marked FAILED instead of being silently dropped, so the
+         * user can see which folders were not imported due to queue limits. If there are not
+         * enough PENDING items, the oldest already finished items are dropped as well.
          */
         private fun enqueue(item: FolderImportQueueItem) {
             _importQueue.update { queue ->
@@ -199,19 +198,34 @@ class ImportManager
                 if (overflow <= 0) {
                     next
                 } else {
-                    val dropIds =
+                    val itemsToFail =
                         next.filter { it.status == FolderImportStatus.PENDING && it.id != item.id }
                             .take(overflow)
-                            .map { it.id }
-                            .toMutableSet()
-                    if (dropIds.size < overflow) {
-                        val finished = next.filter { it.id !in dropIds && it.id != item.id }
-                        dropIds += finished.take(overflow - dropIds.size).map { it.id }
+                    val remainingOverflow = overflow - itemsToFail.size
+                    val itemsToFailFinished =
+                        if (remainingOverflow > 0) {
+                            next.filter { it.id !in itemsToFail.map { it.id } && it.id != item.id }
+                                .take(remainingOverflow)
+                        } else {
+                            emptyList()
+                        }
+                    val allToFail = itemsToFail + itemsToFailFinished
+                    val failIds = allToFail.map { it.id }.toSet()
+                    allToFail.forEach { failedItem ->
+                        AppLogger.metadata(
+                            "ImportFolder: Queue full, marking ${failedItem.folderName} as FAILED",
+                        )
                     }
-                    AppLogger.metadata(
-                        "ImportFolder: Queue full, dropped ${dropIds.size} old queue item(s)",
-                    )
-                    next.filterNot { it.id in dropIds }
+                    next.map { queueItem ->
+                        if (queueItem.id in failIds) {
+                            queueItem.copy(
+                                status = FolderImportStatus.FAILED,
+                                errorMessage = "Import queue full",
+                            )
+                        } else {
+                            queueItem
+                        }
+                    }
                 }
             }
             updateFolderQueueNotification()
