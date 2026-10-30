@@ -60,6 +60,11 @@ class MainViewModel
         // Cancelling the job allows the user to trigger detection early via "Search now".
         private val pendingDetectJobs = mutableMapOf<String, kotlinx.coroutines.Job>()
 
+        // Tracks videoIds that are currently being downloaded, so a second concurrent request
+        // for the same video is skipped instead of starting a duplicate download.
+        private val downloadsInProgress = mutableSetOf<String>()
+        private val downloadsInProgressGuard = Any()
+
         init {
             viewModelScope.launch {
                 queueRepository.observeQueue().collect { queueItems ->
@@ -299,6 +304,27 @@ class MainViewModel
         }
 
         /**
+         * Claims [videoId] for download, preventing concurrent duplicate downloads.
+         * Returns false if another caller already claimed this videoId.
+         */
+        private fun claimDownload(videoId: String): Boolean {
+            synchronized(downloadsInProgressGuard) {
+                return if (videoId in downloadsInProgress) {
+                    false
+                } else {
+                    downloadsInProgress.add(videoId)
+                    true
+                }
+            }
+        }
+
+        private fun releaseDownload(videoId: String) {
+            synchronized(downloadsInProgressGuard) {
+                downloadsInProgress.remove(videoId)
+            }
+        }
+
+        /**
          * The user confirmed the duplicate download dialog: continue with the download.
          */
         fun proceedDuplicateDownload() {
@@ -379,7 +405,12 @@ class MainViewModel
                     } else {
                         normalizedUrl
                     }
-                launchNewPipe(normalizedUrl)
+                if (!claimDownload(video.videoId)) return@launch
+                try {
+                    launchNewPipe(normalizedUrl)
+                } finally {
+                    releaseDownload(video.videoId)
+                }
 
                 // Spawn pending download
                 val now = System.currentTimeMillis()
@@ -1250,7 +1281,15 @@ class MainViewModel
             }
 
             // Start NewPipe before doing network metadata requests so the download begins immediately.
-            launchNewPipe(normalizedUrl)
+            if (!claimDownload(videoId)) {
+                _uiState.update { it.copy(isFetchingMetadata = false) }
+                return
+            }
+            try {
+                launchNewPipe(normalizedUrl)
+            } finally {
+                releaseDownload(videoId)
+            }
 
             // Fetch metadata and video duration concurrently after NewPipe has been invoked.
             val metadataDeferred =
