@@ -8,19 +8,26 @@ import com.nihaltp.sbskip.model.AppSettings
 import com.nihaltp.sbskip.notifications.ImportNotificationManager
 import io.mockk.Runs
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -43,6 +50,7 @@ class ImportManagerTest {
     private lateinit var importNotificationManager: ImportNotificationManager
     private lateinit var downloadedVideoRepository: DownloadedVideoRepository
     private lateinit var settingsRepository: SettingsRepository
+    private lateinit var folderScanner: FolderScanner
 
     @Before
     fun setup() {
@@ -51,6 +59,7 @@ class ImportManagerTest {
         importNotificationManager = mockk<ImportNotificationManager>(relaxed = true)
         downloadedVideoRepository = mockk<DownloadedVideoRepository>(relaxed = true)
         settingsRepository = mockk<SettingsRepository>(relaxed = true)
+        folderScanner = mockk<FolderScanner>(relaxed = true)
         // A relaxed mock would return a mocked entity instead of null.
         coEvery { downloadedVideoRepository.findByVideoId(any()) } returns null
         coEvery { settingsRepository.settings } returns flowOf(AppSettings())
@@ -59,6 +68,7 @@ class ImportManagerTest {
             ImportManager(
                 downloadedVideoRepository,
                 mockk<FfmpegMetadataReader>(relaxed = true),
+                folderScanner,
                 importNotificationManager,
                 settingsRepository,
                 ApplicationProvider.getApplicationContext(),
@@ -137,28 +147,76 @@ class ImportManagerTest {
     }
 
     @Test
-    fun `removeQueueItem removes a folder that is currently scanned`() {
-        importManager.enqueueForTesting(item(1L, FolderImportStatus.SCANNING))
+    fun `removeQueueItem cancels the in-flight scan and removes the folder`() =
+        runTest(testDispatcher) {
+            // Mock the scanner to return a flow that never completes, keeping the scan job in-flight.
+            every { folderScanner.scanMediaFilesInFolder(any()) } returns
+                flow {
+                    awaitCancellation()
+                }
 
-        importManager.removeQueueItem(1L)
+            importManager.enqueueForTesting(item(1L, FolderImportStatus.PENDING))
 
-        assertTrue(
-            "The folder that is currently scanned should be removed from the queue",
-            importManager.importQueue.value.isEmpty(),
-        )
-    }
+            // Start the queue processor in a coroutine so it can run while we cancel.
+            val processJob =
+                async {
+                    importManager.processQueue()
+                }
+
+            // Wait until the scan job has been created and is active.
+            advanceUntilIdle()
+            val scanJob = importManager.scanningJob
+            assertNotNull("Expected a scanning job to be running", scanJob)
+            assertTrue("Expected the scan job to be active", scanJob!!.isActive)
+
+            importManager.removeQueueItem(1L)
+
+            // The queue item should be removed.
+            assertTrue(
+                "The folder that is currently scanned should be removed from the queue",
+                importManager.importQueue.value.isEmpty(),
+            )
+            // The scanning job reference should be cleared.
+            assertNull("Expected scanningJob to be cleared after cancellation", importManager.scanningJob)
+            // The underlying job should have been cancelled.
+            assertTrue("Expected the scan job to be cancelled", scanJob!!.isCancelled)
+        }
 
     @Test
-    fun `cancelCurrentScan removes the folder that is currently scanned`() {
-        importManager.enqueueForTesting(item(1L, FolderImportStatus.SCANNING))
+    fun `cancelCurrentScan cancels the in-flight scan and removes the folder`() =
+        runTest(testDispatcher) {
+            // Mock the scanner to return a flow that never completes, keeping the scan job in-flight.
+            every { folderScanner.scanMediaFilesInFolder(any()) } returns
+                flow {
+                    awaitCancellation()
+                }
 
-        importManager.cancelCurrentScan()
+            importManager.enqueueForTesting(item(1L, FolderImportStatus.PENDING))
 
-        assertTrue(
-            "The cancelled folder should be removed from the queue",
-            importManager.importQueue.value.isEmpty(),
-        )
-    }
+            // Start the queue processor in a coroutine so it can run while we cancel.
+            val processJob =
+                async {
+                    importManager.processQueue()
+                }
+
+            // Wait until the scan job has been created and is active.
+            advanceUntilIdle()
+            val scanJob = importManager.scanningJob
+            assertNotNull("Expected a scanning job to be running", scanJob)
+            assertTrue("Expected the scan job to be active", scanJob!!.isActive)
+
+            importManager.cancelCurrentScan()
+
+            // The queue item should be removed.
+            assertTrue(
+                "The cancelled folder should be removed from the queue",
+                importManager.importQueue.value.isEmpty(),
+            )
+            // The scanning job reference should be cleared.
+            assertNull("Expected scanningJob to be cleared after cancellation", importManager.scanningJob)
+            // The underlying job should have been cancelled.
+            assertTrue("Expected the scan job to be cancelled", scanJob!!.isCancelled)
+        }
 
     @Test
     fun `cancelCurrentScan keeps the queue when no folder is scanned`() {

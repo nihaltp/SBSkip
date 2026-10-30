@@ -105,6 +105,7 @@ class ImportManager
     constructor(
         private val downloadedVideoRepository: DownloadedVideoRepository,
         private val ffmpegMetadataReader: FfmpegMetadataReader,
+        private val folderScanner: FolderScanner,
         private val importNotificationManager: ImportNotificationManager,
         private val settingsRepository: SettingsRepository,
         @ApplicationContext private val context: Context,
@@ -129,7 +130,8 @@ class ImportManager
          * Job of the folder that is currently being scanned. Cancelling it stops that scan while
          * the rest of the queue keeps being processed.
          */
-        private var scanningJob: Job? = null
+        @VisibleForTesting
+        internal var scanningJob: Job? = null
 
         private fun nextId(): Long {
             nextQueueId++
@@ -284,7 +286,8 @@ class ImportManager
          * runs at a time; the next PENDING item is started automatically after the current
          * scan completes (success or failure).
          */
-        private suspend fun processQueue() {
+        @VisibleForTesting
+        internal suspend fun processQueue() {
             val pending = _importQueue.value.firstOrNull { it.status == FolderImportStatus.PENDING }
             if (pending == null) return
 
@@ -366,7 +369,7 @@ class ImportManager
 
             // Phase 2: Process media files directly in this folder (non-recursive).
             // The files are listed up front so the exact number of remaining files is known.
-            val mediaFiles = FolderScanner.scanMediaFilesInFolder(context, item.treeUri).toList()
+            val mediaFiles = folderScanner.scanMediaFilesInFolder(item.treeUri).toList()
             val totalFiles = mediaFiles.size
             var scannedFiles = 0
             importNotificationManager.updateFileQueueNotification(
@@ -448,7 +451,7 @@ class ImportManager
             // permission granted on the root URI already covers them. Calling
             // takePersistableUriPermission() on a child URI throws
             // "No persistable permission granted" on many DocumentsProvider implementations.
-            val subfolderUris = FolderScanner.listSubfolderUris(context, item.treeUri)
+            val subfolderUris = folderScanner.listSubfolderUris(item.treeUri)
             val existingUris = _importQueue.value.map { it.treeUri }.toSet()
             for (subUri in subfolderUris) {
                 if (subUri !in existingUris) {
