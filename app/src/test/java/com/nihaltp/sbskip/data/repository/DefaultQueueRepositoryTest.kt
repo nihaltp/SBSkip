@@ -186,7 +186,7 @@ class DefaultQueueRepositoryTest {
         }
 
     @Test
-    fun `enqueue preserves overwrite=true flag in normalized URL`() =
+    fun `enqueue stores overwrite flag as entity column instead of URL param`() =
         runTest(testDispatcher) {
             val insertedEntitySlot = slot<DownloadQueueEntity>()
             coEvery { dao.insert(capture(insertedEntitySlot)) } returns 11L
@@ -195,19 +195,116 @@ class DefaultQueueRepositoryTest {
                 repository.enqueue(
                     localFileUri = "content://media/video/1",
                     title = "Test",
-                    youtubeUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ&overwrite=true",
+                    youtubeUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
                     mediaType = MediaType.VIDEO,
+                    overwrite = true,
                 )
 
             assertTrue("Expected success", result.success)
-            assertTrue(
-                "Expected overwrite=true in normalized URL",
+            // URL must be clean (no query flags smuggled into it)
+            assertEquals(
+                "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                insertedEntitySlot.captured.url,
+            )
+            // Flag is stored as an explicit entity column
+            assertTrue("Expected overwrite=true in entity", insertedEntitySlot.captured.overwrite)
+            assertFalse(
+                "URL must not contain overwrite=true",
                 insertedEntitySlot.captured.url.contains("overwrite=true"),
             )
             assertEquals(
                 "https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg",
                 insertedEntitySlot.captured.thumbnailUrl,
             )
+        }
+
+    @Test
+    fun `enqueue stores bypassDurationCheck flag as entity column`() =
+        runTest(testDispatcher) {
+            val insertedEntitySlot = slot<DownloadQueueEntity>()
+            coEvery { dao.insert(capture(insertedEntitySlot)) } returns 12L
+
+            val result =
+                repository.enqueue(
+                    localFileUri = "content://media/video/1",
+                    title = "Test",
+                    youtubeUrl = "https://www.youtube.com/watch?v=6BYIKEH0RCQ",
+                    mediaType = MediaType.AUDIO,
+                    bypassDurationCheck = true,
+                )
+
+            assertTrue("Expected success", result.success)
+            assertEquals(
+                "https://www.youtube.com/watch?v=6BYIKEH0RCQ",
+                insertedEntitySlot.captured.url,
+            )
+            assertTrue("Expected bypassDurationCheck=true in entity", insertedEntitySlot.captured.bypassDurationCheck)
+            assertFalse("URL must not contain bypassDurationCheck", insertedEntitySlot.captured.url.contains("bypassDurationCheck"))
+        }
+
+    @Test
+    fun `enqueue stores noSuffix flag as entity column`() =
+        runTest(testDispatcher) {
+            val insertedEntitySlot = slot<DownloadQueueEntity>()
+            coEvery { dao.insert(capture(insertedEntitySlot)) } returns 13L
+
+            val result =
+                repository.enqueue(
+                    localFileUri = "content://media/video/1",
+                    title = "Test",
+                    youtubeUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                    mediaType = MediaType.AUDIO,
+                    noSuffix = true,
+                )
+
+            assertTrue("Expected success", result.success)
+            assertEquals(
+                "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                insertedEntitySlot.captured.url,
+            )
+            assertTrue("Expected noSuffix=true in entity", insertedEntitySlot.captured.noSuffix)
+            assertFalse("URL must not contain noSuffix", insertedEntitySlot.captured.url.contains("noSuffix"))
+        }
+
+    @Test
+    fun `retry stores bypassDurationCheck flag on entity instead of URL`() =
+        runTest(testDispatcher) {
+            val existingEntity =
+                DownloadQueueEntity(
+                    id = 5L,
+                    url = "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                    title = "Test Video",
+                    localFileUri = "content://media/5",
+                    mediaType = "VIDEO",
+                    thumbnailUrl = null,
+                    durationSeconds = 180L,
+                    status = DownloadQueueStatus.FAILED,
+                    createdAtEpochMillis = 1000L,
+                    updatedAtEpochMillis = 1000L,
+                    outputDurationSeconds = null,
+                    convertVideoToAudio = false,
+                    deleteOriginalVideo = true,
+                    audioOutputDirUri = null,
+                    videoOutputDirUri = null,
+                    relativePath = null,
+                    overwrite = false,
+                    bypassDurationCheck = false,
+                    noSuffix = false,
+                )
+            coEvery { dao.findById(5L) } returns existingEntity
+            coEvery { dao.updateUrlAndStatus(any(), any(), any(), any(), any()) } just Runs
+            coEvery { dao.updateBypassDurationCheck(any(), any(), any()) } just Runs
+
+            val result = repository.retry(5L, bypassDurationCheck = true)
+
+            assertTrue("Expected success", result.success)
+            coVerify(exactly = 1) {
+                dao.updateBypassDurationCheck(
+                    id = 5L,
+                    bypassDurationCheck = true,
+                    updatedAtEpochMillis = any(),
+                )
+            }
         }
 
     @Test
@@ -236,6 +333,14 @@ class DefaultQueueRepositoryTest {
                     createdAtEpochMillis = 1000L,
                     updatedAtEpochMillis = 1000L,
                     outputDurationSeconds = null,
+                    convertVideoToAudio = false,
+                    deleteOriginalVideo = true,
+                    audioOutputDirUri = null,
+                    videoOutputDirUri = null,
+                    relativePath = null,
+                    overwrite = false,
+                    bypassDurationCheck = false,
+                    noSuffix = false,
                 )
 
             coEvery { dao.findById(5L) } returns entity

@@ -63,6 +63,20 @@ interface DownloadQueueDao {
     @Query(
         """
         UPDATE download_queue
+        SET bypassDurationCheck = :bypassDurationCheck,
+            updatedAtEpochMillis = :updatedAtEpochMillis
+        WHERE id = :id
+        """,
+    )
+    suspend fun updateBypassDurationCheck(
+        id: Long,
+        bypassDurationCheck: Boolean,
+        updatedAtEpochMillis: Long,
+    )
+
+    @Query(
+        """
+        UPDATE download_queue
         SET localFileUri = :localFileUri,
             relativePath = :relativePath,
             updatedAtEpochMillis = :updatedAtEpochMillis

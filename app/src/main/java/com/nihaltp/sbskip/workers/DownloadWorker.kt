@@ -124,7 +124,7 @@ class DownloadWorker
                     youtubeDuration = metadataFetcher.fetchVideoDuration(videoId)
                 }
 
-                val bypassCheck = item.url.contains("bypassDurationCheck=true")
+                val bypassCheck = item.bypassDurationCheck
                 val localMetadata = durationValidator.validate(item.localFileUri, youtubeDuration, bypassCheck)
                 val fileDuration = localMetadata.durationSeconds ?: 0L
 

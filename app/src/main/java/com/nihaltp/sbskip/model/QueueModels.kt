@@ -29,6 +29,9 @@ data class DownloadQueueItem(
     val audioOutputDirUri: String? = null,
     val videoOutputDirUri: String? = null,
     val relativePath: String? = null,
+    val overwrite: Boolean = false,
+    val bypassDurationCheck: Boolean = false,
+    val noSuffix: Boolean = false,
 ) {
     val displayDuration: String
         get() {

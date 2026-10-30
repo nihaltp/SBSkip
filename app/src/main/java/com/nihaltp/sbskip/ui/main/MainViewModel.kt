@@ -631,6 +631,9 @@ class MainViewModel
                         audioOutputDirUri = item.audioOutputDirUri,
                         videoOutputDirUri = item.videoOutputDirUri,
                         relativePath = item.relativePath,
+                        overwrite = item.overwrite,
+                        bypassDurationCheck = item.bypassDurationCheck,
+                        noSuffix = item.noSuffix,
                     )
                 if (result.success) {
                     showToast(context.getString(R.string.snackbar_item_restored))
@@ -690,25 +693,17 @@ class MainViewModel
             val pending = uiState.value.pendingEnqueueData ?: return
             _uiState.update { it.copy(showConflictDialog = false, pendingEnqueueData = null) }
             viewModelScope.launch {
-                val hasParams = pending.youtubeUrl.contains("?")
-                val separator = if (hasParams) "&" else "?"
-                val finalUrl =
-                    if (pending.youtubeUrl.isBlank()) {
-                        "sbskip://local?overwrite=true"
-                    } else {
-                        pending.youtubeUrl + separator + "overwrite=true"
-                    }
-
                 val result =
                     queueRepository.enqueue(
                         localFileUri = pending.fileUri,
                         title = pending.title,
-                        youtubeUrl = finalUrl,
+                        youtubeUrl = pending.youtubeUrl,
                         mediaType = pending.mediaType,
                         convertVideoToAudio = pending.convertVideoToAudio,
                         deleteOriginalVideo = pending.deleteOriginalVideo,
                         audioOutputDirUri = if (pending.mediaType == MediaType.AUDIO) pending.customFolderUri else null,
                         videoOutputDirUri = if (pending.mediaType == MediaType.VIDEO) pending.customFolderUri else null,
+                        overwrite = true,
                     )
 
                 val successToast =
@@ -764,25 +759,18 @@ class MainViewModel
 
                 val uniqueTitle = downloadStorage.getUniqueTitle(targetTitle, targetExtension, pending.mediaType, pending.customFolderUri)
 
-                val hasParams = pending.youtubeUrl.contains("?")
-                val separator = if (hasParams) "&" else "?"
-                val finalUrl =
-                    if (pending.youtubeUrl.isBlank()) {
-                        "sbskip://local?noSuffix=true"
-                    } else {
-                        pending.youtubeUrl + separator + "noSuffix=true"
-                    }
-
                 val result =
                     queueRepository.enqueue(
                         localFileUri = pending.fileUri,
                         title = uniqueTitle,
-                        youtubeUrl = finalUrl,
+                        youtubeUrl = pending.youtubeUrl,
                         mediaType = pending.mediaType,
                         convertVideoToAudio = pending.convertVideoToAudio,
                         deleteOriginalVideo = pending.deleteOriginalVideo,
                         audioOutputDirUri = if (pending.mediaType == MediaType.AUDIO) pending.customFolderUri else null,
                         videoOutputDirUri = if (pending.mediaType == MediaType.VIDEO) pending.customFolderUri else null,
+                        relativePath = pending.relativePath,
+                        noSuffix = true,
                     )
 
                 val successToast =
@@ -982,14 +970,7 @@ class MainViewModel
                 return
             }
 
-            var finalUrl =
-                if (isConvertOnly) {
-                    ""
-                } else if (force) {
-                    if (youtubeUrl.contains("?")) "$youtubeUrl&bypassDurationCheck=true" else "$youtubeUrl?bypassDurationCheck=true"
-                } else {
-                    youtubeUrl
-                }
+            var finalUrl = youtubeUrl
 
             if (finalUrl.isNotBlank() && state.customSponsorBlockCategories != null) {
                 val hasParams = finalUrl.contains("?")
@@ -1008,6 +989,7 @@ class MainViewModel
                     audioOutputDirUri = if (mediaType == MediaType.AUDIO) finalFolderUri else null,
                     videoOutputDirUri = if (mediaType == MediaType.VIDEO) finalFolderUri else null,
                     relativePath = relativePath,
+                    bypassDurationCheck = force,
                 )
 
             val successToast =
