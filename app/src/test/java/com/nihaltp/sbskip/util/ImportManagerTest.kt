@@ -217,17 +217,25 @@ class ImportManagerTest {
         }
 
     @Test
-    fun `queue never grows beyond the maximum queue size`() {
+    fun `queue marks overflow items as FAILED instead of dropping them`() {
         val total = ImportManager.MAX_QUEUE_SIZE + 20
         repeat(total) { index ->
             importManager.enqueueForTesting(item(index.toLong()))
         }
 
         val queue = importManager.importQueue.value
-        assertEquals(ImportManager.MAX_QUEUE_SIZE, queue.size)
-        // The oldest pending entries are dropped first, the newest one is always kept.
-        assertEquals((total - ImportManager.MAX_QUEUE_SIZE).toLong(), queue.first().id)
+        // Overflow items are marked FAILED and kept in the queue, not silently removed.
+        assertEquals(total, queue.size)
+        // All but the newest item overflowed and were marked FAILED.
+        assertEquals(total - 1, queue.count { it.status == FolderImportStatus.FAILED })
+        assertEquals(1, queue.count { it.status == FolderImportStatus.PENDING })
+        // Overflowed items carry an error message explaining why.
+        queue.filter { it.status == FolderImportStatus.FAILED }.forEach { failed ->
+            assertEquals("Import queue full", failed.errorMessage)
+        }
+        // The newest item is always kept.
         assertEquals((total - 1).toLong(), queue.last().id)
+        assertEquals(FolderImportStatus.PENDING, queue.last().status)
     }
 
     @Test
@@ -238,8 +246,12 @@ class ImportManagerTest {
         importManager.enqueueForTesting(item(999L, FolderImportStatus.COMPLETED))
 
         val queue = importManager.importQueue.value
-        assertEquals(ImportManager.MAX_QUEUE_SIZE, queue.size)
-        assertTrue(queue.any { it.id == 999L })
+        // The overflow PENDING item (id 0) is marked FAILED, not removed.
+        assertEquals(ImportManager.MAX_QUEUE_SIZE + 1, queue.size)
+        assertEquals(1, queue.count { it.status == FolderImportStatus.FAILED })
+        assertEquals(0L, queue.first { it.status == FolderImportStatus.FAILED }.id)
+        // The newest COMPLETED item is kept.
+        assertTrue(queue.any { it.id == 999L && it.status == FolderImportStatus.COMPLETED })
     }
 
     @Test
