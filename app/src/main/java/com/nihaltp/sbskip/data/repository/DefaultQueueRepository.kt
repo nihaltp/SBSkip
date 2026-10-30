@@ -102,20 +102,13 @@ class DefaultQueueRepository
                 dao.findById(itemId)
                     ?: return QueueActionResult(success = false, message = context.getString(R.string.error_item_not_found))
 
-            dao.updateUrlAndStatus(
+            dao.updateStatusAndBypassDurationCheck(
                 id = itemId,
-                url = item.url,
                 status = DownloadQueueStatus.QUEUED,
+                bypassDurationCheck = bypassDurationCheck || item.bypassDurationCheck,
                 errorMessage = null,
                 updatedAtEpochMillis = System.currentTimeMillis(),
             )
-            if (bypassDurationCheck && !item.bypassDurationCheck) {
-                dao.updateBypassDurationCheck(
-                    id = itemId,
-                    bypassDurationCheck = true,
-                    updatedAtEpochMillis = System.currentTimeMillis(),
-                )
-            }
             AppLogger.queue("retry item id=$itemId bypassDurationCheck=$bypassDurationCheck")
             workScheduler.schedule(itemId)
             return QueueActionResult(success = true, message = context.getString(R.string.retry_started))
