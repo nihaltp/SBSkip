@@ -102,7 +102,23 @@ class ExportImportUtilTest {
     }
 
     @Test
+    fun `parses bare video ids`() {
+        val result = ExportImportUtil.parseImportedText("dQw4w9WgXcQ")
+
+        val success = result as ImportResult.Success
+        assertEquals(listOf(videoId), success.items)
+    }
+
+    @Test
     fun `parses plain text video ids`() {
+        val result = ExportImportUtil.parseImportedText("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+
+        val success = result as ImportResult.Success
+        assertEquals(listOf(videoId), success.items)
+    }
+
+    @Test
+    fun `parses mixed bare ids and urls`() {
         val result = ExportImportUtil.parseImportedText("dQw4w9WgXcQ\nhttps://www.youtube.com/watch?v=dQw4w9WgXcQ")
 
         val success = result as ImportResult.Success
