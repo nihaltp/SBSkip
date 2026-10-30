@@ -292,16 +292,17 @@ class DefaultQueueRepositoryTest {
                     noSuffix = false,
                 )
             coEvery { dao.findById(5L) } returns existingEntity
-            coEvery { dao.updateUrlAndStatus(any(), any(), any(), any(), any()) } just Runs
-            coEvery { dao.updateBypassDurationCheck(any(), any(), any()) } just Runs
+            coEvery { dao.updateStatusAndBypassDurationCheck(any(), any(), any(), any(), any()) } just Runs
 
             val result = repository.retry(5L, bypassDurationCheck = true)
 
             assertTrue("Expected success", result.success)
             coVerify(exactly = 1) {
-                dao.updateBypassDurationCheck(
+                dao.updateStatusAndBypassDurationCheck(
                     id = 5L,
+                    status = com.nihaltp.sbskip.model.DownloadQueueStatus.QUEUED,
                     bypassDurationCheck = true,
+                    errorMessage = null,
                     updatedAtEpochMillis = any(),
                 )
             }

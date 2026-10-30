@@ -63,14 +63,18 @@ interface DownloadQueueDao {
     @Query(
         """
         UPDATE download_queue
-        SET bypassDurationCheck = :bypassDurationCheck,
+        SET status = :status,
+            bypassDurationCheck = :bypassDurationCheck,
+            errorMessage = :errorMessage,
             updatedAtEpochMillis = :updatedAtEpochMillis
         WHERE id = :id
         """,
     )
-    suspend fun updateBypassDurationCheck(
+    suspend fun updateStatusAndBypassDurationCheck(
         id: Long,
+        status: DownloadQueueStatus,
         bypassDurationCheck: Boolean,
+        errorMessage: String?,
         updatedAtEpochMillis: Long,
     )
 
