@@ -37,7 +37,6 @@
     <string name="fetching_metadata">Fetching metadata</string>
     <string name="error_invalid_youtube_url">Invalid YouTube URL</string>
     <string name="yt_dlp_failed">yt-dlp failed to read metadata</string>
-    <string name="unable_fetch_metadata">Unable to fetch metadata</string>
 
     <string name="download_missing_url">Missing URL</string>
     <string name="download_scaffold_message">Queue pipeline scaffolded; native downloader integration comes next.</string>
@@ -220,6 +219,37 @@
     <string name="settings_sb_status_url_title">SponsorBlock Status Page URL</string>
     <string name="settings_sb_status_url_field_label">Server Status Page URL</string>
 
+    <!-- Downloaded Videos History -->
+    <string name="downloaded_history_title">Downloads</string>
+    <string name="downloaded_history_scroll_to_newest">Scroll to newest</string>
+    <string name="downloaded_history_empty_title">No downloaded videos yet</string>
+    <string name="downloaded_history_empty_body">Downloaded videos will appear here once tracking is enabled.</string>
+    <string name="downloaded_history_clear_title">Clear Downloaded Videos</string>
+    <string name="downloaded_history_clear_message">This will delete all tracked downloaded videos. This action cannot be undone.</string>
+    <string name="show_more_actions">Show more actions</string>
+    <string name="export_backup">Export backup</string>
+    <string name="import_backup">Import backup</string>
+    <string name="open_file">Open file</string>
+    <string name="multiselect_mode">Multiselect mode</string>
+    <string name="multiselect_item_count">%1$d selected</string>
+    <string name="unavailable">Unavailable</string>
+
+    <string name="settings_downloaded_videos_title">Downloaded Videos History</string>
+    <string name="settings_downloaded_videos_view_title">View Downloaded Videos</string>
+    <string name="settings_downloaded_videos_view_desc">See the list of tracked downloaded videos.</string>
+    <string name="settings_downloaded_videos_clear_title">Clear Downloaded Videos</string>
+    <string name="settings_downloaded_videos_clear_desc">Remove all tracked downloaded video records.</string>
+    <string name="settings_downloaded_videos_clear_confirm_message">This will delete all tracked downloaded videos. This action cannot be undone.</string>
+
+    <!-- Import from Folder -->
+    <string name="import_from_folder_scanning">Scanning folder…</string>
+    <string name="import_queue_section">Import Queue</string>
+    <string name="imported_count_format">%1$d imported</string>
+    <string name="snackbar_folder_imported">Imported “%1$s” (%2$d videos)</string>
+    <string name="snackbar_folder_import_failed">Failed to import “%1$s” (%2$s)</string>
+    <string name="unknown_folder">Unknown folder</string>
+    <string name="unknown_error">Unknown error</string>
+
     <!-- Translation Section -->
     <string name="settings_section_translation">Translation</string>
     <string name="settings_request_translation">Request a Language</string>
@@ -318,4 +348,104 @@
     <string name="onboarding_step_watchlist_desc">Add folders SBSkip should scan for downloaded files. This helps auto-detect your media. You can add, remove, or change folders anytime in Settings.</string>
     <string name="onboarding_step_watchlist_add">Add Folder</string>
     <string name="onboarding_step_watchlist_added">Folder added</string>
+
+    <!-- Duplicate Download Dialog -->
+    <string name="dialog_duplicate_download_title">Already Downloaded</string>
+    <string name="dialog_duplicate_download_message">This video is already in your downloaded videos. Download it again?</string>
+    <string name="dialog_duplicate_download_message_named">“%1$s” is already in your downloaded videos. Download it again?</string>
+    <string name="dialog_duplicate_download_again">Download Again</string>
+    <string name="dialog_duplicate_download_skip">Skip</string>
+    <string name="duplicate_download_skipped">Already downloaded, skipped.</string>
+
+    <!-- Already Downloaded Behavior Setting -->
+    <string name="settings_already_downloaded_title">Already Downloaded Videos</string>
+    <string name="settings_already_downloaded_desc">What to do when a video that you already downloaded is requested again.</string>
+    <string name="already_downloaded_behavior_ask">Ask every time</string>
+    <string name="already_downloaded_behavior_download_again">Download again</string>
+    <string name="already_downloaded_behavior_skip">Skip</string>
+
+    <!-- Import Queue Notifications -->
+    <string name="notification_channel_import_name">Import progress</string>
+    <string name="notification_channel_import_description">Silent progress updates while folders are imported.</string>
+    <string name="notification_import_files_title">Importing files</string>
+    <string name="notification_import_files_remaining">%1$d files remaining</string>
+    <string name="notification_import_folders_title">Importing folders</string>
+    <string name="notification_import_folders_remaining">%1$d folders remaining</string>
+    <string name="notification_import_cancel">Cancel scan</string>
+
+    <!-- Export/Import Queue -->
+    <string name="more_actions">More actions</string>
+    <string name="export_queue">Export Queue</string>
+    <string name="import_queue">Import list</string>
+
+    <string name="export_dialog_title">Export Queue</string>
+    <string name="export_dialog_message">Export %1$d queue items?</string>
+    <string name="export_format_label">Format</string>
+    <string name="export_destination_label">Destination</string>
+    <string name="export_button">Export</string>
+
+    <string name="export_format_video_ids">Video IDs only</string>
+    <string name="export_format_video_ids_desc">One 11-character YouTube ID per line</string>
+    <string name="export_format_full_urls">Full YouTube URLs</string>
+    <string name="export_format_full_urls_desc">One full watch URL per line</string>
+    <string name="export_format_full_json">Full JSON backup</string>
+    <string name="export_format_full_json_desc">Includes title, categories, and metadata</string>
+
+    <string name="export_dest_file">Save to file</string>
+    <string name="export_dest_file_desc">Choose location via file picker</string>
+    <string name="export_dest_clipboard">Copy to clipboard</string>
+    <string name="export_dest_clipboard_desc">Paste into any text field</string>
+
+    <string name="export_copied_to_clipboard">Exported %1$d items to clipboard</string>
+    <string name="export_clipboard_failed">Failed to copy to clipboard</string>
+    <string name="export_saved_to_file">Saved %1$s to Downloads</string>
+    <string name="export_file_failed">Failed to save file</string>
+    <string name="export_empty_queue">Queue is empty, nothing to export</string>
+
+    <string name="import_dialog_title">Import list</string>
+    <string name="import_dialog_message">Import video IDs or URLs from the clipboard, a file, or a folder</string>
+    <string name="import_result_summary">Imported %1$d videos, %2$d already in history</string>
+    <string name="import_result_nothing_new">Nothing new to import, %1$d videos already in history</string>
+    <string name="import_errors_title">Some videos could not be imported</string>
+    <string name="import_errors_message">These videos were skipped and the rest of the import continued:</string>
+    <string name="import_errors_more">and %1$d more</string>
+    <string name="import_source_label">Source</string>
+    <string name="import_button">Import</string>
+
+    <string name="import_source_file">Import from file</string>
+    <string name="import_source_file_desc">Select a text or JSON file</string>
+    <string name="import_source_clipboard">Import from clipboard</string>
+    <string name="import_source_clipboard_desc">Paste video IDs or URLs</string>
+    <string name="import_source_folder">Import from folder</string>
+    <string name="import_source_folder_desc">Scan a folder for downloaded videos</string>
+
+    <string name="import_clipboard_empty">Clipboard is empty or contains no valid video IDs</string>
+    <string name="import_failed">Import failed: %1$s</string>
+    <string name="import_all_duplicates">All %1$d video IDs already in queue</string>
+    <string name="import_partial_success">Imported %1$d new items, %2$d duplicates skipped</string>
+    <string name="import_success">Successfully imported %1$d items</string>
+    <string name="import_failed_generic">Failed to import items</string>
+
+    <string name="settings_export_queue">Export Queue</string>
+    <string name="settings_export_queue_desc">Save queue items as video IDs, URLs, or JSON</string>
+    <string name="settings_import_queue">Import Queue</string>
+    <string name="settings_import_queue_desc">Load video IDs or URLs from file or clipboard</string>
+
+    <!-- Downloaded video search -->
+    <string name="downloaded_history_search">Search downloaded videos</string>
+    <string name="downloaded_history_search_hint">Search downloads</string>
+    <string name="downloaded_history_search_clear">Clear search query</string>
+    <string name="downloaded_history_search_close">Close search</string>
+    <string name="downloaded_history_search_no_results_title">No matching videos</string>
+    <string name="downloaded_history_search_no_results_body">No results for "%1$s". Try a different search.</string>
+
+    <string name="downloaded_history_file_missing">File not found on this device</string>
+
+    <!-- Import Queue Notifications -->
+
+    <!-- Folder import queue status -->
+    <string name="downloaded_history_import_status_pending">Pending</string>
+    <string name="downloaded_history_import_status_scanning">Scanning</string>
+    <string name="downloaded_history_import_status_completed">Completed</string>
+    <string name="downloaded_history_import_status_failed">Failed</string>
 </resources>

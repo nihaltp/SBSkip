@@ -10,4 +10,6 @@ data class YouTubeMetadata(
     val musicVideoType: MusicVideoType? = null,
     val musicConfidence: Float = 0f,
     val musicMetadata: MusicMetadata? = null,
+    /** Length of the video, when the watch page exposed it. oEmbed does not provide it. */
+    val durationSeconds: Long? = null,
 )

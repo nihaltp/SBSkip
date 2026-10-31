@@ -1,6 +1,21 @@
 package com.nihaltp.sbskip.model
 
 import com.nihaltp.sbskip.util.Constants
+import com.nihaltp.sbskip.util.PersistedFolderImport
+
+/**
+ * What to do when a video that already exists in the downloaded-videos database is requested again.
+ */
+enum class AlreadyDownloadedBehavior {
+    /** Ask the user with a confirmation dialog before downloading again. */
+    ASK,
+
+    /** Silently download the video again. */
+    DOWNLOAD_AGAIN,
+
+    /** Silently skip the video. */
+    SKIP,
+}
 
 data class AppSettings(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
@@ -28,4 +43,7 @@ data class AppSettings(
     val onboardingCompleted: Boolean = false,
     val pendingDownloads: List<PendingDownload> = emptyList(),
     val playlistDownloadState: PlaylistDownloadState? = null,
+    val alreadyDownloadedBehavior: AlreadyDownloadedBehavior = AlreadyDownloadedBehavior.ASK,
+    // The folder import queue, so that the imports survive a restart of the app.
+    val importQueue: List<PersistedFolderImport> = emptyList(),
 )

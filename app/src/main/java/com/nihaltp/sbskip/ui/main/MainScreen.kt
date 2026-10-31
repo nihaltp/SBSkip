@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.KeyboardDoubleArrowDown
 import androidx.compose.material.icons.filled.KeyboardDoubleArrowUp
 import androidx.compose.material.icons.filled.Search
@@ -73,6 +74,7 @@ import com.nihaltp.sbskip.ui.main.components.cards.PlaylistDownloadCard
 import com.nihaltp.sbskip.ui.main.components.cards.QueueItemCard
 import com.nihaltp.sbskip.ui.main.components.common.EmptyStateCard
 import com.nihaltp.sbskip.ui.main.components.common.SectionHeader
+import com.nihaltp.sbskip.ui.main.dialogs.DuplicateDownloadDialog
 import com.nihaltp.sbskip.ui.main.dialogs.DurationMismatchDialog
 import com.nihaltp.sbskip.ui.main.dialogs.ErrorDetailsDialog
 import com.nihaltp.sbskip.ui.main.dialogs.MediaConflictDialog
@@ -98,6 +100,7 @@ fun MainScreen(
     onConvertVideoToAudioChange: (Boolean) -> Unit,
     onDeleteOriginalVideoChange: (Boolean) -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenDownloadedVideos: () -> Unit,
     onRemoveQueueItem: (DownloadQueueItem) -> Unit,
     onUndoRemoveQueueItem: (DownloadQueueItem) -> Unit,
     onDownloadQueueItem: (DownloadQueueItem) -> Unit,
@@ -118,6 +121,8 @@ fun MainScreen(
     onCancelPlaylistDownload: () -> Unit,
     onPlaylistConvertVideoToAudioChanged: (Boolean) -> Unit,
     onPlaylistDeleteOriginalVideoChanged: (Boolean) -> Unit,
+    onProceedDuplicateDownload: () -> Unit,
+    onSkipDuplicateDownload: () -> Unit,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val clipboardManager = LocalClipboardManager.current
@@ -145,6 +150,7 @@ fun MainScreen(
     var detailsPendingDownloadItem by remember { mutableStateOf<PendingDownload?>(null) }
     var showCategoriesDialog by remember { mutableStateOf(false) }
     var isOptionsExpanded by remember { mutableStateOf(false) }
+
     val showLocalCleanButton = uiState.selectedFileUri != null && uiState.urlInput.isNotBlank()
     val showDownloadAndCleanButton = uiState.selectedFileUri == null && uiState.isNewPipeInstalled && uiState.urlInput.isNotBlank()
     val isVideoFile = uiState.selectedFileMediaType == MediaType.VIDEO
@@ -191,6 +197,15 @@ fun MainScreen(
             TopAppBar(
                 title = { Text(stringResource(id = R.string.title_main)) },
                 actions = {
+                    IconButton(
+                        onClick = onOpenDownloadedVideos,
+                        modifier = Modifier.padding(end = 12.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.History,
+                            contentDescription = stringResource(id = R.string.downloaded_history_title),
+                        )
+                    }
                     IconButton(
                         onClick = onOpenSettings,
                         modifier = Modifier.padding(end = 12.dp),
@@ -708,6 +723,13 @@ fun MainScreen(
         onReplaceConflict = onReplaceConflict,
         onRenameConflict = onRenameConflict,
         onCancelConflictDialog = onCancelConflictDialog,
+    )
+
+    DuplicateDownloadDialog(
+        show = uiState.showDuplicateDownloadDialog,
+        videoTitle = uiState.duplicateVideoInfo?.title.orEmpty(),
+        onDownloadAgain = onProceedDuplicateDownload,
+        onSkip = onSkipDuplicateDownload,
     )
 
     if (showCategoriesDialog) {

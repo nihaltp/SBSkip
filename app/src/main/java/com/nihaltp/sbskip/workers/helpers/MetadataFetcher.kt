@@ -7,12 +7,9 @@ import com.nihaltp.sbskip.model.YouTubeMetadata
 import com.nihaltp.sbskip.sponsorblock.SponsorBlockService
 import com.nihaltp.sbskip.util.NetworkRetry
 import com.nihaltp.sbskip.util.fetcher.YouTubeDurationFetcher
+import com.nihaltp.sbskip.util.fetcher.YouTubeOEmbedFetcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
-import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.IOException
@@ -24,7 +21,6 @@ class MetadataFetcher
         private val sponsorBlockService: SponsorBlockService,
     ) {
         private val httpClient = OkHttpClient()
-        private val json = Json { ignoreUnknownKeys = true }
 
         private val metadataCache = mutableMapOf<String, CachedMetadata>()
         private val cacheVersion = AppVersions.METADATA_CACHE_VERSION
@@ -79,6 +75,7 @@ class MetadataFetcher
                                             musicVideoType = extractionResult.type,
                                             musicConfidence = extractionResult.confidence,
                                             musicMetadata = extractionResult.musicMetadata,
+                                            durationSeconds = extractionResult.rawDurationSeconds,
                                         )
 
                                     metadataCache[videoId] = CachedMetadata(cacheVersion, System.currentTimeMillis(), ytMetadata)
@@ -95,46 +92,13 @@ class MetadataFetcher
                 if (scrapedMetadata != null) return@withContext scrapedMetadata
 
                 // 2. Fallback to oEmbed
-                val oEmbedUrl =
-                    videoUrl.toHttpUrlOrNull()
-                        ?.newBuilder()
-                        ?.scheme("https")
-                        ?.host("www.youtube.com")
-                        ?.encodedPath("/oembed")
-                        ?.addQueryParameter("url", videoUrl)
-                        ?.addQueryParameter("format", "json")
-                        ?.build()
-                        ?: throw IOException("Unable to parse video URL")
-
-                NetworkRetry.execute {
-                    val request = Request.Builder().url(oEmbedUrl).build()
-                    httpClient.newCall(request).execute().use { response ->
-                        if (!response.isSuccessful) {
-                            throw IOException("oEmbed request failed: ${response.code}")
-                        }
-                        val body = response.body?.string().orEmpty()
-                        val parsed = json.decodeFromString(YouTubeOEmbedResponse.serializer(), body)
-                        val customThumbnailUrl =
-                            videoId?.let {
-                                com.nihaltp.sbskip.util.Constants.buildYouTubeThumbnailUrl(
-                                    it,
-                                )
-                            } ?: parsed.thumbnailUrl
-
-                        val ytMetadata =
-                            YouTubeMetadata(
-                                title = parsed.title,
-                                authorName = parsed.authorName,
-                                authorUrl = parsed.authorUrl,
-                                thumbnailUrl = customThumbnailUrl,
-                            )
-
-                        if (videoId != null) {
-                            metadataCache[videoId] = CachedMetadata(cacheVersion, System.currentTimeMillis(), ytMetadata)
-                        }
-                        ytMetadata
-                    }
+                if (videoId == null) {
+                    throw IOException("Unable to read a video id from $videoUrl")
                 }
+                val oEmbedMetadata = YouTubeOEmbedFetcher.fetch(videoId)
+                metadataCache[videoId] =
+                    CachedMetadata(cacheVersion, System.currentTimeMillis(), oEmbedMetadata)
+                oEmbedMetadata
             }
 
         suspend fun fetchSponsorSegments(
@@ -152,11 +116,3 @@ class MetadataFetcher
             return sponsorBlockService.checkApiStatus()
         }
     }
-
-@Serializable
-private data class YouTubeOEmbedResponse(
-    val title: String? = null,
-    @SerialName("author_name") val authorName: String? = null,
-    @SerialName("author_url") val authorUrl: String? = null,
-    @SerialName("thumbnail_url") val thumbnailUrl: String? = null,
-)

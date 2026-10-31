@@ -55,6 +55,7 @@ import androidx.core.os.LocaleListCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nihaltp.sbskip.BuildConfig
 import com.nihaltp.sbskip.R
+import com.nihaltp.sbskip.model.AlreadyDownloadedBehavior
 import com.nihaltp.sbskip.model.DownloaderType
 import com.nihaltp.sbskip.model.ThemeMode
 import com.nihaltp.sbskip.ui.components.SponsorBlockCategoryPickerDialog
@@ -71,6 +72,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onNavigateToLicenses: () -> Unit,
     onNavigateToLogs: () -> Unit,
+    onNavigateToDownloadedVideos: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val settingsState by viewModel.settings.collectAsState()
@@ -122,6 +124,9 @@ fun SettingsScreen(
                 openAppSettings()
             }
         }
+
+    var showClearDownloadedVideosDialog by remember { mutableStateOf(false) }
+
     val videoFolderLauncher =
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.OpenDocumentTree(),
@@ -503,6 +508,29 @@ fun SettingsScreen(
                 }
 
                 item {
+                    SettingsSection(
+                        modifier = Modifier.testTag("downloadedHistoryCard"),
+                        title = stringResource(id = R.string.settings_downloaded_videos_title),
+                    ) {
+                        SettingValueRow(
+                            title = stringResource(id = R.string.settings_already_downloaded_title),
+                            value = stringResource(id = settings.alreadyDownloadedBehavior.stringResId),
+                            onClick = { activeDialogType = SettingsDialogType.ALREADY_DOWNLOADED_BEHAVIOR },
+                        )
+                        SettingValueRow(
+                            title = stringResource(id = R.string.settings_downloaded_videos_view_title),
+                            value = stringResource(id = R.string.settings_downloaded_videos_view_desc),
+                            onClick = onNavigateToDownloadedVideos,
+                        )
+                        SettingValueRow(
+                            title = stringResource(id = R.string.settings_downloaded_videos_clear_title),
+                            value = stringResource(id = R.string.settings_downloaded_videos_clear_desc),
+                            onClick = { showClearDownloadedVideosDialog = true },
+                        )
+                    }
+                }
+
+                item {
                     SettingsSection(title = stringResource(id = R.string.about_section)) {
                         SettingValueRow(stringResource(id = R.string.app_version), BuildConfig.VERSION_NAME)
                         SettingValueRow(
@@ -697,6 +725,50 @@ fun SettingsScreen(
                         onDismissRequest = { activeDialogType = null },
                     )
                 }
+                SettingsDialogType.ALREADY_DOWNLOADED_BEHAVIOR -> {
+                    AlertDialog(
+                        onDismissRequest = { activeDialogType = null },
+                        title = { Text(stringResource(id = R.string.settings_already_downloaded_title)) },
+                        text = {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(
+                                    text = stringResource(id = R.string.settings_already_downloaded_desc),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                AlreadyDownloadedBehavior.entries.forEach { behavior ->
+                                    Row(
+                                        modifier =
+                                            Modifier
+                                                .fillMaxWidth()
+                                                .clickable {
+                                                    viewModel.updateAlreadyDownloadedBehavior(behavior)
+                                                    activeDialogType = null
+                                                }
+                                                .padding(vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        RadioButton(
+                                            selected = nonNullSettings.alreadyDownloadedBehavior == behavior,
+                                            onClick = {
+                                                viewModel.updateAlreadyDownloadedBehavior(behavior)
+                                                activeDialogType = null
+                                            },
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(stringResource(id = behavior.stringResId))
+                                    }
+                                }
+                            }
+                        },
+                        confirmButton = {},
+                        dismissButton = {
+                            TextButton(onClick = { activeDialogType = null }) {
+                                Text(stringResource(id = R.string.cancel))
+                            }
+                        },
+                    )
+                }
                 else -> {
                     val dialogTitle =
                         when (dialogType) {
@@ -782,6 +854,29 @@ fun SettingsScreen(
             },
         )
     }
+
+    if (showClearDownloadedVideosDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearDownloadedVideosDialog = false },
+            title = { Text(stringResource(id = R.string.settings_downloaded_videos_clear_title)) },
+            text = { Text(stringResource(id = R.string.settings_downloaded_videos_clear_confirm_message)) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.clearDownloadedVideos()
+                        showClearDownloadedVideosDialog = false
+                    },
+                ) {
+                    Text(stringResource(id = R.string.clear))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearDownloadedVideosDialog = false }) {
+                    Text(stringResource(id = R.string.cancel))
+                }
+            },
+        )
+    }
 }
 
 @Composable
@@ -857,7 +952,16 @@ private enum class SettingsDialogType {
     SB_STATUS_URL,
     SB_CATEGORIES,
     MAX_DIFFERENCE,
+    ALREADY_DOWNLOADED_BEHAVIOR,
 }
+
+private val AlreadyDownloadedBehavior.stringResId: Int
+    get() =
+        when (this) {
+            AlreadyDownloadedBehavior.ASK -> R.string.already_downloaded_behavior_ask
+            AlreadyDownloadedBehavior.DOWNLOAD_AGAIN -> R.string.already_downloaded_behavior_download_again
+            AlreadyDownloadedBehavior.SKIP -> R.string.already_downloaded_behavior_skip
+        }
 
 private fun resolveRelativePathFromUri(
     context: android.content.Context,

@@ -3,6 +3,12 @@ package com.nihaltp.sbskip.notifications
 import androidx.work.ForegroundInfo
 
 interface DownloadNotificationManager {
+    /**
+     * Creates the notification channel of the download notifications. Called when the app starts,
+     * so that the channel exists before the first notification is posted.
+     */
+    fun ensureChannel()
+
     fun createForegroundInfo(
         id: Long,
         title: String,

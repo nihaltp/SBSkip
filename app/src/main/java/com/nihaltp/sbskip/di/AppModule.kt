@@ -3,9 +3,13 @@ package com.nihaltp.sbskip.di
 import android.content.Context
 import androidx.room.Room
 import com.nihaltp.sbskip.data.local.dao.DownloadQueueDao
+import com.nihaltp.sbskip.data.local.dao.DownloadedVideoDao
 import com.nihaltp.sbskip.data.local.database.SBSkipDatabase
+import com.nihaltp.sbskip.data.local.database.SBSkipDatabaseMigrations
 import com.nihaltp.sbskip.data.repository.DataStoreSettingsRepository
+import com.nihaltp.sbskip.data.repository.DefaultDownloadedVideoRepository
 import com.nihaltp.sbskip.data.repository.DefaultQueueRepository
+import com.nihaltp.sbskip.data.repository.DownloadedVideoRepository
 import com.nihaltp.sbskip.data.repository.QueueRepository
 import com.nihaltp.sbskip.data.repository.SettingsRepository
 import com.nihaltp.sbskip.notifications.AndroidDownloadNotificationManager
@@ -31,6 +35,9 @@ import javax.inject.Singleton
 abstract class AppModule {
     @Binds
     abstract fun bindQueueRepository(impl: DefaultQueueRepository): QueueRepository
+
+    @Binds
+    abstract fun bindDownloadedVideoRepository(impl: DefaultDownloadedVideoRepository): DownloadedVideoRepository
 
     @Binds
     abstract fun bindSettingsRepository(impl: DataStoreSettingsRepository): SettingsRepository
@@ -82,17 +89,36 @@ abstract class AppModule {
                             "ALTER TABLE download_queue ADD COLUMN bypassDurationCheck INTEGER NOT NULL DEFAULT 0",
                         )
                         db.execSQL("ALTER TABLE download_queue ADD COLUMN noSuffix INTEGER NOT NULL DEFAULT 0")
+                        db.execSQL(
+                            """
+                            CREATE TABLE IF NOT EXISTS downloaded_videos (
+                                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                                videoId TEXT,
+                                url TEXT NOT NULL,
+                                title TEXT NOT NULL,
+                                author TEXT,
+                                thumbnailUrl TEXT,
+                                durationSeconds INTEGER,
+                                outputPath TEXT,
+                                fileSize INTEGER,
+                                mediaType TEXT NOT NULL
+                            )
+                            """.trimIndent(),
+                        )
                     }
                 }
 
             return Room.databaseBuilder(context, SBSkipDatabase::class.java, "sbskip.db")
                 .enableMultiInstanceInvalidation()
-                .addMigrations(migration4To5, migration5To6, migration6To7, migration7To8)
+                .addMigrations(*SBSkipDatabaseMigrations.ALL)
                 .fallbackToDestructiveMigration()
                 .build()
         }
 
         @Provides
         fun provideQueueDao(database: SBSkipDatabase): DownloadQueueDao = database.downloadQueueDao()
+
+        @Provides
+        fun provideDownloadedVideoDao(database: SBSkipDatabase): DownloadedVideoDao = database.downloadedVideoDao()
     }
 }

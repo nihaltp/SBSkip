@@ -2,7 +2,9 @@ package com.nihaltp.sbskip.ui.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.nihaltp.sbskip.data.repository.DownloadedVideoRepository
 import com.nihaltp.sbskip.data.repository.SettingsRepository
+import com.nihaltp.sbskip.model.AlreadyDownloadedBehavior
 import com.nihaltp.sbskip.model.AppSettings
 import com.nihaltp.sbskip.model.DownloaderType
 import com.nihaltp.sbskip.model.SponsorBlockCategory
@@ -20,6 +22,7 @@ class SettingsViewModel
     @Inject
     constructor(
         private val settingsRepository: SettingsRepository,
+        private val downloadedVideoRepository: DownloadedVideoRepository,
     ) : ViewModel() {
         val settings: StateFlow<AppSettings?> =
             settingsRepository.settings
@@ -180,6 +183,12 @@ class SettingsViewModel
             }
         }
 
+        fun updateAlreadyDownloadedBehavior(behavior: AlreadyDownloadedBehavior) {
+            viewModelScope.launch {
+                settingsRepository.update { it.copy(alreadyDownloadedBehavior = behavior) }
+            }
+        }
+
         fun addWatchlistFolder(
             path: String,
             uriString: String,
@@ -209,5 +218,11 @@ class SettingsViewModel
 
         fun clearLogs() {
             com.nihaltp.sbskip.util.AppLogger.clearLogs()
+        }
+
+        fun clearDownloadedVideos() {
+            viewModelScope.launch {
+                downloadedVideoRepository.deleteAll()
+            }
         }
     }

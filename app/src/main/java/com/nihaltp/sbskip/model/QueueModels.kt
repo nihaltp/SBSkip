@@ -120,6 +120,19 @@ data class ToastMessage(
     val itemToRestore: DownloadQueueItem? = null,
 )
 
+/**
+ * Details about a video that already exists in the downloaded-videos database and is about to be
+ * downloaded again.
+ */
+data class DuplicateVideoInfo(
+    val videoId: String,
+    val title: String = "",
+    val youtubeUrl: String = "",
+    val mediaType: MediaType = MediaType.VIDEO,
+    val isFromPlaylist: Boolean = false,
+    val isLocalFile: Boolean = false,
+)
+
 data class MainUiState(
     val urlInput: String = "",
     val selectedFileUri: String? = null,
@@ -148,6 +161,9 @@ data class MainUiState(
     // Download options dialog (shown before Download & Clean / Find File)
     val showPermissionRevokedDialog: Boolean = false,
     val revokedWatchlistFolder: com.nihaltp.sbskip.model.WatchlistFolder? = null,
+    // Duplicate download dialog (shown when a video is already in the downloaded-videos database)
+    val showDuplicateDownloadDialog: Boolean = false,
+    val duplicateVideoInfo: DuplicateVideoInfo? = null,
 )
 
 data class QueueActionResult(

@@ -8,9 +8,12 @@ import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nihaltp.sbskip.R
+import com.nihaltp.sbskip.data.repository.DownloadedVideoRepository
 import com.nihaltp.sbskip.data.repository.QueueRepository
 import com.nihaltp.sbskip.data.repository.SettingsRepository
+import com.nihaltp.sbskip.model.AlreadyDownloadedBehavior
 import com.nihaltp.sbskip.model.DetectedFile
+import com.nihaltp.sbskip.model.DuplicateVideoInfo
 import com.nihaltp.sbskip.model.MainUiState
 import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.model.PendingDownload
@@ -22,7 +25,7 @@ import com.nihaltp.sbskip.storage.DownloadStorage
 import com.nihaltp.sbskip.util.AppLogger
 import com.nihaltp.sbskip.util.Constants
 import com.nihaltp.sbskip.util.NetworkErrorClassifier
-import com.nihaltp.sbskip.util.NetworkRetry
+import com.nihaltp.sbskip.util.fetcher.YouTubeOEmbedFetcher
 import com.nihaltp.sbskip.util.parser.YouTubeUrlParser
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -37,13 +40,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
-import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import java.io.IOException
 import java.util.Locale
 import javax.inject.Inject
 
@@ -53,18 +49,21 @@ class MainViewModel
     constructor(
         private val queueRepository: QueueRepository,
         private val settingsRepository: SettingsRepository,
+        private val downloadedVideoRepository: DownloadedVideoRepository,
         private val downloadStorage: DownloadStorage,
         @ApplicationContext private val context: Context,
     ) : ViewModel() {
-        private val httpClient = OkHttpClient()
-        private val json = Json { ignoreUnknownKeys = true }
-
         private val _uiState = MutableStateFlow(MainUiState())
         val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
 
         // Tracks the delayed auto-detect coroutine for each pending download (keyed by videoId).
         // Cancelling the job allows the user to trigger detection early via "Search now".
         private val pendingDetectJobs = mutableMapOf<String, kotlinx.coroutines.Job>()
+
+        // Tracks videoIds that are currently being downloaded, so a second concurrent request
+        // for the same video is skipped instead of starting a duplicate download.
+        private val downloadsInProgress = mutableSetOf<String>()
+        private val downloadsInProgressGuard = Any()
 
         init {
             viewModelScope.launch {
@@ -254,77 +253,221 @@ class MainViewModel
             }
         }
 
-        fun downloadPlaylistVideo() {
-            val state = uiState.value
-            val plState = state.playlistDownloadState ?: return
-            val currentVideo = plState.videos[plState.currentIndex]
+        /**
+         * Looks up [videoId] in the downloaded-videos database and applies the behavior configured
+         * in the settings.
+         *
+         * @return [DuplicateDecision.PROCEED] when the caller may continue with the download.
+         */
+        private suspend fun handleAlreadyDownloaded(
+            videoId: String,
+            title: String = "",
+            youtubeUrl: String = "",
+            mediaType: MediaType = MediaType.VIDEO,
+            isFromPlaylist: Boolean = false,
+            isLocalFile: Boolean = false,
+        ): DuplicateDecision {
+            val cleanVideoId = YouTubeUrlParser.cleanVideoId(videoId) ?: return DuplicateDecision.PROCEED
+            val existing =
+                runCatching { downloadedVideoRepository.findByVideoId(cleanVideoId) }
+                    .getOrNull() ?: return DuplicateDecision.PROCEED
 
-            // Launch NewPipe
-            val normalizedUrl = Constants.buildYouTubeWatchUrl(currentVideo.videoId)
-            val customCategories = state.customSponsorBlockCategories
-            val finalUrl =
-                if (customCategories != null) {
-                    "$normalizedUrl&categories=" + customCategories.joinToString(",") { it.name }
-                } else {
-                    normalizedUrl
+            val behavior = settingsRepository.settings.first().alreadyDownloadedBehavior
+            AppLogger.metadata(
+                "Duplicate check: '$cleanVideoId' is already downloaded (behavior=$behavior)",
+            )
+
+            return when (behavior) {
+                AlreadyDownloadedBehavior.DOWNLOAD_AGAIN -> DuplicateDecision.PROCEED
+                AlreadyDownloadedBehavior.SKIP -> {
+                    showToast(context.getString(R.string.duplicate_download_skipped))
+                    DuplicateDecision.SKIPPED
                 }
-            launchNewPipe(normalizedUrl)
-
-            // Spawn pending download
-            val now = System.currentTimeMillis()
-            val maxExistingTimer = state.pendingDownloads.mapNotNull { it.estimatedReadyAtEpochMillis }.maxOrNull() ?: now
-            val startFrom = maxOf(now, maxExistingTimer)
-            val waitMillis = DEFAULT_DOWNLOAD_WAIT_SECONDS * 1000L
-            val estimatedReady = startFrom + waitMillis
-
-            val pendingDownload =
-                PendingDownload(
-                    videoId = currentVideo.videoId,
-                    url = finalUrl,
-                    title = currentVideo.title,
-                    thumbnailUrl = currentVideo.thumbnailUrl,
-                    createdAtEpochMillis = now,
-                    convertVideoToAudio = plState.convertVideoToAudio,
-                    deleteOriginalVideo = plState.deleteOriginalVideo,
-                    estimatedReadyAtEpochMillis = estimatedReady,
-                )
-
-            _uiState.update { st ->
-                val nextIndex = plState.currentIndex + 1
-                val newPlState =
-                    if (nextIndex < plState.videos.size) {
-                        plState.copy(currentIndex = nextIndex)
-                    } else {
-                        null
-                    }
-                st.copy(
-                    pendingDownloads = st.pendingDownloads + pendingDownload,
-                    playlistDownloadState = newPlState,
-                )
-            }
-
-            // Auto detect job
-            val detectJob =
-                viewModelScope.launch {
-                    val delayMillis = estimatedReady - System.currentTimeMillis()
-                    if (delayMillis > 0) {
-                        kotlinx.coroutines.delay(delayMillis)
-                    }
-                    _uiState.update { st ->
-                        st.copy(
-                            pendingDownloads =
-                                st.pendingDownloads.map {
-                                    if (it.videoId == pendingDownload.videoId) {
-                                        it.copy(estimatedReadyAtEpochMillis = null)
-                                    } else {
-                                        it
-                                    }
-                                },
+                AlreadyDownloadedBehavior.ASK -> {
+                    _uiState.update {
+                        it.copy(
+                            showDuplicateDownloadDialog = true,
+                            duplicateVideoInfo =
+                                DuplicateVideoInfo(
+                                    videoId = cleanVideoId,
+                                    title = title.ifBlank { existing.title.orEmpty() },
+                                    youtubeUrl = youtubeUrl,
+                                    mediaType = mediaType,
+                                    isFromPlaylist = isFromPlaylist,
+                                    isLocalFile = isLocalFile,
+                                ),
                         )
                     }
-                    autoDetectAndCleanInternal(pendingDownload.copy(estimatedReadyAtEpochMillis = null))
+                    DuplicateDecision.ASKED
                 }
-            pendingDetectJobs[currentVideo.videoId] = detectJob
+            }
+        }
+
+        /**
+         * Claims [videoId] for download, preventing concurrent duplicate downloads.
+         * Returns false if another caller already claimed this videoId.
+         */
+        private fun claimDownload(videoId: String): Boolean {
+            synchronized(downloadsInProgressGuard) {
+                return if (videoId in downloadsInProgress) {
+                    false
+                } else {
+                    downloadsInProgress.add(videoId)
+                    true
+                }
+            }
+        }
+
+        private fun releaseDownload(videoId: String) {
+            synchronized(downloadsInProgressGuard) {
+                downloadsInProgress.remove(videoId)
+            }
+        }
+
+        /**
+         * The user confirmed the duplicate download dialog: continue with the download.
+         */
+        fun proceedDuplicateDownload() {
+            val info = uiState.value.duplicateVideoInfo ?: return
+            _uiState.update {
+                it.copy(showDuplicateDownloadDialog = false, duplicateVideoInfo = null)
+            }
+
+            when {
+                info.isFromPlaylist -> downloadPlaylistVideo(force = true)
+                info.isLocalFile ->
+                    viewModelScope.launch {
+                        queueCurrentItemInternal(skipDuplicateCheck = true)
+                    }
+                else ->
+                    viewModelScope.launch {
+                        val state = uiState.value
+                        startDownloadAndCleanInternal(
+                            convertVideoToAudio = state.convertVideoToAudio,
+                            deleteOriginalVideo = state.deleteOriginalVideo,
+                            skipDuplicateCheck = true,
+                            inputUrl = info.youtubeUrl.ifBlank { null },
+                        )
+                    }
+            }
+        }
+
+        /**
+         * The user declined the duplicate download dialog: do not download the video again.
+         */
+        fun skipDuplicateDownload() {
+            val info = uiState.value.duplicateVideoInfo
+            _uiState.update {
+                it.copy(showDuplicateDownloadDialog = false, duplicateVideoInfo = null)
+            }
+
+            if (info?.isFromPlaylist == true) {
+                // Move on to the next video of the playlist.
+                skipPlaylistVideo()
+            }
+            showToast(context.getString(R.string.duplicate_download_skipped))
+        }
+
+        fun downloadPlaylistVideo(force: Boolean = false) {
+            val playlistState = uiState.value.playlistDownloadState ?: return
+            val currentVideo = playlistState.videos.getOrNull(playlistState.currentIndex) ?: return
+
+            viewModelScope.launch {
+                if (!force) {
+                    val decision =
+                        handleAlreadyDownloaded(
+                            videoId = currentVideo.videoId,
+                            title = currentVideo.title,
+                            youtubeUrl = Constants.buildYouTubeWatchUrl(currentVideo.videoId),
+                            isFromPlaylist = true,
+                        )
+                    if (decision == DuplicateDecision.ASKED) {
+                        // The confirmation dialog is shown; wait for the user to decide.
+                        return@launch
+                    }
+                    if (decision == DuplicateDecision.SKIPPED) {
+                        // Move on to the next video of the playlist.
+                        skipPlaylistVideo()
+                        return@launch
+                    }
+                }
+
+                val state = uiState.value
+                val plState = state.playlistDownloadState ?: return@launch
+                val video = plState.videos.getOrNull(plState.currentIndex) ?: return@launch
+
+                // Launch NewPipe
+                val normalizedUrl = Constants.buildYouTubeWatchUrl(video.videoId)
+                val customCategories = state.customSponsorBlockCategories
+                val finalUrl =
+                    if (customCategories != null) {
+                        "$normalizedUrl&categories=" + customCategories.joinToString(",") { it.name }
+                    } else {
+                        normalizedUrl
+                    }
+                if (!claimDownload(video.videoId)) return@launch
+                try {
+                    launchNewPipe(normalizedUrl)
+                } finally {
+                    releaseDownload(video.videoId)
+                }
+
+                // Spawn pending download
+                val now = System.currentTimeMillis()
+                val maxExistingTimer = state.pendingDownloads.mapNotNull { it.estimatedReadyAtEpochMillis }.maxOrNull() ?: now
+                val startFrom = maxOf(now, maxExistingTimer)
+                val waitMillis = DEFAULT_DOWNLOAD_WAIT_SECONDS * 1000L
+                val estimatedReady = startFrom + waitMillis
+
+                val pendingDownload =
+                    PendingDownload(
+                        videoId = video.videoId,
+                        url = finalUrl,
+                        title = video.title,
+                        thumbnailUrl = video.thumbnailUrl,
+                        createdAtEpochMillis = now,
+                        convertVideoToAudio = plState.convertVideoToAudio,
+                        deleteOriginalVideo = plState.deleteOriginalVideo,
+                        estimatedReadyAtEpochMillis = estimatedReady,
+                    )
+
+                _uiState.update { st ->
+                    val nextIndex = plState.currentIndex + 1
+                    val newPlState =
+                        if (nextIndex < plState.videos.size) {
+                            plState.copy(currentIndex = nextIndex)
+                        } else {
+                            null
+                        }
+                    st.copy(
+                        pendingDownloads = st.pendingDownloads + pendingDownload,
+                        playlistDownloadState = newPlState,
+                    )
+                }
+
+                // Auto detect job
+                val detectJob =
+                    viewModelScope.launch {
+                        val delayMillis = estimatedReady - System.currentTimeMillis()
+                        if (delayMillis > 0) {
+                            kotlinx.coroutines.delay(delayMillis)
+                        }
+                        _uiState.update { st ->
+                            st.copy(
+                                pendingDownloads =
+                                    st.pendingDownloads.map {
+                                        if (it.videoId == pendingDownload.videoId) {
+                                            it.copy(estimatedReadyAtEpochMillis = null)
+                                        } else {
+                                            it
+                                        }
+                                    },
+                            )
+                        }
+                        autoDetectAndCleanInternal(pendingDownload.copy(estimatedReadyAtEpochMillis = null))
+                    }
+                pendingDetectJobs[video.videoId] = detectJob
+            }
         }
 
         fun cancelPlaylistDownload() {
@@ -523,7 +666,7 @@ class MainViewModel
                 }
 
             val metadata =
-                runCatching { fetchYouTubeOEmbed(normalizedUrl) }.getOrElse {
+                runCatching { YouTubeOEmbedFetcher.fetch(videoId) }.getOrElse {
                     YouTubeMetadata(
                         title = state.urlInput.ifBlank { videoId },
                         authorName = null,
@@ -809,6 +952,7 @@ class MainViewModel
         private suspend fun queueCurrentItemInternal(
             force: Boolean = false,
             customFolderUri: String? = null,
+            skipDuplicateCheck: Boolean = false,
         ) {
             val state = uiState.value
             val fileUri = state.selectedFileUri
@@ -890,6 +1034,22 @@ class MainViewModel
                 if (videoId.isNullOrBlank()) {
                     showToast(context.getString(R.string.enter_valid_url))
                     return
+                }
+
+                // The video may already be tracked in the downloaded-videos database.
+                // Check before enqueueing so no duplicate work is started.
+                if (!skipDuplicateCheck) {
+                    val decision =
+                        handleAlreadyDownloaded(
+                            videoId = videoId,
+                            title = state.selectedFileName.ifBlank { metadata?.title.orEmpty() },
+                            youtubeUrl = youtubeUrl,
+                            mediaType = mediaType,
+                            isLocalFile = true,
+                        )
+                    if (decision != DuplicateDecision.PROCEED) {
+                        return
+                    }
                 }
 
                 val fileDuration = metadata?.durationSeconds ?: 0L
@@ -1022,13 +1182,15 @@ class MainViewModel
         private suspend fun startDownloadAndCleanInternal(
             convertVideoToAudio: Boolean,
             deleteOriginalVideo: Boolean,
+            skipDuplicateCheck: Boolean = false,
+            inputUrl: String? = null,
         ) {
             val state = uiState.value
-            val inputUrl = state.urlInput.trim()
-            val videoId = YouTubeUrlParser.extractVideoId(inputUrl)
-            val playlistId = YouTubeUrlParser.extractPlaylistId(inputUrl)
+            val url = (inputUrl ?: state.urlInput).trim()
+            val videoId = YouTubeUrlParser.extractVideoId(url)
+            val playlistId = YouTubeUrlParser.extractPlaylistId(url)
 
-            if (inputUrl.isBlank() || (videoId.isNullOrBlank() && playlistId.isNullOrBlank())) {
+            if (url.isBlank() || (videoId.isNullOrBlank() && playlistId.isNullOrBlank())) {
                 showToast(context.getString(R.string.enter_valid_url))
                 return
             }
@@ -1051,6 +1213,26 @@ class MainViewModel
                             return@launch
                         }
 
+                        // Reorder playlist: move already-downloaded videos to the end so they
+                        // are easy to skip when the user reaches them.
+                        val alreadyDownloadedIds = mutableSetOf<String>()
+                        for (video in videos) {
+                            val existing =
+                                runCatching { downloadedVideoRepository.findByVideoId(video.videoId) }.getOrNull()
+                            if (existing != null) alreadyDownloadedIds.add(video.videoId)
+                        }
+                        val orderedVideos =
+                            if (alreadyDownloadedIds.isEmpty()) {
+                                videos
+                            } else {
+                                val (newVideos, dupVideos) = videos.partition { it.videoId !in alreadyDownloadedIds }
+                                newVideos + dupVideos
+                            }
+
+                        if (alreadyDownloadedIds.isNotEmpty()) {
+                            showToast("${alreadyDownloadedIds.size} already downloaded video(s) moved to the end of the playlist")
+                        }
+
                         _uiState.update { st ->
                             st.copy(
                                 urlInput = "",
@@ -1060,7 +1242,7 @@ class MainViewModel
                                     com.nihaltp.sbskip.model.PlaylistDownloadState(
                                         playlistId = playlistId,
                                         title = "Playlist",
-                                        videos = videos,
+                                        videos = orderedVideos,
                                         currentIndex = 0,
                                         convertVideoToAudio = convertVideoToAudio,
                                         deleteOriginalVideo = deleteOriginalVideo,
@@ -1084,15 +1266,37 @@ class MainViewModel
                     normalizedUrl
                 }
 
+            // The video may already be tracked in the downloaded-videos database.
+            // Check before handing the URL over to NewPipe so nothing is downloaded twice.
+            if (!skipDuplicateCheck) {
+                val decision =
+                    handleAlreadyDownloaded(
+                        videoId = videoId,
+                        youtubeUrl = normalizedUrl,
+                    )
+                if (decision != DuplicateDecision.PROCEED) {
+                    _uiState.update { it.copy(isFetchingMetadata = false) }
+                    return
+                }
+            }
+
             // Start NewPipe before doing network metadata requests so the download begins immediately.
-            launchNewPipe(normalizedUrl)
+            if (!claimDownload(videoId)) {
+                _uiState.update { it.copy(isFetchingMetadata = false) }
+                return
+            }
+            try {
+                launchNewPipe(normalizedUrl)
+            } finally {
+                releaseDownload(videoId)
+            }
 
             // Fetch metadata and video duration concurrently after NewPipe has been invoked.
             val metadataDeferred =
                 viewModelScope.async {
-                    runCatching { fetchYouTubeOEmbed(normalizedUrl) }.getOrElse {
+                    runCatching { YouTubeOEmbedFetcher.fetch(videoId) }.getOrElse {
                         YouTubeMetadata(
-                            title = state.urlInput.ifBlank { videoId },
+                            title = url.ifBlank { videoId },
                             authorName = null,
                             authorUrl = null,
                             thumbnailUrl = null,
@@ -1298,39 +1502,6 @@ class MainViewModel
                 confirmDetectedFile(updatedPendingDownload)
             }
         }
-
-        private suspend fun fetchYouTubeOEmbed(videoUrl: String): YouTubeMetadata =
-            withContext(Dispatchers.IO) {
-                val oEmbedUrl =
-                    videoUrl.toHttpUrlOrNull()
-                        ?.newBuilder()
-                        ?.scheme("https")
-                        ?.host("www.youtube.com")
-                        ?.encodedPath("/oembed")
-                        ?.addQueryParameter("url", videoUrl)
-                        ?.addQueryParameter("format", "json")
-                        ?.build()
-                        ?: throw IOException(context.getString(R.string.unable_fetch_metadata))
-
-                NetworkRetry.execute {
-                    val request = Request.Builder().url(oEmbedUrl).build()
-                    httpClient.newCall(request).execute().use { response ->
-                        if (!response.isSuccessful) {
-                            throw IOException("oEmbed request failed: ${response.code}")
-                        }
-                        val body = response.body?.string().orEmpty()
-                        val parsed = json.decodeFromString(YouTubeOEmbedResponse.serializer(), body)
-                        val videoId = YouTubeUrlParser.extractVideoId(videoUrl)
-                        val customThumbnailUrl = videoId?.let { Constants.buildYouTubeThumbnailUrl(it) } ?: parsed.thumbnailUrl
-                        YouTubeMetadata(
-                            title = parsed.title,
-                            authorName = parsed.authorName,
-                            authorUrl = parsed.authorUrl,
-                            thumbnailUrl = customThumbnailUrl,
-                        )
-                    }
-                }
-            }
 
         private fun launchNewPipe(youtubeUrl: String) {
             val intent =
@@ -1717,13 +1888,16 @@ class MainViewModel
             val folderUri: String? = null,
         )
 
-        @Serializable
-        private data class YouTubeOEmbedResponse(
-            val title: String? = null,
-            @SerialName("author_name") val authorName: String? = null,
-            @SerialName("author_url") val authorUrl: String? = null,
-            @SerialName("thumbnail_url") val thumbnailUrl: String? = null,
-        )
+        private enum class DuplicateDecision {
+            /** The download may continue. */
+            PROCEED,
+
+            /** The video was skipped because it is already downloaded. */
+            SKIPPED,
+
+            /** The user has to confirm the download in the duplicate dialog. */
+            ASKED,
+        }
 
         fun showToast(
             message: String,

@@ -116,6 +116,15 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
+    testOptions {
+        unitTests {
+            // Give Robolectric access to the merged manifest and resources so unit tests can
+            // resolve app strings and themes. The SDK level and the application class are pinned
+            // in src/test/resources/robolectric.properties.
+            isIncludeAndroidResources = true
+        }
+    }
 }
 
 kotlin {
@@ -215,11 +224,17 @@ dependencies {
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
     androidTestImplementation(platform("androidx.compose:compose-bom:2026.06.01"))
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    // Used by the database migration test to create a database of an older schema version.
+    androidTestImplementation("androidx.sqlite:sqlite-framework:2.6.2")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
     androidTestImplementation("tools.fastlane:screengrab:2.1.1")
 }
 
 kapt {
+    arguments {
+        arg("room.schemaLocation", "$projectDir/src/main/assets/schema/")
+        arg("room.incremental", "true")
+    }
     correctErrorTypes = true
 }
 

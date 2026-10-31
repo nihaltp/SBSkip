@@ -6,6 +6,7 @@ import com.nihaltp.sbskip.data.local.dao.DownloadQueueDao
 import com.nihaltp.sbskip.model.DownloadQueueEntity
 import com.nihaltp.sbskip.model.DownloadQueueItem
 import com.nihaltp.sbskip.model.DownloadQueueStatus
+import com.nihaltp.sbskip.model.DownloadedVideoEntity
 import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.model.QueueActionResult
 import com.nihaltp.sbskip.util.AppLogger
@@ -23,6 +24,7 @@ class DefaultQueueRepository
     @Inject
     constructor(
         private val dao: DownloadQueueDao,
+        private val downloadedVideoRepository: DownloadedVideoRepository,
         private val workScheduler: DownloadWorkScheduler,
         @ApplicationContext private val context: Context,
     ) : QueueRepository {
@@ -52,6 +54,18 @@ class DefaultQueueRepository
                     YouTubeUrlParser.extractVideoId(youtubeUrl)
                         ?: return QueueActionResult(success = false, message = context.getString(R.string.enter_valid_url))
                 }
+
+            // Skip if this video is already tracked in the downloaded-videos database.
+            if (videoId != null) {
+                val alreadyTracked = downloadedVideoRepository.findByVideoId(videoId)
+                if (alreadyTracked != null) {
+                    AppLogger.queue("skipped duplicate enqueue for videoId=$videoId")
+                    return QueueActionResult(
+                        success = false,
+                        message = context.getString(R.string.duplicate_download_skipped),
+                    )
+                }
+            }
 
             // Normalize the YouTube URL without smuggled query flags. Flags (overwrite,
             // bypassDurationCheck, noSuffix) are stored as explicit entity columns instead of
@@ -164,6 +178,22 @@ class DefaultQueueRepository
                 outputDurationSeconds = outputDurationSeconds,
                 updatedAtEpochMillis = System.currentTimeMillis(),
             )
+
+            // Record the completed video so future enqueues can skip it as a duplicate.
+            val item = dao.findById(itemId)
+            val videoId = item?.let { YouTubeUrlParser.extractVideoId(it.url) }
+            if (videoId != null) {
+                downloadedVideoRepository.insert(
+                    DownloadedVideoEntity(
+                        videoId = videoId,
+                        url = Constants.buildYouTubeWatchUrl(videoId),
+                        title = item.title,
+                        thumbnailUrl = item.thumbnailUrl,
+                        mediaType = item.mediaType,
+                        needsEnrichment = false,
+                    ),
+                )
+            }
         }
 
         override suspend fun markFailed(

@@ -4,6 +4,7 @@ import android.content.Context
 import com.nihaltp.sbskip.data.local.dao.DownloadQueueDao
 import com.nihaltp.sbskip.model.DownloadQueueEntity
 import com.nihaltp.sbskip.model.DownloadQueueStatus
+import com.nihaltp.sbskip.model.DownloadedVideoEntity
 import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.workers.DownloadWorkScheduler
 import io.mockk.Runs
@@ -44,6 +45,7 @@ class DefaultQueueRepositoryTest {
     private lateinit var context: Context
     private lateinit var dao: DownloadQueueDao
     private lateinit var workScheduler: DownloadWorkScheduler
+    private lateinit var downloadedVideoRepository: DownloadedVideoRepository
     private lateinit var repository: DefaultQueueRepository
 
     @Before
@@ -54,10 +56,12 @@ class DefaultQueueRepositoryTest {
         every { context.getString(any<Int>()) } returns ""
         dao = mockk(relaxed = true)
         workScheduler = mockk(relaxed = true)
+        downloadedVideoRepository = mockk(relaxed = true)
 
         coEvery { dao.observeQueue() } returns flowOf(emptyList())
+        coEvery { downloadedVideoRepository.findByVideoId(any()) } returns null
 
-        repository = DefaultQueueRepository(dao, workScheduler, context)
+        repository = DefaultQueueRepository(dao, downloadedVideoRepository, workScheduler, context)
     }
 
     @After
@@ -353,5 +357,69 @@ class DefaultQueueRepositoryTest {
             assertEquals(MediaType.VIDEO, item?.mediaType)
             assertEquals(180L, item?.durationSeconds)
             assertEquals(DownloadQueueStatus.QUEUED, item?.status)
+        }
+
+    // ── enqueue: duplicate detection ────────────────────────────────────────────
+
+    @Test
+    fun `enqueue skips video already in downloaded_videos`() =
+        runTest(testDispatcher) {
+            val existing =
+                DownloadedVideoEntity(
+                    id = 1L,
+                    videoId = "dQw4w9WgXcQ",
+                    url = "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                    title = "Existing Video",
+                    mediaType = "video",
+                )
+            coEvery { downloadedVideoRepository.findByVideoId("dQw4w9WgXcQ") } returns existing
+
+            val result =
+                repository.enqueue(
+                    localFileUri = "content://media/video/1",
+                    title = "Test",
+                    youtubeUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                    mediaType = MediaType.VIDEO,
+                )
+
+            assertFalse("Expected failure for already downloaded video", result.success)
+            coVerify(exactly = 0) { dao.insert(any()) }
+        }
+
+    @Test
+    fun `enqueue does not skip video not yet in downloaded_videos`() =
+        runTest(testDispatcher) {
+            val insertedIdSlot = slot<DownloadQueueEntity>()
+            coEvery { dao.insert(capture(insertedIdSlot)) } returns 10L
+            coEvery { downloadedVideoRepository.findByVideoId(any()) } returns null
+
+            val result =
+                repository.enqueue(
+                    localFileUri = "content://media/video/1",
+                    title = "Test",
+                    youtubeUrl = "https://www.youtube.com/watch?v=abc123def45",
+                    mediaType = MediaType.VIDEO,
+                )
+
+            assertTrue("Expected success for new video", result.success)
+            coVerify(exactly = 1) { dao.insert(any()) }
+        }
+
+    @Test
+    fun `enqueue does not skip sbskip local scheme (no videoId)`() =
+        runTest(testDispatcher) {
+            val insertedIdSlot = slot<DownloadQueueEntity>()
+            coEvery { dao.insert(capture(insertedIdSlot)) } returns 10L
+            coEvery { downloadedVideoRepository.findByVideoId(any()) } returns null
+
+            val result =
+                repository.enqueue(
+                    localFileUri = "content://media/video/1",
+                    title = "Local Convert",
+                    youtubeUrl = "sbskip://local",
+                    mediaType = MediaType.VIDEO,
+                )
+
+            assertTrue("Expected success for sbskip:// scheme", result.success)
         }
 }
