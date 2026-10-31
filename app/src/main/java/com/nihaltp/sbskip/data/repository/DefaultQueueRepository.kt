@@ -6,6 +6,7 @@ import com.nihaltp.sbskip.data.local.dao.DownloadQueueDao
 import com.nihaltp.sbskip.model.DownloadQueueEntity
 import com.nihaltp.sbskip.model.DownloadQueueItem
 import com.nihaltp.sbskip.model.DownloadQueueStatus
+import com.nihaltp.sbskip.model.DownloadedVideoEntity
 import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.model.QueueActionResult
 import com.nihaltp.sbskip.util.AppLogger
@@ -177,6 +178,22 @@ class DefaultQueueRepository
                 outputDurationSeconds = outputDurationSeconds,
                 updatedAtEpochMillis = System.currentTimeMillis(),
             )
+
+            // Record the completed video so future enqueues can skip it as a duplicate.
+            val item = dao.findById(itemId)
+            val videoId = item?.let { YouTubeUrlParser.extractVideoId(it.url) }
+            if (videoId != null) {
+                downloadedVideoRepository.insert(
+                    DownloadedVideoEntity(
+                        videoId = videoId,
+                        url = Constants.buildYouTubeWatchUrl(videoId),
+                        title = item.title,
+                        thumbnailUrl = item.thumbnailUrl,
+                        mediaType = item.mediaType,
+                        needsEnrichment = false,
+                    ),
+                )
+            }
         }
 
         override suspend fun markFailed(
