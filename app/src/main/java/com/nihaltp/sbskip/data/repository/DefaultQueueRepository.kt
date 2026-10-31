@@ -46,6 +46,7 @@ class DefaultQueueRepository
             overwrite: Boolean,
             bypassDurationCheck: Boolean,
             noSuffix: Boolean,
+            skipDuplicateCheck: Boolean,
         ): QueueActionResult {
             val videoId =
                 if (youtubeUrl.isBlank() || youtubeUrl.startsWith("sbskip://")) {
@@ -56,7 +57,7 @@ class DefaultQueueRepository
                 }
 
             // Skip if this video is already tracked in the downloaded-videos database.
-            if (videoId != null) {
+            if (videoId != null && !skipDuplicateCheck) {
                 val alreadyTracked = downloadedVideoRepository.findByVideoId(videoId)
                 if (alreadyTracked != null) {
                     AppLogger.queue("skipped duplicate enqueue for videoId=$videoId")

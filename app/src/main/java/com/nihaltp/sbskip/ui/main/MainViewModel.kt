@@ -1150,6 +1150,7 @@ class MainViewModel
                     videoOutputDirUri = if (mediaType == MediaType.VIDEO) finalFolderUri else null,
                     relativePath = relativePath,
                     bypassDurationCheck = force,
+                    skipDuplicateCheck = skipDuplicateCheck,
                 )
 
             val successToast =
