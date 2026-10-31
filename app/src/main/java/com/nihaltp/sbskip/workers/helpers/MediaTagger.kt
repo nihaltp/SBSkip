@@ -41,17 +41,6 @@ class MediaTagger
                 return inputFile
             }
 
-            val metadataJson =
-                buildProcessedMetadataJson(
-                    videoId = videoId,
-                    youtubeUrl = youtubeUrl,
-                    youtubeTitle = youtubeTitle,
-                    authorName = authorName,
-                    authorUrl = authorUrl,
-                    thumbnailUrl = thumbnailUrl,
-                    categories = categories,
-                    sbSkipSegments = sbSkipSegments,
-                )
             val taggedOutput = File(inputFile.parentFile, "${inputFile.nameWithoutExtension}_tagged.${inputFile.extension}")
 
             val isAudio = extension in setOf("m4a", "mp3")
@@ -121,18 +110,24 @@ class MediaTagger
             }
 
             if (!authorUrl.isNullOrBlank()) {
-                metadataArgs.add("-metadata author_url=\"${escapeForFfmpeg(authorUrl)}\"")
+                metadataArgs.add("-metadata SBSKIP_AUTHOR_URL=\"${escapeForFfmpeg(authorUrl)}\"")
             }
 
             if (!thumbnailUrl.isNullOrBlank()) {
-                metadataArgs.add("-metadata thumbnail_url=\"${escapeForFfmpeg(thumbnailUrl)}\"")
+                metadataArgs.add("-metadata SBSKIP_THUMBNAIL_URL=\"${escapeForFfmpeg(thumbnailUrl)}\"")
             }
 
-            metadataArgs.add("-metadata SB_SKIP_SEGMENTS=\"${escapeForFfmpeg(sbSkipSegments)}\"")
-            metadataArgs.add("-metadata SB_VERSION=\"${escapeForFfmpeg(BuildConfig.VERSION_NAME)}\"")
-            metadataArgs.add("-metadata SB_PROCESSED=\"true\"")
-            metadataArgs.add("-metadata YOUTUBE_VIDEO_URL=\"${escapeForFfmpeg(youtubeUrl)}\"")
-            metadataArgs.add("-metadata YOUTUBE_VIDEO_ID=\"${escapeForFfmpeg(videoId)}\"")
+            if (authorName.isNotBlank()) {
+                metadataArgs.add("-metadata SBSKIP_AUTHOR_NAME=\"${escapeForFfmpeg(authorName)}\"")
+            }
+
+            metadataArgs.add("-metadata SBSKIP_SEGMENTS=\"${escapeForFfmpeg(sbSkipSegments)}\"")
+            metadataArgs.add("-metadata SBSKIP_VERSION=\"${escapeForFfmpeg(BuildConfig.VERSION_NAME)}\"")
+            metadataArgs.add("-metadata SBSKIP_PROCESSED=\"true\"")
+            metadataArgs.add("-metadata SBSKIP_PROCESSED_AT=\"${System.currentTimeMillis()}\"")
+            metadataArgs.add("-metadata SBSKIP_YOUTUBE_VIDEO_URL=\"${escapeForFfmpeg(youtubeUrl)}\"")
+            metadataArgs.add("-metadata SBSKIP_YOUTUBE_VIDEO_ID=\"${escapeForFfmpeg(videoId)}\"")
+            metadataArgs.add("-metadata SBSKIP_YOUTUBE_TITLE=\"${escapeForFfmpeg(youtubeTitle)}\"")
 
             val metadataArgsStr = metadataArgs.joinToString(" ")
             val metadataArgsPart = if (metadataArgsStr.isNotEmpty()) " $metadataArgsStr" else ""
@@ -142,20 +137,14 @@ class MediaTagger
                     if (extension == "mp3") {
                         "-y -i \"${inputFile.absolutePath}\" -i \"${thumbFile.absolutePath}\" " +
                             "-map 0 -map 1 -c copy -id3v2_version 3$metadataArgsPart " +
-                            "-metadata comment=\"${escapeForFfmpeg(
-                                metadataJson,
-                            )}\" -metadata:s:v title=\"Album cover\" -metadata:s:v comment=\"Cover (front)\" \"${taggedOutput.absolutePath}\""
+                            "-metadata:s:v title=\"Album cover\" -metadata:s:v comment=\"Cover (front)\" \"${taggedOutput.absolutePath}\""
                     } else { // m4a
                         "-y -i \"${inputFile.absolutePath}\" -i \"${thumbFile.absolutePath}\" " +
                             "-map 0 -map 1 -c copy -disposition:v:0 attached_pic$metadataArgsPart " +
-                            "-metadata comment=\"${escapeForFfmpeg(
-                                metadataJson,
-                            )}\" \"${taggedOutput.absolutePath}\""
+                            "\"${taggedOutput.absolutePath}\""
                     }
                 } else {
-                    "-y -i \"${inputFile.absolutePath}\"$metadataArgsPart -metadata comment=\"${escapeForFfmpeg(
-                        metadataJson,
-                    )}\" -codec copy \"${taggedOutput.absolutePath}\""
+                    "-y -i \"${inputFile.absolutePath}\"$metadataArgsPart -codec copy \"${taggedOutput.absolutePath}\""
                 }
 
             val session =
@@ -174,38 +163,6 @@ class MediaTagger
                 taggedOutput.delete()
                 inputFile
             }
-        }
-
-        internal fun buildProcessedMetadataJson(
-            videoId: String,
-            youtubeUrl: String,
-            youtubeTitle: String,
-            authorName: String?,
-            authorUrl: String?,
-            thumbnailUrl: String?,
-            categories: List<String>,
-            sbSkipSegments: String,
-        ): String {
-            val escapedTitle = youtubeTitle.replace("\\", "\\\\").replace("\"", "\\\"")
-            val escapedUrl = youtubeUrl.replace("\\", "\\\\").replace("\"", "\\\"")
-            val escapedVideoId = videoId.replace("\\", "\\\\").replace("\"", "\\\"")
-            val escapedAuthorName = authorName?.replace("\\", "\\\\")?.replace("\"", "\\\"").orEmpty()
-            val escapedAuthorUrl = authorUrl?.replace("\\", "\\\\")?.replace("\"", "\\\"").orEmpty()
-            val escapedThumbnailUrl = thumbnailUrl?.replace("\\", "\\\\")?.replace("\"", "\\\"").orEmpty()
-            val removedCategories = categories.joinToString(",") { "\"${it.replace("\\", "\\\\").replace("\"", "\\\"")}\"" }
-            return "{" +
-                "\"processed\":true," +
-                "\"youtubeId\":\"$escapedVideoId\"," +
-                "\"youtubeUrl\":\"$escapedUrl\"," +
-                "\"youtubeTitle\":\"$escapedTitle\"," +
-                "\"authorName\":\"$escapedAuthorName\"," +
-                "\"authorUrl\":\"$escapedAuthorUrl\"," +
-                "\"thumbnailUrl\":\"$escapedThumbnailUrl\"," +
-                "\"processedAt\":\"${System.currentTimeMillis()}\"," +
-                "\"sbskipVersion\":\"${BuildConfig.VERSION_NAME}\"," +
-                "\"removedCategories\":[$removedCategories]," +
-                "\"sbSkipSegments\":\"${sbSkipSegments.replace("\\", "\\\\").replace("\"", "\\\"")}\"" +
-                "}"
         }
 
         private data class ExistingMetadata(
