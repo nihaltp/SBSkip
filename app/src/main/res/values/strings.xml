@@ -223,7 +223,7 @@
     <string name="downloaded_history_title">Downloads</string>
     <string name="downloaded_history_scroll_to_newest">Scroll to newest</string>
     <string name="downloaded_history_empty_title">No downloaded videos yet</string>
-    <string name="downloaded_history_empty_body">Downloaded videos will appear here once tracking is enabled.</string>
+    <string name="downloaded_history_empty_body">Downloaded and imported videos will appear here.</string>
     <string name="downloaded_history_clear_title">Clear Downloaded Videos</string>
     <string name="downloaded_history_clear_message">This will delete all tracked downloaded videos. This action cannot be undone.</string>
     <string name="show_more_actions">Show more actions</string>
@@ -368,9 +368,15 @@
     <string name="notification_channel_import_name">Import progress</string>
     <string name="notification_channel_import_description">Silent progress updates while folders are imported.</string>
     <string name="notification_import_files_title">Importing files</string>
-    <string name="notification_import_files_remaining">%1$d files remaining</string>
+    <plurals name="notification_import_files_remaining">
+        <item quantity="one">%1$d file remaining</item>
+        <item quantity="other">%1$d files remaining</item>
+    </plurals>
     <string name="notification_import_folders_title">Importing folders</string>
-    <string name="notification_import_folders_remaining">%1$d folders remaining</string>
+    <plurals name="notification_import_folders_remaining">
+        <item quantity="one">%1$d folder remaining</item>
+        <item quantity="other">%1$d folders remaining</item>
+    </plurals>
     <string name="notification_import_cancel">Cancel scan</string>
 
     <!-- Export/Import Queue -->

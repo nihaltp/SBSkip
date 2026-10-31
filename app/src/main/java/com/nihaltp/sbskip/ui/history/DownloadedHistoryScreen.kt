@@ -253,7 +253,7 @@ fun DownloadedHistoryScreen(
     // File picker for import
     val importFileLauncher =
         rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.GetContent(),
+            contract = ActivityResultContracts.OpenDocument(),
         ) { uri ->
             uri?.let { fileUri ->
                 coroutineScope.launch {
@@ -812,7 +812,7 @@ fun DownloadedHistoryScreen(
                         }
                     }
                     ImportSource.FILE -> {
-                        importFileLauncher.launch("text/plain")
+                        importFileLauncher.launch(arrayOf("text/plain", "application/json"))
                     }
                     ImportSource.FOLDER -> {
                         importLauncher.launch(null)

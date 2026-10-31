@@ -58,6 +58,9 @@ object SBSkipDatabaseMigrations {
                     "CREATE UNIQUE INDEX IF NOT EXISTS `index_downloaded_videos_videoId` " +
                         "ON `downloaded_videos` (`videoId`)",
                 )
+                db.execSQL("ALTER TABLE download_queue ADD COLUMN overwrite INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE download_queue ADD COLUMN bypassDurationCheck INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE download_queue ADD COLUMN noSuffix INTEGER NOT NULL DEFAULT 0")
             }
         }
 

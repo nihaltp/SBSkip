@@ -141,7 +141,12 @@ object ExportImportUtil {
      * Extract sponsor block categories from URL query parameter.
      */
     private fun extractCategoriesFromUrl(url: String): List<String>? {
-        val uri = java.net.URI(url)
+        val uri =
+            try {
+                java.net.URI(url)
+            } catch (e: Exception) {
+                return null
+            }
         val categoriesParam =
             uri.rawQuery
                 ?.split('&')

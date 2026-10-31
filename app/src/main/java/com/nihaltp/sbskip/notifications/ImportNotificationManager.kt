@@ -55,7 +55,12 @@ class ImportNotificationManager
             val notification =
                 buildNotification(
                     title = context.getString(R.string.notification_import_files_title),
-                    text = context.getString(R.string.notification_import_files_remaining, remainingFiles),
+                    text =
+                        context.resources.getQuantityString(
+                            R.plurals.notification_import_files_remaining,
+                            remainingFiles,
+                            remainingFiles,
+                        ),
                     subText = currentFileName,
                     total = totalFiles,
                     progress = (totalFiles - remainingFiles).coerceAtLeast(0),
@@ -78,7 +83,12 @@ class ImportNotificationManager
             val notification =
                 buildNotification(
                     title = context.getString(R.string.notification_import_folders_title),
-                    text = context.getString(R.string.notification_import_folders_remaining, foldersRemaining),
+                    text =
+                        context.resources.getQuantityString(
+                            R.plurals.notification_import_folders_remaining,
+                            foldersRemaining,
+                            foldersRemaining,
+                        ),
                     subText = null,
                     total = 0,
                     progress = 0,

@@ -26,6 +26,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -280,16 +281,13 @@ class ImportManagerTest {
         }
 
         val queue = importManager.importQueue.value
-        // Overflow items are marked FAILED and kept in the queue, not silently removed.
-        assertEquals(total, queue.size)
-        // All but the newest item overflowed and were marked FAILED.
-        assertEquals(total - 1, queue.count { it.status == FolderImportStatus.FAILED })
-        assertEquals(1, queue.count { it.status == FolderImportStatus.PENDING })
-        // Overflowed items carry an error message explaining why.
-        queue.filter { it.status == FolderImportStatus.FAILED }.forEach { failed ->
-            assertEquals("Import queue full", failed.errorMessage)
-        }
-        // The newest item is always kept.
+        // Overflow items are evicted, keeping only MAX_QUEUE_SIZE items.
+        assertEquals(ImportManager.MAX_QUEUE_SIZE, queue.size)
+        // All remaining items are PENDING (no items were marked FAILED).
+        assertEquals(ImportManager.MAX_QUEUE_SIZE, queue.count { it.status == FolderImportStatus.PENDING })
+        assertEquals(0, queue.count { it.status == FolderImportStatus.FAILED })
+        // The oldest items are evicted first; newest items are kept.
+        assertEquals(20L, queue.first().id)
         assertEquals((total - 1).toLong(), queue.last().id)
         assertEquals(FolderImportStatus.PENDING, queue.last().status)
     }
@@ -302,12 +300,15 @@ class ImportManagerTest {
         importManager.enqueueForTesting(item(999L, FolderImportStatus.COMPLETED))
 
         val queue = importManager.importQueue.value
-        // The overflow PENDING item (id 0) is marked FAILED, not removed.
-        assertEquals(ImportManager.MAX_QUEUE_SIZE + 1, queue.size)
-        assertEquals(1, queue.count { it.status == FolderImportStatus.FAILED })
-        assertEquals(0L, queue.first { it.status == FolderImportStatus.FAILED }.id)
-        // The newest COMPLETED item is kept.
-        assertTrue(queue.any { it.id == 999L && it.status == FolderImportStatus.COMPLETED })
+        // Terminal items are evicted first; since no existing items are terminal,
+        // the oldest PENDING item is evicted instead.
+        assertEquals(ImportManager.MAX_QUEUE_SIZE, queue.size)
+        assertEquals(ImportManager.MAX_QUEUE_SIZE - 1, queue.count { it.status == FolderImportStatus.PENDING })
+        assertEquals(1, queue.count { it.status == FolderImportStatus.COMPLETED })
+        assertEquals(0, queue.count { it.status == FolderImportStatus.FAILED })
+        assertEquals(1L, queue.first().id)
+        assertEquals(999L, queue.last().id)
+        assertFalse(queue.any { it.id == 0L })
     }
 
     @Test

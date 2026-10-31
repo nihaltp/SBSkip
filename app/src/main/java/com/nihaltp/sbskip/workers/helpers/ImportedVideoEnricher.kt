@@ -4,6 +4,7 @@ import com.nihaltp.sbskip.model.DownloadedVideoEntity
 import com.nihaltp.sbskip.util.AppLogger
 import com.nihaltp.sbskip.util.Constants
 import com.nihaltp.sbskip.util.fetcher.YouTubeOEmbedFetcher
+import kotlinx.coroutines.CancellationException
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -79,18 +80,21 @@ class ImportedVideoEnricher
                 // never be describable through oEmbed, so stop asking forever.
                 // A 5xx response means the server is temporarily overworked: retry later.
                 // A null statusCode means a transport-level failure (DNS, timeout, refused): retry later.
+                // 408 (Request Timeout) and 429 (Too Many Requests) are transient: retry later.
                 val code = e.statusCode
-                if (code != null && code in 400 until 500) {
-                    ImportedVideoEnrichment.Unavailable
-                } else {
+                if (code == 408 || code == 429 || code == null || code in 500 until 600) {
                     AppLogger.worker("Transient oEmbed failure for $id (status=$code): will retry")
                     ImportedVideoEnrichment.Retry
+                } else {
+                    ImportedVideoEnrichment.Unavailable
                 }
             } catch (e: IOException) {
                 // Any other I/O failure (should not happen now that OEmbedFetchException covers
                 // HTTP errors, but stay safe): transient, retry later.
                 AppLogger.error("ImportedVideoEnricher", e, "I/O failure for $id")
                 ImportedVideoEnrichment.Retry
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 AppLogger.error("ImportedVideoEnricher", e, "Metadata request failed for $id")
                 ImportedVideoEnrichment.Retry

@@ -78,27 +78,35 @@ fun QueueItemCard(
                         modifier =
                             Modifier
                                 .fillMaxSize()
-                                .pointerInput(item.thumbnailUrl) {
-                                    detectTapGestures(
-                                        onLongPress = {
-                                            val url = item.thumbnailUrl
-                                            if (url != null) {
-                                                coroutineScope.launch {
-                                                    val success = ClipboardHelper.copyImageToClipboard(context, url)
-                                                    if (success) {
-                                                        Toast.makeText(
-                                                            context,
-                                                            context.getString(R.string.thumbnail_copied_toast),
-                                                            Toast.LENGTH_SHORT,
-                                                        ).show()
-                                                    } else {
-                                                        Toast.makeText(context, "Failed to copy thumbnail image", Toast.LENGTH_SHORT).show()
+                                .takeIf { item.thumbnailUrl != null }
+                                ?.let {
+                                    it.pointerInput(item.thumbnailUrl) {
+                                        detectTapGestures(
+                                            onLongPress = {
+                                                val url = item.thumbnailUrl
+                                                if (url != null) {
+                                                    coroutineScope.launch {
+                                                        val success = ClipboardHelper.copyImageToClipboard(context, url)
+                                                        if (success) {
+                                                            Toast.makeText(
+                                                                context,
+                                                                context.getString(R.string.thumbnail_copied_toast),
+                                                                Toast.LENGTH_SHORT,
+                                                            ).show()
+                                                        } else {
+                                                            Toast.makeText(
+                                                                context,
+                                                                "Failed to copy thumbnail image",
+                                                                Toast.LENGTH_SHORT,
+                                                            ).show()
+                                                        }
                                                     }
                                                 }
-                                            }
-                                        },
-                                    )
-                                },
+                                            },
+                                        )
+                                    }
+                                }
+                                ?: Modifier.fillMaxSize(),
                         fallbackIcon = Icons.Filled.CleaningServices,
                         fallbackTint = Color.Gray,
                     )
