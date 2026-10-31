@@ -13,7 +13,7 @@ interface DownloadedVideoDao {
     @Query("SELECT * FROM downloaded_videos ORDER BY id DESC")
     fun observeDownloadedVideos(): Flow<List<DownloadedVideoEntity>>
 
-    @Insert(onConflict = OnConflictStrategy.ABORT)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(entity: DownloadedVideoEntity): Long
 
     @Query("DELETE FROM downloaded_videos WHERE id = :id")
