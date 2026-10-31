@@ -21,6 +21,7 @@ interface QueueRepository {
         overwrite: Boolean = false,
         bypassDurationCheck: Boolean = false,
         noSuffix: Boolean = false,
+        skipDuplicateCheck: Boolean = false,
     ): QueueActionResult
 
     suspend fun retry(

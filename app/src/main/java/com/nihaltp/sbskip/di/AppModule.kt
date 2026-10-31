@@ -63,24 +63,6 @@ abstract class AppModule {
         fun provideDatabase(
             @ApplicationContext context: Context,
         ): SBSkipDatabase {
-            val migration4To5 =
-                object : androidx.room.migration.Migration(4, 5) {
-                    override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
-                        db.execSQL("ALTER TABLE download_queue ADD COLUMN relativePath TEXT")
-                    }
-                }
-            val migration5To6 =
-                object : androidx.room.migration.Migration(5, 6) {
-                    override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
-                        db.execSQL("ALTER TABLE download_queue ADD COLUMN videoOutputDirUri TEXT")
-                    }
-                }
-            val migration6To7 =
-                object : androidx.room.migration.Migration(6, 7) {
-                    override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
-                        db.execSQL("ALTER TABLE download_queue ADD COLUMN outputDurationSeconds INTEGER")
-                    }
-                }
             val migration7To8 =
                 object : androidx.room.migration.Migration(7, 8) {
                     override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
@@ -110,7 +92,12 @@ abstract class AppModule {
 
             return Room.databaseBuilder(context, SBSkipDatabase::class.java, "sbskip.db")
                 .enableMultiInstanceInvalidation()
-                .addMigrations(*SBSkipDatabaseMigrations.ALL)
+                .addMigrations(
+                    SBSkipDatabaseMigrations.MIGRATION_4_5,
+                    SBSkipDatabaseMigrations.MIGRATION_5_6,
+                    SBSkipDatabaseMigrations.MIGRATION_6_7,
+                    migration7To8,
+                )
                 .fallbackToDestructiveMigration()
                 .build()
         }
