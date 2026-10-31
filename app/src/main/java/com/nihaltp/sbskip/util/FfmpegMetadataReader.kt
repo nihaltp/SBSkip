@@ -3,12 +3,12 @@ package com.nihaltp.sbskip.util
 import android.content.ContentResolver
 import android.net.Uri
 import android.provider.OpenableColumns
+import com.arthenica.ffmpegkit.FFmpegKitConfig
 import com.arthenica.ffmpegkit.FFprobeKit
 import com.nihaltp.sbskip.util.parser.YouTubeUrlParser
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
-import java.io.File
 import javax.inject.Inject
 
 data class SbskipFileMetadata(
@@ -41,48 +41,21 @@ class FfmpegMetadataReader
         fun readMetadata(
             contentResolver: ContentResolver,
             fileUri: Uri,
-            cacheDir: File,
+            context: android.content.Context,
         ): SbskipFileMetadata {
             val fileName = fileUri.lastPathSegment ?: "unknown"
 
-            // Determine the file size before copying, so we can fail early when the cache
+            // Determine the file size before probing, so we can fail early when the cache
             // doesn't have enough free space instead of exhausting it mid-copy.
             val fileSize = fileSizeFromProvider(contentResolver, fileUri)
-            val freeSpace = cacheDir.getFreeSpace()
-            if (fileSize != null && fileSize > freeSpace) {
-                AppLogger.metadata(
-                    "ImportFolder: Not enough cache space to probe $fileName " +
-                        "(file=$fileSize bytes, free=$freeSpace bytes)",
-                )
-                return SbskipFileMetadata(null, null, null, null, fileSize)
-            }
 
-            val tempFile =
-                File(cacheDir, "sbskip_probe_${System.currentTimeMillis()}_${sanitizeFileName(fileName)}")
-
-            return try {
-                val inputStream = contentResolver.openInputStream(fileUri)
-                if (inputStream == null) {
-                    AppLogger.metadata("ImportFolder: Failed to open input stream for $fileName")
-                    return SbskipFileMetadata(null, null, null, null, fileSize)
-                }
-
-                inputStream.use { input ->
-                    tempFile.outputStream().use { output ->
-                        input.copyTo(output)
-                    }
-                }
-
-                val command = "-v quiet -print_format json -show_format \"${tempFile.absolutePath}\""
-                AppLogger.metadata("ImportFolder: Probing $fileName with ffprobe")
-                val session = FFprobeKit.execute(command)
-                parseFfprobeOutput(session, fileName, tempFile.length())
-            } catch (e: Exception) {
-                AppLogger.metadata("ImportFolder: Error reading metadata for $fileName: ${e.message}")
-                SbskipFileMetadata(null, null, null, null, fileSize)
-            } finally {
-                tempFile.delete()
-            }
+            // Probe in place via SAF file descriptor instead of copying the file into the cache,
+            // so large files don't exhaust cache storage.
+            val safParam = FFmpegKitConfig.getSafParameterForRead(context, fileUri)
+            val command = "-v quiet -print_format json -show_format \"$safParam\""
+            AppLogger.metadata("ImportFolder: Probing $fileName with ffprobe")
+            val session = FFprobeKit.execute(command)
+            return parseFfprobeOutput(session, fileName, fileSize)
         }
 
         private fun parseFfprobeOutput(
@@ -183,9 +156,5 @@ class FfmpegMetadataReader
             } catch (e: Exception) {
                 null
             }
-        }
-
-        private fun sanitizeFileName(name: String): String {
-            return name.replace(Regex("[^a-zA-Z0-9._-]"), "_")
         }
     }

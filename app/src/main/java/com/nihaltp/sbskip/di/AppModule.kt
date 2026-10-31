@@ -63,41 +63,9 @@ abstract class AppModule {
         fun provideDatabase(
             @ApplicationContext context: Context,
         ): SBSkipDatabase {
-            val migration7To8 =
-                object : androidx.room.migration.Migration(7, 8) {
-                    override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
-                        db.execSQL("ALTER TABLE download_queue ADD COLUMN overwrite INTEGER NOT NULL DEFAULT 0")
-                        db.execSQL(
-                            "ALTER TABLE download_queue ADD COLUMN bypassDurationCheck INTEGER NOT NULL DEFAULT 0",
-                        )
-                        db.execSQL("ALTER TABLE download_queue ADD COLUMN noSuffix INTEGER NOT NULL DEFAULT 0")
-                        db.execSQL(
-                            """
-                            CREATE TABLE IF NOT EXISTS downloaded_videos (
-                                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                                videoId TEXT,
-                                url TEXT NOT NULL,
-                                title TEXT NOT NULL,
-                                author TEXT,
-                                thumbnailUrl TEXT,
-                                durationSeconds INTEGER,
-                                outputPath TEXT,
-                                fileSize INTEGER,
-                                mediaType TEXT NOT NULL
-                            )
-                            """.trimIndent(),
-                        )
-                    }
-                }
-
             return Room.databaseBuilder(context, SBSkipDatabase::class.java, "sbskip.db")
                 .enableMultiInstanceInvalidation()
-                .addMigrations(
-                    SBSkipDatabaseMigrations.MIGRATION_4_5,
-                    SBSkipDatabaseMigrations.MIGRATION_5_6,
-                    SBSkipDatabaseMigrations.MIGRATION_6_7,
-                    migration7To8,
-                )
+                .addMigrations(*SBSkipDatabaseMigrations.ALL)
                 .fallbackToDestructiveMigration()
                 .build()
         }

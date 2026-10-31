@@ -164,7 +164,14 @@ fun ImportDialog(
     onImport: (ImportSource, String?) -> Unit,
 ) {
     var selectedSource by remember { mutableStateOf(ImportSource.FILE) }
-    val clipboardText = LocalClipboardManager.current.getText()?.text.orEmpty().trim()
+    // Read clipboard only when the clipboard source is selected, avoiding unnecessary reads
+    // for file or folder sources.
+    val clipboardText =
+        if (selectedSource == ImportSource.CLIPBOARD) {
+            LocalClipboardManager.current.getText()?.text.orEmpty().trim()
+        } else {
+            null
+        }
 
     AlertDialog(
         onDismissRequest = onDismissRequest,
@@ -226,13 +233,7 @@ fun ImportDialog(
         },
         confirmButton = {
             Button(onClick = {
-                val text =
-                    if (selectedSource == ImportSource.CLIPBOARD) {
-                        clipboardText
-                    } else {
-                        null
-                    }
-                onImport(selectedSource, text)
+                onImport(selectedSource, clipboardText)
             }) {
                 Text(stringResource(id = R.string.import_button))
             }

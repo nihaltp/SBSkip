@@ -3,9 +3,6 @@ package com.nihaltp.sbskip.workers
 import android.content.Context
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
-import androidx.work.ExistingWorkPolicy
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.nihaltp.sbskip.data.repository.DownloadedVideoRepository
 import com.nihaltp.sbskip.model.DownloadedVideoEntity
@@ -35,9 +32,10 @@ class EnrichImportedVideosWorker
         @Assisted params: WorkerParameters,
         private val repository: DownloadedVideoRepository,
         private val enricher: ImportedVideoEnricher,
+        private val enrichmentScheduler: ImportEnrichmentScheduler,
     ) : CoroutineWorker(appContext, params) {
         private var failures = 0
-        private val applicationContext: Context = appContext
+        private val retryingVideoIds = mutableSetOf<Long>()
 
         override suspend fun doWork(): Result {
             val startedAt = System.currentTimeMillis()
@@ -71,14 +69,11 @@ class EnrichImportedVideosWorker
             }
 
             if (failures == 0) {
-                // Time budget expired but no failures: if more items remain, self-continue so a
-                // huge import drains across multiple runs without exhausting MAX_ATTEMPTS.
+                // Time budget expired but no failures: if more items remain, schedule another run
+                // via the shared scheduler so it reuses its WORK_NAME, CONNECTED constraint, and
+                // exponential backoff settings.
                 if (hadMoreWork || repository.findNeedingEnrichment(1).isNotEmpty()) {
-                    WorkManager.getInstance(applicationContext).enqueueUniqueWork(
-                        WORK_NAME,
-                        ExistingWorkPolicy.APPEND_OR_REPLACE,
-                        OneTimeWorkRequestBuilder<EnrichImportedVideosWorker>().build(),
-                    )
+                    enrichmentScheduler.schedule()
                 }
                 return Result.success()
             }
@@ -86,14 +81,13 @@ class EnrichImportedVideosWorker
                 return Result.retry()
             }
 
-            // Out of attempts: keep what is known rather than retrying these videos forever.
-            // Drain every remaining row so none stay pending forever.
-            var remaining = repository.findNeedingEnrichment(BATCH_SIZE)
-            while (remaining.isNotEmpty()) {
-                remaining.forEach { video ->
-                    repository.clearNeedsEnrichment(video.id)
+            // Out of attempts: clear needsEnrichment only for videos that returned Retry,
+            // leaving untried videos eligible for a later schedule() call.
+            val retryIds = retryingVideoIds
+            if (retryIds.isNotEmpty()) {
+                retryIds.forEach { id ->
+                    repository.clearNeedsEnrichment(id)
                 }
-                remaining = repository.findNeedingEnrichment(BATCH_SIZE)
             }
             return Result.success()
         }
@@ -115,6 +109,7 @@ class EnrichImportedVideosWorker
 
                 is ImportedVideoEnrichment.Retry -> {
                     failures++
+                    retryingVideoIds.add(video.id)
                 }
 
                 is ImportedVideoEnrichment.Unavailable -> {
@@ -124,7 +119,6 @@ class EnrichImportedVideosWorker
         }
 
         companion object {
-            private const val WORK_NAME = "EnrichImportedVideos"
             private const val BATCH_SIZE = 10
             private const val ENRICHMENT_CONCURRENCY = 3
             private const val MAX_ATTEMPTS = 3

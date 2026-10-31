@@ -143,32 +143,36 @@ class ImportManager
          * the import. Called once when the app starts.
          */
         fun resumePersistedImports() {
+            // Start persisting queue changes in its own coroutine so that any queue updates
+            // made during restoration are also collected.
+            scope.launch {
+                persistQueueChanges()
+            }
             scope.launch {
                 if (isRestored) return@launch
                 isRestored = true
-
                 restoreQueue()
-                persistQueueChanges()
             }
         }
 
-        /**
-         * Reads the persisted queue and starts the import again. A folder that was being scanned
-         * when the app died is scanned again, the files that were already imported are skipped.
-         */
         private suspend fun restoreQueue() {
             val persisted = settingsRepository.settings.first().importQueue
             if (persisted.isEmpty()) return
 
             val restored = persisted.map { it.toQueueItem() }
-            _importQueue.value = restored
+            // Merge with the current queue instead of replacing it, preserving newly enqueued
+            // folders that were added before restoration completed.
+            val currentIds = _importQueue.value.map { it.id }.toSet()
+            val merged = _importQueue.value + restored.filter { it.id !in currentIds }
+            _importQueue.value = merged
             // The ids of the restored items are reused, so the counter has to continue after them.
             nextQueueId = maxOf(nextQueueId, restored.maxOfOrNull { it.id } ?: 0L)
             AppLogger.metadata(
                 "ImportFolder: Restored ${restored.size} queue item(s) after a restart of the app",
             )
 
-            if (restored.any { it.status == FolderImportStatus.PENDING }) {
+            // Only start processing if no import is already running.
+            if (_importQueue.value.any { it.status == FolderImportStatus.PENDING } && scanningJob == null) {
                 updateFolderQueueNotification()
                 processQueue()
             }
@@ -189,9 +193,10 @@ class ImportManager
 
         /**
          * Appends an item to the queue while enforcing [MAX_QUEUE_SIZE]. When the queue is full
-         * the oldest PENDING items are marked FAILED instead of being silently dropped, so the
-         * user can see which folders were not imported due to queue limits. If there are not
-         * enough PENDING items, the oldest already finished items are dropped as well.
+         * the oldest terminal (COMPLETED/FAILED) items are evicted first so pending work is
+         * preserved. If there are not enough terminal items, the oldest PENDING items are evicted
+         * as a last resort. Evicted items are simply removed from the queue; they are not marked
+         * as failed because no import work was started on them.
          */
         private fun enqueue(item: FolderImportQueueItem) {
             _importQueue.update { queue ->
@@ -200,34 +205,18 @@ class ImportManager
                 if (overflow <= 0) {
                     next
                 } else {
-                    val itemsToFail =
-                        next.filter { it.status == FolderImportStatus.PENDING && it.id != item.id }
-                            .take(overflow)
-                    val remainingOverflow = overflow - itemsToFail.size
-                    val itemsToFailFinished =
-                        if (remainingOverflow > 0) {
-                            next.filter { it.id !in itemsToFail.map { it.id } && it.id != item.id }
-                                .take(remainingOverflow)
-                        } else {
-                            emptyList()
-                        }
-                    val allToFail = itemsToFail + itemsToFailFinished
-                    val failIds = allToFail.map { it.id }.toSet()
-                    allToFail.forEach { failedItem ->
-                        AppLogger.metadata(
-                            "ImportFolder: Queue full, marking ${failedItem.folderName} as FAILED",
-                        )
+                    val terminal = next.filter { it.isTerminal && it.id != item.id }
+                    val evictIds =
+                        terminal.take(overflow).map { it.id }.toMutableSet()
+                    val remainingOverflow = overflow - evictIds.size
+                    if (remainingOverflow > 0) {
+                        val pending = next.filter { it.id !in evictIds && it.id != item.id }
+                        evictIds += pending.take(remainingOverflow).map { it.id }
                     }
-                    next.map { queueItem ->
-                        if (queueItem.id in failIds) {
-                            queueItem.copy(
-                                status = FolderImportStatus.FAILED,
-                                errorMessage = "Import queue full",
-                            )
-                        } else {
-                            queueItem
-                        }
-                    }
+                    AppLogger.metadata(
+                        "ImportFolder: Queue full, evicting ${evictIds.size} old queue item(s)",
+                    )
+                    next.filterNot { it.id in evictIds }
                 }
             }
             updateFolderQueueNotification()
@@ -363,7 +352,6 @@ class ImportManager
          * Returns the number of newly imported videos in this folder (excluding subfolders).
          */
         private suspend fun scanFolderItem(item: FolderImportQueueItem): Int {
-            val cacheDir = context.cacheDir
             val contentResolver = context.contentResolver
             var importedCount = 0
 
@@ -386,7 +374,7 @@ class ImportManager
                     _importProgressMessage.value = fileName
 
                     val metadata =
-                        ffmpegMetadataReader.readMetadata(contentResolver, fileUri, cacheDir)
+                        ffmpegMetadataReader.readMetadata(contentResolver, fileUri, context)
                     val youtubeId = metadata.youtubeId
                     // Sanitize the youtubeId: strip query parameters (e.g. "?overwrite=true")
                     // and keep only a clean 11-character YouTube video ID before storing it.

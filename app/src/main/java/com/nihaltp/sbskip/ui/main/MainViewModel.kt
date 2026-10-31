@@ -29,6 +29,7 @@ import com.nihaltp.sbskip.util.fetcher.YouTubeOEmbedFetcher
 import com.nihaltp.sbskip.util.parser.YouTubeUrlParser
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -269,8 +270,14 @@ class MainViewModel
         ): DuplicateDecision {
             val cleanVideoId = YouTubeUrlParser.cleanVideoId(videoId) ?: return DuplicateDecision.PROCEED
             val existing =
-                runCatching { downloadedVideoRepository.findByVideoId(cleanVideoId) }
-                    .getOrNull() ?: return DuplicateDecision.PROCEED
+                try {
+                    downloadedVideoRepository.findByVideoId(cleanVideoId)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    null
+                }
+                    ?: return DuplicateDecision.PROCEED
 
             val behavior = settingsRepository.settings.first().alreadyDownloadedBehavior
             AppLogger.metadata(
@@ -1270,14 +1277,24 @@ class MainViewModel
             // The video may already be tracked in the downloaded-videos database.
             // Check before handing the URL over to NewPipe so nothing is downloaded twice.
             if (!skipDuplicateCheck) {
-                val decision =
-                    handleAlreadyDownloaded(
-                        videoId = videoId,
-                        youtubeUrl = normalizedUrl,
-                    )
-                if (decision != DuplicateDecision.PROCEED) {
+                // Claim the video ID first so concurrent submissions for the same video cannot
+                // both proceed. Hold the claim through the check-and-launch flow.
+                if (!claimDownload(videoId)) {
                     _uiState.update { it.copy(isFetchingMetadata = false) }
                     return
+                }
+                try {
+                    val decision =
+                        handleAlreadyDownloaded(
+                            videoId = videoId,
+                            youtubeUrl = normalizedUrl,
+                        )
+                    if (decision != DuplicateDecision.PROCEED) {
+                        _uiState.update { it.copy(isFetchingMetadata = false) }
+                        return
+                    }
+                } finally {
+                    releaseDownload(videoId)
                 }
             }
 
