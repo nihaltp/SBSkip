@@ -412,12 +412,8 @@ class MainViewModel
                     } else {
                         normalizedUrl
                     }
-                if (!claimDownload(video.videoId)) return@launch
-                try {
-                    launchNewPipe(normalizedUrl)
-                } finally {
-                    releaseDownload(video.videoId)
-                }
+                // Launch NewPipe before doing network metadata requests so the download begins immediately.
+                launchNewPipe(normalizedUrl)
 
                 // Spawn pending download
                 val now = System.currentTimeMillis()
