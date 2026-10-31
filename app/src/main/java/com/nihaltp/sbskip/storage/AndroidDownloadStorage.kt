@@ -1,5 +1,6 @@
 package com.nihaltp.sbskip.storage
 
+import android.content.ContentResolver
 import android.content.ContentValues
 import android.content.Context
 import android.media.MediaMetadataRetriever
@@ -14,6 +15,7 @@ import com.nihaltp.sbskip.model.MediaFileMetadata
 import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.util.AppLogger
 import com.nihaltp.sbskip.util.FilenameSanitizer
+import com.nihaltp.sbskip.util.SbskipMetadataReader
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -114,6 +116,7 @@ class AndroidDownloadStorage
     constructor(
         @ApplicationContext private val context: Context,
         private val settingsRepository: SettingsRepository,
+        private val sbskipMetadataReader: SbskipMetadataReader,
     ) : DownloadStorage {
         override suspend fun deleteTemporaryFile(path: String) =
             withContext(Dispatchers.IO) {
@@ -313,6 +316,29 @@ class AndroidDownloadStorage
                 val uri = Uri.parse(uriString)
                 val resolver = context.contentResolver
 
+                // First try ffprobe-based SBSKIP tag reader (Picard-style named tags)
+                val sbskipMetadata =
+                    try {
+                        sbskipMetadataReader.readSbskipMetadata(resolver, uri, context.cacheDir)
+                    } catch (e: Exception) {
+                        AppLogger.error("Storage", e, "SbskipMetadataReader failed for URI: $uriString")
+                        null
+                    }
+
+                if (sbskipMetadata != null) {
+                    // ffprobe succeeded; use it as the source of truth (it reads title, duration, and SBSKIP_* tags)
+                    sbskipMetadata
+                } else {
+                    // Fallback to MediaMetadataRetriever for basic title/duration
+                    readBasicMetadata(uri, resolver)
+                }
+            }
+
+        private suspend fun readBasicMetadata(
+            uri: Uri,
+            resolver: ContentResolver,
+        ): MediaFileMetadata? =
+            withContext(Dispatchers.IO) {
                 var displayName = ""
                 resolver.query(uri, null, null, null, null)?.use { cursor ->
                     if (cursor.moveToFirst()) {
@@ -347,7 +373,7 @@ class AndroidDownloadStorage
                         durationSeconds = durationMs / 1000L
                     }
                 } catch (e: Exception) {
-                    AppLogger.error("Storage", e, "Failed to read media duration for URI: $uriString")
+                    AppLogger.error("Storage", e, "Failed to read media duration for URI: $uri")
                 } finally {
                     try {
                         retriever.release()
