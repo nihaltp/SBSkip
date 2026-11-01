@@ -17,6 +17,7 @@ data class SbskipFileMetadata(
     val youtubeTitle: String?,
     val authorName: String?,
     val fileSize: Long?,
+    val removedCategories: String? = null,
 )
 
 @Serializable
@@ -87,6 +88,8 @@ class FfmpegMetadataReader
                 var authorName =
                     tags["author"]?.takeIf { it.isNotBlank() }
                         ?: tags["SBSKIP_AUTHOR_NAME"]?.takeIf { it.isNotBlank() }
+                val removedCategories =
+                    tags["SBSKIP_REMOVED_CATEGORIES"]?.takeIf { it.isNotBlank() }
 
                 // If not found, try parsing the comment JSON field (where MediaTagger writes it)
                 if (youtubeId == null || authorName == null) {
@@ -132,6 +135,7 @@ class FfmpegMetadataReader
                     youtubeTitle = youtubeTitle,
                     authorName = authorName,
                     fileSize = fileSize,
+                    removedCategories = removedCategories,
                 )
             } catch (e: Exception) {
                 AppLogger.metadata("ImportFolder: Failed to parse ffprobe output for $fileName: ${e.message}")

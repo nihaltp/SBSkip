@@ -129,6 +129,11 @@ class MediaTagger
             metadataArgs.add("-metadata SBSKIP_YOUTUBE_VIDEO_ID=\"${escapeForFfmpeg(videoId)}\"")
             metadataArgs.add("-metadata SBSKIP_YOUTUBE_TITLE=\"${escapeForFfmpeg(youtubeTitle)}\"")
 
+            if (categories.isNotEmpty()) {
+                val removedCategories = categories.joinToString(",")
+                metadataArgs.add("-metadata SBSKIP_REMOVED_CATEGORIES=\"${escapeForFfmpeg(removedCategories)}\"")
+            }
+
             val metadataArgsStr = metadataArgs.joinToString(" ")
             val metadataArgsPart = if (metadataArgsStr.isNotEmpty()) " $metadataArgsStr" else ""
 

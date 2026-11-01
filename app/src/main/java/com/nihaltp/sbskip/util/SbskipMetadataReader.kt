@@ -77,6 +77,7 @@ class SbskipMetadataReader
                 val sbskipVersion = readTag("SBSKIP_VERSION")
                 val sbskipProcessed = readTag("SBSKIP_PROCESSED")?.toBoolean()
                 val sbskipProcessedAt = readTag("SBSKIP_PROCESSED_AT")?.toLongOrNull()
+                val sbskipRemovedCategories = readTag("SBSKIP_REMOVED_CATEGORIES")
 
                 // Also read standard metadata fields
                 val title: String = readTag("title") ?: fileName.substringBeforeLast('.', fileName)
@@ -110,6 +111,7 @@ class SbskipMetadataReader
                     sbskipVersion = sbskipVersion,
                     sbskipProcessed = sbskipProcessed,
                     sbskipProcessedAt = sbskipProcessedAt,
+                    sbskipRemovedCategories = sbskipRemovedCategories,
                     fileSize = fileSize,
                 )
             } catch (e: Exception) {

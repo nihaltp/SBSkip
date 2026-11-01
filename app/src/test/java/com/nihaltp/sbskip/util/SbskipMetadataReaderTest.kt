@@ -63,7 +63,8 @@ class SbskipMetadataReaderTest {
                         "SBSKIP_SEGMENTS": "0-10;20-30",
                         "SBSKIP_VERSION": "1.9.4",
                         "SBSKIP_PROCESSED": "true",
-                        "SBSKIP_PROCESSED_AT": "1234567890"
+                        "SBSKIP_PROCESSED_AT": "1234567890",
+                        "SBSKIP_REMOVED_CATEGORIES": "SPONSOR,INTRO"
                     },
                     "duration": "120.9"
                 }
@@ -98,6 +99,7 @@ class SbskipMetadataReaderTest {
         assertEquals("1.9.4", result!!.sbskipVersion)
         assertEquals(true, result!!.sbskipProcessed)
         assertEquals(1234567890L, result!!.sbskipProcessedAt)
+        assertEquals("SPONSOR,INTRO", result!!.sbskipRemovedCategories)
     }
 
     @Test

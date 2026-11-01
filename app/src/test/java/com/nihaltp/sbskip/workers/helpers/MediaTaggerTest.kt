@@ -109,6 +109,7 @@ class MediaTaggerTest {
             assertTrue("Should contain SBSKIP_VERSION tag", command.contains("SBSKIP_VERSION"))
             assertTrue("Should contain SBSKIP_PROCESSED tag", command.contains("SBSKIP_PROCESSED"))
             assertTrue("Should contain SBSKIP_PROCESSED_AT tag", command.contains("SBSKIP_PROCESSED_AT"))
+            assertTrue("Should contain SBSKIP_REMOVED_CATEGORIES tag", command.contains("SBSKIP_REMOVED_CATEGORIES=\"SPONSOR\""))
             assertTrue("Should NOT contain comment JSON tag", !command.contains("comment=\""))
             assertTrue("Should NOT contain old SB_ prefix", !command.contains("SB_VERSION"))
 
