@@ -1,6 +1,9 @@
 package com.nihaltp.sbskip.workers.helpers
 
 import android.content.Context
+import com.arthenica.ffmpegkit.FFmpegKit
+import com.arthenica.ffmpegkit.FFmpegSession
+import com.arthenica.ffmpegkit.ReturnCode
 import com.nihaltp.sbskip.model.DownloadQueueItem
 import com.nihaltp.sbskip.model.DownloadQueueStatus
 import com.nihaltp.sbskip.model.MediaFileMetadata
@@ -9,21 +12,35 @@ import com.nihaltp.sbskip.model.ProcessingContext
 import com.nihaltp.sbskip.model.ProcessingPlan
 import com.nihaltp.sbskip.model.SponsorBlockCategory
 import com.nihaltp.sbskip.model.SponsorBlockSegment
+import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkStatic
+import io.mockk.unmockkStatic
+import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.io.File
 
 class MediaTaggerTest {
     private lateinit var context: Context
     private lateinit var coverArtManager: CoverArtManager
     private lateinit var mediaTagger: MediaTagger
+    private val capturedCommands = mutableListOf<String>()
 
     @Before
     fun setup() {
         context = mockk(relaxed = true)
         coverArtManager = mockk(relaxed = true)
         mediaTagger = MediaTagger(context, coverArtManager)
+        capturedCommands.clear()
+    }
+
+    @After
+    fun teardown() {
+        unmockkStatic(FFmpegKit::class)
     }
 
     private fun createDummyQueueItem(): DownloadQueueItem {
@@ -40,6 +57,63 @@ class MediaTaggerTest {
             updatedAtEpochMillis = 0L,
             errorMessage = null,
         )
+    }
+
+    @Test
+    fun `applyMetadata should write SBSKIP_* tags instead of comment JSON`() {
+        runBlocking {
+            // Arrange
+            val tmpDir = System.getProperty("java.io.tmpdir")
+            val inputFile = File(tmpDir, "test_input_${System.currentTimeMillis()}.mp4")
+            inputFile.outputStream().use { it.write("dummy".toByteArray()) }
+
+            mockkStatic(FFmpegKit::class)
+            every { FFmpegKit.execute(any()) } answers {
+                val cmd = args[0] as String
+                capturedCommands.add(cmd)
+                val session = mockk<FFmpegSession>(relaxed = true)
+                every { session.returnCode } returns mockk<ReturnCode>(relaxed = true)
+                session
+            }
+
+            every { coverArtManager.audioHasCoverImage(any()) } returns true
+
+            val processingContext =
+                ProcessingContext(
+                    queueItem = createDummyQueueItem(),
+                    localMetadata = MediaFileMetadata("Test", "mp4", null),
+                    videoId = "dQw4w9WgXcQ",
+                    oembedTitle = "Test Video",
+                    authorName = "Test Author",
+                    authorUrl = "https://youtube.com/@testauthor",
+                    thumbnailUrl = "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
+                    sbSkipSegments = "0-10;20-30",
+                    categories = setOf(SponsorBlockCategory.SPONSOR),
+                    segments = listOf(SponsorBlockSegment(SponsorBlockCategory.SPONSOR, 0.0, 10.0)),
+                    plan = ProcessingPlan(emptyList(), false, "mp4"),
+                )
+
+            // Act
+            mediaTagger.applyMetadata(inputFile, processingContext)
+
+            // Assert
+            assertTrue("Should have captured a command", capturedCommands.isNotEmpty())
+            val command = capturedCommands.last()
+            assertTrue("Should contain SBSKIP_YOUTUBE_VIDEO_ID tag", command.contains("SBSKIP_YOUTUBE_VIDEO_ID"))
+            assertTrue("Should contain SBSKIP_YOUTUBE_VIDEO_URL tag", command.contains("SBSKIP_YOUTUBE_VIDEO_URL"))
+            assertTrue("Should contain SBSKIP_YOUTUBE_TITLE tag", command.contains("SBSKIP_YOUTUBE_TITLE"))
+            assertTrue("Should contain SBSKIP_AUTHOR_NAME tag", command.contains("SBSKIP_AUTHOR_NAME"))
+            assertTrue("Should contain SBSKIP_AUTHOR_URL tag", command.contains("SBSKIP_AUTHOR_URL"))
+            assertTrue("Should contain SBSKIP_THUMBNAIL_URL tag", command.contains("SBSKIP_THUMBNAIL_URL"))
+            assertTrue("Should contain SBSKIP_SEGMENTS tag", command.contains("SBSKIP_SEGMENTS"))
+            assertTrue("Should contain SBSKIP_VERSION tag", command.contains("SBSKIP_VERSION"))
+            assertTrue("Should contain SBSKIP_PROCESSED tag", command.contains("SBSKIP_PROCESSED"))
+            assertTrue("Should contain SBSKIP_PROCESSED_AT tag", command.contains("SBSKIP_PROCESSED_AT"))
+            assertTrue("Should NOT contain comment JSON tag", !command.contains("comment=\""))
+            assertTrue("Should NOT contain old SB_ prefix", !command.contains("SB_VERSION"))
+
+            inputFile.delete()
+        }
     }
 
     @Test
