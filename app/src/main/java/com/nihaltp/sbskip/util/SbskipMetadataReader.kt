@@ -32,7 +32,7 @@ class SbskipMetadataReader
             fileUri: Uri,
             safParameter: String,
         ): MediaFileMetadata? {
-            val fileName = fileUri.lastPathSegment ?: "unknown"
+            val fileName = displayFileNameFromProvider(contentResolver, fileUri) ?: fileUri.lastPathSegment ?: "unknown"
 
             val fileSize = fileSizeFromProvider(contentResolver, fileUri)
 
@@ -134,6 +134,34 @@ class SbskipMetadataReader
                         val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
                         if (sizeIndex >= 0) {
                             cursor.getLong(sizeIndex).takeIf { it >= 0 }
+                        } else {
+                            null
+                        }
+                    } else {
+                        null
+                    }
+                }
+            } catch (e: Exception) {
+                null
+            }
+        }
+
+        private fun displayFileNameFromProvider(
+            contentResolver: ContentResolver,
+            fileUri: Uri,
+        ): String? {
+            return try {
+                contentResolver.query(
+                    fileUri,
+                    arrayOf(OpenableColumns.DISPLAY_NAME),
+                    null,
+                    null,
+                    null,
+                ).use { cursor ->
+                    if (cursor != null && cursor.moveToFirst()) {
+                        val displayNameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                        if (displayNameIndex >= 0) {
+                            cursor.getString(displayNameIndex)?.takeIf { it.isNotBlank() }
                         } else {
                             null
                         }
