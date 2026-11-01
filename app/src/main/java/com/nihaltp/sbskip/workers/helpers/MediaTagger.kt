@@ -141,10 +141,11 @@ class MediaTagger
                     } else { // m4a
                         "-y -i \"${inputFile.absolutePath}\" -i \"${thumbFile.absolutePath}\" " +
                             "-map 0 -map 1 -c copy -disposition:v:0 attached_pic$metadataArgsPart " +
-                            "\"${taggedOutput.absolutePath}\""
+                            "-movflags +use_metadata_tags \"${taggedOutput.absolutePath}\""
                     }
                 } else {
-                    "-y -i \"${inputFile.absolutePath}\"$metadataArgsPart -codec copy \"${taggedOutput.absolutePath}\""
+                    val movflagsArg = if (extension == "mp3") "" else "-movflags +use_metadata_tags"
+                    "-y -i \"${inputFile.absolutePath}\"$metadataArgsPart $movflagsArg -codec copy \"${taggedOutput.absolutePath}\""
                 }
 
             val session =
