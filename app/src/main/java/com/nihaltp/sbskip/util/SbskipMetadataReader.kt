@@ -5,7 +5,6 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import com.arthenica.ffmpegkit.FFprobeKit
 import com.nihaltp.sbskip.model.MediaFileMetadata
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -15,9 +14,7 @@ import javax.inject.Inject
 
 class SbskipMetadataReader
     @Inject
-    constructor(
-        @ApplicationContext private val context: android.content.Context,
-    ) {
+    constructor() {
         private val json = Json { ignoreUnknownKeys = true }
 
         fun readSbskipMetadata(
