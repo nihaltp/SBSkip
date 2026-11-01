@@ -76,7 +76,7 @@ class SbskipMetadataReader
                 val sbskipSegments = readTag("SBSKIP_SEGMENTS")
                 val sbskipVersion = readTag("SBSKIP_VERSION")
                 val sbskipProcessed = readTag("SBSKIP_PROCESSED")?.toBoolean()
-                val sbskipProcessedAt = readTag("SBSKIP_PROCESSED_AT")?.toLong()
+                val sbskipProcessedAt = readTag("SBSKIP_PROCESSED_AT")?.toLongOrNull()
 
                 // Also read standard metadata fields
                 val title: String = readTag("title") ?: fileName
