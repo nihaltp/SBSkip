@@ -1,7 +1,9 @@
 package com.nihaltp.sbskip.util
 
 import android.content.ContentResolver
+import android.content.Context
 import android.net.Uri
+import android.util.Log
 import com.arthenica.ffmpegkit.FFprobeKit
 import com.arthenica.ffmpegkit.FFprobeSession
 import io.mockk.every
@@ -14,24 +16,33 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
-import java.io.ByteArrayInputStream
-import java.io.File
 
 class SbskipMetadataReaderTest {
+    private lateinit var context: Context
     private lateinit var contentResolver: ContentResolver
-    private lateinit var cacheDir: File
     private lateinit var reader: SbskipMetadataReader
 
     @Before
     fun setup() {
+        context = mockk(relaxed = true)
         contentResolver = mockk(relaxed = true)
-        cacheDir = File(System.getProperty("java.io.tmpdir"))
         reader = SbskipMetadataReader()
+        mockkStatic(Log::class)
+        every { Log.i(any(), any<String>()) } returns 0
+        every { Log.e(any(), any<String>()) } returns 0
+        every { Log.w(any(), any<String>()) } returns 0
+        every { Log.d(any(), any<String>()) } returns 0
+        every { Log.v(any(), any<String>()) } returns 0
+        every { Log.d(any(), any<String>(), any<Throwable>()) } returns 0
+        every { Log.e(any(), any<String>(), any<Throwable>()) } returns 0
+        every { Log.w(any(), any<String>(), any<Throwable>()) } returns 0
+        every { Log.i(any(), any<String>(), any<Throwable>()) } returns 0
     }
 
     @After
     fun teardown() {
         unmockkStatic(FFprobeKit::class)
+        unmockkStatic(Log::class)
     }
 
     @Test
@@ -65,13 +76,12 @@ class SbskipMetadataReaderTest {
             every { session.output } returns ffprobeOutput
             session
         }
-        every { contentResolver.openInputStream(any()) } returns ByteArrayInputStream("dummy".toByteArray())
 
         val fileUri = mockk<Uri>(relaxed = true)
         every { fileUri.lastPathSegment } returns "test.mp4"
 
         // Act
-        val result = reader.readSbskipMetadata(contentResolver, fileUri, cacheDir)
+        val result = reader.readSbskipMetadata(contentResolver, fileUri, "fd://mock")
 
         // Assert
         assertNotNull(result)
@@ -99,13 +109,12 @@ class SbskipMetadataReaderTest {
             every { session.output } returns ""
             session
         }
-        every { contentResolver.openInputStream(any()) } returns ByteArrayInputStream("dummy".toByteArray())
 
         val fileUri = mockk<Uri>(relaxed = true)
         every { fileUri.lastPathSegment } returns "test.mp4"
 
         // Act
-        val result = reader.readSbskipMetadata(contentResolver, fileUri, cacheDir)
+        val result = reader.readSbskipMetadata(contentResolver, fileUri, "fd://mock")
 
         // Assert
         assertNull(result)
@@ -131,13 +140,12 @@ class SbskipMetadataReaderTest {
             every { session.output } returns ffprobeOutput
             session
         }
-        every { contentResolver.openInputStream(any()) } returns ByteArrayInputStream("dummy".toByteArray())
 
         val fileUri = mockk<Uri>(relaxed = true)
         every { fileUri.lastPathSegment } returns "test.mp4"
 
         // Act
-        val result = reader.readSbskipMetadata(contentResolver, fileUri, cacheDir)
+        val result = reader.readSbskipMetadata(contentResolver, fileUri, "fd://mock")
 
         // Assert
         assertNotNull(result)
