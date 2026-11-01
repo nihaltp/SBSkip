@@ -79,7 +79,7 @@ class SbskipMetadataReader
                 val sbskipProcessedAt = readTag("SBSKIP_PROCESSED_AT")?.toLongOrNull()
 
                 // Also read standard metadata fields
-                val title: String = readTag("title") ?: fileName
+                val title: String = readTag("title") ?: fileName.substringBeforeLast('.', fileName)
 
                 val extension: String = fileName.substringAfterLast('.', "").takeIf { it.isNotBlank() }?.lowercase() ?: "unknown"
 
