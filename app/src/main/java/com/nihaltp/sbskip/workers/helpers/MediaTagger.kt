@@ -117,7 +117,7 @@ class MediaTagger
                 metadataArgs.add("-metadata SBSKIP_THUMBNAIL_URL=\"${escapeForFfmpeg(thumbnailUrl)}\"")
             }
 
-            if (authorName.isNotBlank()) {
+            if (authorName?.isNotEmpty() == true) {
                 metadataArgs.add("-metadata SBSKIP_AUTHOR_NAME=\"${escapeForFfmpeg(authorName)}\"")
             }
 
