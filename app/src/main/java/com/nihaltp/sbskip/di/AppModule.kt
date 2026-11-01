@@ -20,6 +20,8 @@ import com.nihaltp.sbskip.sponsorblock.DefaultSponsorBlockService
 import com.nihaltp.sbskip.sponsorblock.SponsorBlockService
 import com.nihaltp.sbskip.storage.AndroidDownloadStorage
 import com.nihaltp.sbskip.storage.DownloadStorage
+import com.nihaltp.sbskip.util.ytdlp.YtDlpCommandBuilder
+import com.nihaltp.sbskip.util.ytdlp.YtDlpProcessRunner
 import com.nihaltp.sbskip.workers.DownloadWorkScheduler
 import com.nihaltp.sbskip.workers.WorkManagerDownloadScheduler
 import dagger.Binds
@@ -75,5 +77,12 @@ abstract class AppModule {
 
         @Provides
         fun provideDownloadedVideoDao(database: SBSkipDatabase): DownloadedVideoDao = database.downloadedVideoDao()
+
+        @Singleton
+        fun provideYtDlpCommandBuilder(): YtDlpCommandBuilder = YtDlpCommandBuilder
+
+        @Provides
+        @Singleton
+        fun provideYtDlpProcessRunner(): YtDlpProcessRunner = YtDlpProcessRunner()
     }
 }

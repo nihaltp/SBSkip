@@ -49,7 +49,7 @@ class OutputSaver
                         relativePath = item.relativePath,
                     )
 
-                if (item.deleteOriginalVideo) {
+                if (item.deleteOriginalVideo && item.localFileUri.isNotBlank()) {
                     if (tempOutputFile.length() > 0L) {
                         val originalDoc =
                             androidx.documentfile.provider.DocumentFile.fromSingleUri(
@@ -74,7 +74,7 @@ class OutputSaver
                 }
 
                 savedUri
-            } else if (settings.overwriteBehavior || item.overwrite || item.deleteOriginalVideo) {
+            } else if (item.localFileUri.isNotBlank() && (settings.overwriteBehavior || item.overwrite || item.deleteOriginalVideo)) {
                 val resolver = context.contentResolver
                 val targetUri = android.net.Uri.parse(item.localFileUri)
 
