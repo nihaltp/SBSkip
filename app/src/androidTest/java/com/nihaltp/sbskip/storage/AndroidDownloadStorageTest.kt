@@ -18,7 +18,7 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class AndroidDownloadStorageTest {
     private lateinit var settingsRepository: SettingsRepository
-    private lateinit var downloadStorage: AndroidDownloadStorage
+    private lateinit var downloadStorage: DownloadStorage
     private lateinit var context: Context
 
     @Before
@@ -26,7 +26,7 @@ class AndroidDownloadStorageTest {
         context = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext
         val entryPoint = EntryPoints.get(context, TestEntryPoint::class.java)
         settingsRepository = entryPoint.settingsRepository()
-        downloadStorage = AndroidDownloadStorage(context, settingsRepository)
+        downloadStorage = entryPoint.downloadStorage()
     }
 
     @Test
