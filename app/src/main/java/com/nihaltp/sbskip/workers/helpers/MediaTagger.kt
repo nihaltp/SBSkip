@@ -11,13 +11,13 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import javax.inject.Inject
 
-class MediaTagger
+open class MediaTagger
     @Inject
     constructor(
         @ApplicationContext private val context: Context,
         private val coverArtManager: CoverArtManager,
     ) {
-        suspend fun applyMetadata(
+        open suspend fun applyMetadata(
             inputFile: File,
             processingContext: ProcessingContext,
         ): File {

@@ -8,13 +8,13 @@ import kotlinx.coroutines.flow.first
 import java.io.IOException
 import javax.inject.Inject
 
-class DurationValidator
+open class DurationValidator
     @Inject
     constructor(
         private val downloadStorage: DownloadStorage,
         private val settingsRepository: SettingsRepository,
     ) {
-        suspend fun validate(
+        open suspend fun validate(
             localFileUri: String,
             youtubeDuration: Long?,
             bypassCheck: Boolean,
