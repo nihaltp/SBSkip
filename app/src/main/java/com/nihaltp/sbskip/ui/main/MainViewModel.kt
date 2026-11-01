@@ -14,6 +14,8 @@ import com.nihaltp.sbskip.data.repository.SettingsRepository
 import com.nihaltp.sbskip.model.AlreadyDownloadedBehavior
 import com.nihaltp.sbskip.model.DetectedFile
 import com.nihaltp.sbskip.model.DuplicateVideoInfo
+import com.nihaltp.sbskip.model.DownloadSource
+import com.nihaltp.sbskip.model.DownloaderType
 import com.nihaltp.sbskip.model.MainUiState
 import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.model.PendingDownload
@@ -54,6 +56,17 @@ class MainViewModel
         private val downloadStorage: DownloadStorage,
         @ApplicationContext private val context: Context,
     ) : ViewModel() {
+        private val httpClient = OkHttpClient()
+        private val json = Json { ignoreUnknownKeys = true }
+
+        /** Determines the download source based on the user's selected downloader type. */
+        private suspend fun enqueueDownloadSource(): DownloadSource =
+            if (settingsRepository.settings.first().downloader == DownloaderType.YTDLP) {
+                DownloadSource.YTDLP
+            } else {
+                DownloadSource.LOCAL_FILE
+            }
+
         private val _uiState = MutableStateFlow(MainUiState())
         val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
 
@@ -619,6 +632,7 @@ class MainViewModel
                     audioOutputDirUri = if (mediaType == MediaType.AUDIO) finalFolderUri else null,
                     videoOutputDirUri = if (mediaType == MediaType.VIDEO) finalFolderUri else null,
                     relativePath = relativePath,
+                    downloadSource = enqueueDownloadSource(),
                 )
 
             val toast =
@@ -777,6 +791,7 @@ class MainViewModel
                         audioOutputDirUri = item.audioOutputDirUri,
                         videoOutputDirUri = item.videoOutputDirUri,
                         relativePath = item.relativePath,
+                        downloadSource = item.downloadSource,
                         overwrite = item.overwrite,
                         bypassDurationCheck = item.bypassDurationCheck,
                         noSuffix = item.noSuffix,
@@ -849,6 +864,7 @@ class MainViewModel
                         deleteOriginalVideo = pending.deleteOriginalVideo,
                         audioOutputDirUri = if (pending.mediaType == MediaType.AUDIO) pending.customFolderUri else null,
                         videoOutputDirUri = if (pending.mediaType == MediaType.VIDEO) pending.customFolderUri else null,
+                        downloadSource = enqueueDownloadSource(),
                         overwrite = true,
                     )
 
@@ -1152,6 +1168,7 @@ class MainViewModel
                     audioOutputDirUri = if (mediaType == MediaType.AUDIO) finalFolderUri else null,
                     videoOutputDirUri = if (mediaType == MediaType.VIDEO) finalFolderUri else null,
                     relativePath = relativePath,
+                    downloadSource = enqueueDownloadSource(),
                     bypassDurationCheck = force,
                     skipDuplicateCheck = skipDuplicateCheck,
                 )
