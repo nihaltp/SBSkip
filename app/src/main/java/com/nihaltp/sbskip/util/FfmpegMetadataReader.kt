@@ -73,11 +73,20 @@ class FfmpegMetadataReader
                 val result = json.decodeFromString<FfprobeResult>(output)
                 val tags = result.format?.tags ?: emptyMap()
 
-                // First try direct YOUTUBE_VIDEO_ID tag
-                var youtubeId = tags["YOUTUBE_VIDEO_ID"]?.takeIf { it.isNotBlank() }
-                var youtubeUrl = tags["YOUTUBE_VIDEO_URL"]?.takeIf { it.isNotBlank() }
-                var youtubeTitle = tags["title"]?.takeIf { it.isNotBlank() }
-                var authorName = tags["author"]?.takeIf { it.isNotBlank() }
+                // First try direct YOUTUBE_VIDEO_ID tag (legacy), then the SBSKIP_* tags
+                // that MediaTagger writes on tagged files.
+                var youtubeId =
+                    tags["YOUTUBE_VIDEO_ID"]?.takeIf { it.isNotBlank() }
+                        ?: tags["SBSKIP_YOUTUBE_VIDEO_ID"]?.takeIf { it.isNotBlank() }
+                var youtubeUrl =
+                    tags["YOUTUBE_VIDEO_URL"]?.takeIf { it.isNotBlank() }
+                        ?: tags["SBSKIP_YOUTUBE_VIDEO_URL"]?.takeIf { it.isNotBlank() }
+                var youtubeTitle =
+                    tags["title"]?.takeIf { it.isNotBlank() }
+                        ?: tags["SBSKIP_YOUTUBE_TITLE"]?.takeIf { it.isNotBlank() }
+                var authorName =
+                    tags["author"]?.takeIf { it.isNotBlank() }
+                        ?: tags["SBSKIP_AUTHOR_NAME"]?.takeIf { it.isNotBlank() }
 
                 // If not found, try parsing the comment JSON field (where MediaTagger writes it)
                 if (youtubeId == null || authorName == null) {
