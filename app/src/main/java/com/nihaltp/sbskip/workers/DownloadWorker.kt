@@ -8,6 +8,9 @@ import androidx.work.workDataOf
 import com.nihaltp.sbskip.R
 import com.nihaltp.sbskip.data.repository.QueueRepository
 import com.nihaltp.sbskip.data.repository.SettingsRepository
+import com.nihaltp.sbskip.model.DownloadSource
+import com.nihaltp.sbskip.model.MediaFileMetadata
+import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.model.ProcessingContext
 import com.nihaltp.sbskip.model.SponsorBlockCategory
 import com.nihaltp.sbskip.model.SponsorBlockSegment
@@ -17,6 +20,9 @@ import com.nihaltp.sbskip.util.AppLogger
 import com.nihaltp.sbskip.util.Constants
 import com.nihaltp.sbskip.util.NetworkErrorClassifier
 import com.nihaltp.sbskip.util.parser.YouTubeUrlParser
+import com.nihaltp.sbskip.util.ytdlp.YtDlpCommandBuilder
+import com.nihaltp.sbskip.util.ytdlp.YtDlpProcessRunner
+import com.nihaltp.sbskip.util.ytdlp.YtDlpRuntime
 import com.nihaltp.sbskip.workers.helpers.DurationValidator
 import com.nihaltp.sbskip.workers.helpers.MediaProcessingManager
 import com.nihaltp.sbskip.workers.helpers.MediaTagger
@@ -27,6 +33,7 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
 import java.io.File
+import java.io.IOException
 
 @HiltWorker
 class DownloadWorker
@@ -44,6 +51,9 @@ class DownloadWorker
         private val mediaProcessingManager: MediaProcessingManager,
         private val mediaTagger: MediaTagger,
         private val outputSaver: OutputSaver,
+        private val ytDlpRuntime: YtDlpRuntime,
+        private val ytDlpCommandBuilder: YtDlpCommandBuilder,
+        private val ytDlpProcessRunner: YtDlpProcessRunner,
     ) : CoroutineWorker(appContext, params) {
         override suspend fun doWork(): Result {
             val queueItemId = inputData.getLong(KEY_QUEUE_ITEM_ID, -1L)
@@ -95,6 +105,7 @@ class DownloadWorker
 
                 // Fetch settings
                 val settings = settingsRepository.settings.first()
+                val isYtDlp = item.downloadSource == DownloadSource.YTDLP
 
                 // Query & validate local file metadata
                 notificationManager.showActive(notificationId, taskTitle, 10, applicationContext.getString(R.string.status_fetching_info))
@@ -125,8 +136,25 @@ class DownloadWorker
                 }
 
                 val bypassCheck = item.bypassDurationCheck
-                val localMetadata = durationValidator.validate(item.localFileUri, youtubeDuration, bypassCheck)
-                val fileDuration = localMetadata.durationSeconds ?: 0L
+                val localMetadata: MediaFileMetadata
+                val fileDuration: Long
+                if (isYtDlp) {
+                    // yt-dlp download: no local file to validate yet; duration comes from YouTube API
+                    fileDuration = youtubeDuration ?: 0L
+                    localMetadata =
+                        MediaFileMetadata(
+                            title = item.title,
+                            extension =
+                                when (item.mediaType) {
+                                    MediaType.VIDEO -> "mp4"
+                                    MediaType.AUDIO -> "m4a"
+                                },
+                            durationSeconds = youtubeDuration,
+                        )
+                } else {
+                    localMetadata = durationValidator.validate(item.localFileUri, youtubeDuration, bypassCheck)
+                    fileDuration = localMetadata.durationSeconds ?: 0L
+                }
 
                 if (videoId != null) {
                     // Fetch YouTube oEmbed metadata if possible
@@ -159,22 +187,47 @@ class DownloadWorker
                     AppLogger.worker("No YouTube URL provided; skipping SponsorBlock segmentation checks.")
                 }
 
+                // For yt-dlp downloads, fetch the media from YouTube before processing.
+                var inputFileUri = item.localFileUri
+                if (isYtDlp) {
+                    notificationManager.showActive(
+                        notificationId,
+                        taskTitle,
+                        20,
+                        applicationContext.getString(R.string.status_downloading),
+                    )
+                    val downloadedFile =
+                        downloadViaYtDlp(item, settings) { percent ->
+                            val mappedProgress = (20 + percent.toInt() * 10 / 100).coerceIn(20, 30)
+                            notificationManager.showActive(
+                                id = notificationId,
+                                title = taskTitle,
+                                progress = mappedProgress,
+                                message = applicationContext.getString(R.string.status_downloading),
+                            )
+                        }
+                    inputFileUri = downloadedFile.absolutePath
+                    AppLogger.worker("yt-dlp download complete: ${downloadedFile.absolutePath}")
+                }
+
                 // 2. Mark as PROCESSING
                 queueRepository.markProcessing(queueItemId)
                 notificationManager.showActive(
                     notificationId,
                     taskTitle,
-                    20,
-                    applicationContext.getString(R.string.notification_copying_cache),
+                    30,
+                    applicationContext.getString(R.string.notification_trimming_segments, 0),
                 )
 
                 // Build processing plan
                 val plan = processingPlanBuilder.createPlan(item, localMetadata.extension, fileDuration, segments)
 
                 // Build Processing Context
+                // For yt-dlp there is no local original file, so never delete one.
+                val queueItemForContext = if (isYtDlp) item.copy(deleteOriginalVideo = false) else item
                 val context =
                     ProcessingContext(
-                        queueItem = item,
+                        queueItem = queueItemForContext,
                         localMetadata = localMetadata,
                         videoId = videoId,
                         oembedTitle = oembedTitle,
@@ -193,7 +246,7 @@ class DownloadWorker
                 tempOutputFile =
                     mediaProcessingManager.process(
                         queueItemId = queueItemId,
-                        localFileUri = item.localFileUri,
+                        localFileUri = inputFileUri,
                         localExtension = localMetadata.extension,
                         plan = plan,
                     ) { percent ->
@@ -279,6 +332,53 @@ class DownloadWorker
                 // Clean up temporary output file
                 tempOutputFile?.let { if (it.exists()) it.delete() }
             }
+        }
+
+        /** Downloads media via yt-dlp into a per-item work dir and returns the output file. */
+        private suspend fun downloadViaYtDlp(
+            item: com.nihaltp.sbskip.model.DownloadQueueItem,
+            settings: com.nihaltp.sbskip.model.AppSettings,
+            onProgress: (Float) -> Unit,
+        ): File {
+            val paths = ytDlpRuntime.ensure()
+            val workDir = ytDlpRuntime.workDir(applicationContext.cacheDir, item.id)
+            workDir.mkdirs()
+
+            val request =
+                YtDlpCommandBuilder.Request(
+                    mediaType = item.mediaType,
+                    url = item.url,
+                    workDir = workDir,
+                    maxQuality = settings.nativeQuality,
+                    ffmpegLocation = paths.ffmpegLauncher,
+                )
+            val command = ytDlpCommandBuilder.build(request)
+            val environment = ytDlpRuntime.environment(paths, workDir)
+
+            val result =
+                ytDlpProcessRunner.run(command, environment) { progress ->
+                    onProgress(progress.percent ?: 0f)
+                }
+
+            if (result.exitCode != 0) {
+                throw IOException(
+                    applicationContext.getString(R.string.download_failed_yt_dlp) +
+                        ": exit=${result.exitCode} stderr=${result.stderrTail}",
+                )
+            }
+
+            val outputExt =
+                when (item.mediaType) {
+                    MediaType.VIDEO -> "mp4"
+                    MediaType.AUDIO -> "m4a"
+                }
+            val downloadedFile = File(workDir, "out.$outputExt")
+            if (!downloadedFile.isFile) {
+                throw IOException(
+                    "yt-dlp completed but output file not found: ${downloadedFile.absolutePath}",
+                )
+            }
+            return downloadedFile
         }
 
         private suspend fun checkIfSponsorBlockIsDown(throwable: Throwable): Boolean {
