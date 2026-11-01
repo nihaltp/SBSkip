@@ -14,5 +14,6 @@ data class MediaFileMetadata(
     val sbskipVersion: String? = null,
     val sbskipProcessed: Boolean? = null,
     val sbskipProcessedAt: Long? = null,
+    val sbskipRemovedCategories: String? = null,
     val fileSize: Long? = null,
 )
