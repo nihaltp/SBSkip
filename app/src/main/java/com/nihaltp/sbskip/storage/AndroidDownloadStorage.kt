@@ -319,7 +319,7 @@ class AndroidDownloadStorage
                 // First try ffprobe-based SBSKIP tag reader (Picard-style named tags)
                 val sbskipMetadata =
                     try {
-                        sbskipMetadataReader.readSbskipMetadata(resolver, uri, context.cacheDir)
+                        sbskipMetadataReader.readSbskipMetadata(context, resolver, uri)
                     } catch (e: Exception) {
                         AppLogger.error("Storage", e, "SbskipMetadataReader failed for URI: $uriString")
                         null

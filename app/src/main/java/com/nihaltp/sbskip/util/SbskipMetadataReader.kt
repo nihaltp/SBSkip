@@ -1,15 +1,16 @@
 package com.nihaltp.sbskip.util
 
 import android.content.ContentResolver
+import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
+import com.arthenica.ffmpegkit.FFmpegKitConfig
 import com.arthenica.ffmpegkit.FFprobeKit
 import com.nihaltp.sbskip.model.MediaFileMetadata
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
-import java.io.File
 import javax.inject.Inject
 
 class SbskipMetadataReader
@@ -18,55 +19,34 @@ class SbskipMetadataReader
         private val json = Json { ignoreUnknownKeys = true }
 
         fun readSbskipMetadata(
+            context: Context,
             contentResolver: ContentResolver,
             fileUri: Uri,
-            cacheDir: File,
+        ): MediaFileMetadata? {
+            val safParameter = FFmpegKitConfig.getSafParameterForRead(context, fileUri)
+            return readSbskipMetadata(contentResolver, fileUri, safParameter)
+        }
+
+        fun readSbskipMetadata(
+            contentResolver: ContentResolver,
+            fileUri: Uri,
+            safParameter: String,
         ): MediaFileMetadata? {
             val fileName = fileUri.lastPathSegment ?: "unknown"
 
             val fileSize = fileSizeFromProvider(contentResolver, fileUri)
-            val freeSpace = cacheDir.getFreeSpace()
-            if (fileSize != null && fileSize > freeSpace) {
-                AppLogger.metadata(
-                    "SbskipMetadataReader: Not enough cache space to probe $fileName " +
-                        "(file=$fileSize bytes, free=$freeSpace bytes)",
-                )
-                return null
-            }
 
-            val tempFile =
-                File(cacheDir, "sbskip_probe_${System.currentTimeMillis()}_${sanitizeFileName(fileName)}")
-
-            return try {
-                val inputStream = contentResolver.openInputStream(fileUri)
-                if (inputStream == null) {
-                    AppLogger.metadata("SbskipMetadataReader: Failed to open input stream for $fileName")
-                    return null
-                }
-
-                inputStream.use { input ->
-                    tempFile.outputStream().use { output ->
-                        input.copyTo(output)
-                    }
-                }
-
-                parseSbskipFile(tempFile, fileName, fileSize)
-            } catch (e: Exception) {
-                AppLogger.metadata("SbskipMetadataReader: Error reading metadata for $fileName: ${e.message}")
-                null
-            } finally {
-                tempFile.delete()
-            }
+            val command = "-v quiet -print_format json -show_format \"$safParameter\""
+            AppLogger.metadata("SbskipMetadataReader: Probing $fileName with ffprobe")
+            val session = FFprobeKit.execute(command)
+            return parseSbskipFile(session, fileName, fileSize)
         }
 
         private fun parseSbskipFile(
-            tempFile: File,
+            session: com.arthenica.ffmpegkit.Session,
             fileName: String,
             fileSize: Long?,
         ): MediaFileMetadata? {
-            val command = "-v quiet -print_format json -show_format \"${tempFile.absolutePath}\""
-            AppLogger.metadata("SbskipMetadataReader: Probing $fileName with ffprobe")
-            val session = FFprobeKit.execute(command)
             val output = session.output
 
             if (output == null || output.isBlank()) {
@@ -101,7 +81,7 @@ class SbskipMetadataReader
                 // Also read standard metadata fields
                 val title: String = readTag("title") ?: fileName
 
-                val extension: String = tempFile.extension.takeIf { it.isNotEmpty() } ?: "unknown"
+                val extension: String = fileName.substringAfterLast('.', "").takeIf { it.isNotBlank() }?.lowercase() ?: "unknown"
 
                 // Try to get duration from format
                 val durationStr: String? =
@@ -164,9 +144,5 @@ class SbskipMetadataReader
             } catch (e: Exception) {
                 null
             }
-        }
-
-        private fun sanitizeFileName(name: String): String {
-            return name.replace(Regex("[^a-zA-Z0-9._-]"), "_")
         }
     }
