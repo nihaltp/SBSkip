@@ -128,7 +128,7 @@ class SbskipMetadataReader
                     formatObj?.get("duration")?.let { element ->
                         (element as? JsonPrimitive)?.content
                     }
-                val durationSeconds: Long? = durationStr?.toDoubleOrNull()?.let { (it / 1000).toLong() }
+                val durationSeconds: Long? = durationStr?.toDoubleOrNull()?.toLong()
 
                 if (youtubeId != null) {
                     AppLogger.metadata(

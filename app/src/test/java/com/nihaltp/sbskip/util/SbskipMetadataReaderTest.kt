@@ -53,7 +53,7 @@ class SbskipMetadataReaderTest {
                         "SBSKIP_PROCESSED": "true",
                         "SBSKIP_PROCESSED_AT": "1234567890"
                     },
-                    "duration": "120000"
+                    "duration": "120.9"
                 }
             }
             """.trimIndent()
