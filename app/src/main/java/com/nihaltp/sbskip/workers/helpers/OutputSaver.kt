@@ -12,14 +12,14 @@ import java.io.File
 import java.io.IOException
 import javax.inject.Inject
 
-class OutputSaver
+open class OutputSaver
     @Inject
     constructor(
         @ApplicationContext private val context: Context,
         private val downloadStorage: DownloadStorage,
         private val settingsRepository: SettingsRepository,
     ) {
-        suspend fun save(
+        open suspend fun save(
             tempOutputFile: File,
             processingContext: ProcessingContext,
         ): String {

@@ -8,14 +8,14 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import javax.inject.Inject
 
-class MediaProcessingManager
+open class MediaProcessingManager
     @Inject
     constructor(
         @ApplicationContext private val context: Context,
         private val downloadStorage: DownloadStorage,
         private val mediaProcessor: MediaProcessor,
     ) {
-        suspend fun process(
+        open suspend fun process(
             queueItemId: Long,
             localFileUri: String,
             localExtension: String,

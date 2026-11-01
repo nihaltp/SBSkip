@@ -41,7 +41,7 @@ fun interface YtDlpProcessStarter {
  * cancellation: cancelling the calling coroutine destroys the process gracefully, then
  * `destroyForcibly` after a short linger. No orphan yt-dlp child processes survive a cancel.
  */
-class YtDlpProcessRunner(
+open class YtDlpProcessRunner(
     /** Progress dispatch throttle (plan §5: ≥500 ms or a ≥1% percent step). */
     private val throttleMillis: Long = THROTTLE_MILLIS,
     /** Mono-ish clock seam for deterministic throttle tests. */
@@ -62,7 +62,7 @@ class YtDlpProcessRunner(
      * returned as a normal [YtDlpRunResult] — interpreting the exit code is the caller's job
      * ([YtDlpRunResult.stderrTail] carries the failure reason).
      */
-    suspend fun run(
+    open suspend fun run(
         command: List<String>,
         environment: Map<String, String>,
         onProgress: (YtDlpProgress) -> Unit,

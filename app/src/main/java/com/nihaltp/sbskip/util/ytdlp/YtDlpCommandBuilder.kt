@@ -45,7 +45,7 @@ object YtDlpCommandBuilder {
         val ffmpegLocation: File? = null,
     )
 
-    fun build(request: Request): List<String> {
+    open fun build(request: Request): List<String> {
         val url = cleanUrl(request.url)
         if (url.isBlank()) {
             throw YtDlpCommandException(

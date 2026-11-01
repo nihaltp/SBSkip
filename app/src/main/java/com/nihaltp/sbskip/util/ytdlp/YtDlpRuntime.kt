@@ -55,7 +55,7 @@ data class YtDlpPaths(
  * content-hashed identically so bundle bumps propagate without touching user data.
  */
 @Singleton
-class YtDlpRuntime
+open class YtDlpRuntime
     @Inject
     constructor(
         @ApplicationContext private val appContext: Context,
@@ -73,7 +73,7 @@ class YtDlpRuntime
          * Installs/validates the runtime and returns its paths. Safe to call from any coroutine;
          * extraction runs at most once per payload version, guarded by a VM-wide mutex.
          */
-        suspend fun ensure(context: Context = appContext): YtDlpPaths =
+        open suspend fun ensure(context: Context = appContext): YtDlpPaths =
             mutex.withLock {
                 val nativeLibDir = File(context.applicationInfo.nativeLibraryDir)
                 val baseDir = File(context.noBackupFilesDir, RUNTIME_DIR)
@@ -163,7 +163,7 @@ class YtDlpRuntime
         }
 
         /** Runtime environment table (plan §4.1) applied to spawned yt-dlp processes. */
-        fun environment(
+        open fun environment(
             paths: YtDlpPaths,
             tmpRoot: File,
         ): Map<String, String> =
@@ -177,7 +177,7 @@ class YtDlpRuntime
             )
 
         /** Work dir for a queue item: `<cacheDir>/ytdlp-tmp/<queueItemId>/` (plan §4.1). */
-        fun workDir(
+        open fun workDir(
             cacheDir: File,
             queueItemId: Long,
         ): File = File(File(cacheDir, WORK_DIR_ROOT), queueItemId.toString())

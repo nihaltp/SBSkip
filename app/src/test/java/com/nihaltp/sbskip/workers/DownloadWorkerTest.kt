@@ -32,9 +32,8 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -82,14 +81,17 @@ class DownloadWorkerTest {
         ytDlpCommandBuilder = mockk(relaxed = true)
         ytDlpProcessRunner = mockk(relaxed = true)
 
-        val settingsFlow = MutableStateFlow(AppSettings())
-        every { settingsRepository.settings } returns settingsFlow
+        every { settingsRepository.settings } returns flowOf(AppSettings())
+        every { notificationManager.createForegroundInfo(any(), any(), any()) } answers {
+            throw RuntimeException("foreground not available in tests")
+        }
         coEvery { queueRepository.findItemById(any()) } returns null
         coEvery { queueRepository.markFetchingSegments(any()) } returns Unit
         coEvery { metadataFetcher.fetchVideoDuration(any()) } returns null
         coEvery { metadataFetcher.fetchYouTubeMetadata(any()) }
             .returns(YouTubeMetadata(title = "Test", authorName = "Author", authorUrl = "", thumbnailUrl = null))
         coEvery { metadataFetcher.fetchSponsorSegments(any(), any()) } returns emptyList<SponsorBlockSegment>()
+        coEvery { metadataFetcher.checkApiStatus() } returns "operational"
         coEvery { queueRepository.updateMetadata(any(), any(), any(), any()) } returns Unit
         coEvery { queueRepository.markProcessing(any()) } returns Unit
         coEvery { processingPlanBuilder.createPlan(any(), any(), any(), any()) }
@@ -101,6 +103,21 @@ class DownloadWorkerTest {
         coEvery { outputSaver.save(any(), any()) } returns "content://media/saved.mp4"
         coEvery { queueRepository.markCompleted(any(), any(), any()) } returns Unit
         coEvery { queueRepository.markFailed(any(), any()) } returns Unit
+
+        // yt-dlp runtime seams
+        coEvery { ytDlpRuntime.ensure(any()) } returns
+            YtDlpPaths(
+                baseDir = File(System.getProperty("java.io.tmpdir"), "ytdlp-base"),
+                pythonRoot = File(System.getProperty("java.io.tmpdir"), "ytdlp-python"),
+                ffmpegRoot = File(System.getProperty("java.io.tmpdir"), "ytdlp-ffmpeg"),
+                pythonLauncher = File("/system/lib/libpython.so"),
+                ffmpegLauncher = File("/system/lib/libffmpeg.so"),
+                ffprobeLauncher = File("/system/lib/libffprobe.so"),
+                launcherDir = File("/system/lib"),
+                zipapp = File(System.getProperty("java.io.tmpdir"), "ytdlp"),
+            )
+        every { ytDlpRuntime.workDir(any(), any()) } returns File(System.getProperty("java.io.tmpdir"), "ytdlp-work")
+        every { ytDlpRuntime.environment(any(), any()) } returns emptyMap()
 
         val params = mockk<WorkerParameters>(relaxed = true)
         every { params.inputData } returns workDataOf(DownloadWorker.KEY_QUEUE_ITEM_ID to 1L)
@@ -161,15 +178,15 @@ class DownloadWorkerTest {
 
     @Test
     fun `yt-dlp path calls yt-dlp runtime, command builder, and process runner`() =
-        runBlocking {
+        runTest {
             val item = ytDlpQueueItem()
             coEvery { queueRepository.findItemById(any()) } returns item
 
             val paths = mockk<YtDlpPaths>(relaxed = true)
             every { paths.ffmpegLauncher } returns File("/system/lib/ffmpeg")
             every { paths.pythonLauncher } returns File("/system/lib/python")
-            coEvery { ytDlpRuntime.ensure() } returns paths
-            coEvery { ytDlpRuntime.environment(paths, any()) } returns mapOf("HOME" to "/tmp")
+            coEvery { ytDlpRuntime.ensure(any()) } returns paths
+            coEvery { ytDlpRuntime.environment(any(), any()) } returns mapOf("HOME" to "/tmp")
             every { ytDlpCommandBuilder.build(any()) } returns listOf("yt-dlp", "--no-playlist", item.url)
             coEvery { ytDlpProcessRunner.run(any(), any(), any()) }
                 .returns(
@@ -180,13 +197,12 @@ class DownloadWorkerTest {
                         lastProgress = null,
                     ),
                 )
-            // yt-dlp output file exists
-            val workDir = File(context.cacheDir, "ytdlp-tmp/${item.id}")
+            // yt-dlp output file exists (workDir is mocked to /tmp/ytdlp-work)
+            val workDir = File(System.getProperty("java.io.tmpdir"), "ytdlp-work")
             workDir.mkdirs()
             File(workDir, "out.mp4").createNewFile()
 
-            val result = withTimeoutOrNull(30000) { worker.doWork() }
-            if (result == null) throw AssertionError("doWork() timed out")
+            worker.doWork()
 
             coVerify { ytDlpRuntime.ensure() }
             verify { ytDlpCommandBuilder.build(any()) }
@@ -197,14 +213,14 @@ class DownloadWorkerTest {
 
     @Test
     fun `yt-dlp path skips local file duration validation`() =
-        runBlocking {
+        runTest {
             val item = ytDlpQueueItem(localFileUri = "")
             coEvery { queueRepository.findItemById(any()) } returns item
 
             val paths = mockk<YtDlpPaths>(relaxed = true)
             every { paths.ffmpegLauncher } returns File("/system/lib/ffmpeg")
-            coEvery { ytDlpRuntime.ensure() } returns paths
-            coEvery { ytDlpRuntime.environment(paths, any()) } returns emptyMap()
+            coEvery { ytDlpRuntime.ensure(any()) } returns paths
+            coEvery { ytDlpRuntime.environment(any(), any()) } returns emptyMap()
             every { ytDlpCommandBuilder.build(any()) } returns listOf("yt-dlp")
             coEvery { ytDlpProcessRunner.run(any(), any(), any()) }
                 .returns(
@@ -215,12 +231,12 @@ class DownloadWorkerTest {
                         lastProgress = null,
                     ),
                 )
-            val workDir = File(context.cacheDir, "ytdlp-tmp/${item.id}")
+            // yt-dlp output file exists (workDir is mocked to /tmp/ytdlp-work)
+            val workDir = File(System.getProperty("java.io.tmpdir"), "ytdlp-work")
             workDir.mkdirs()
             File(workDir, "out.mp4").createNewFile()
 
-            val result = withTimeoutOrNull(30000) { worker.doWork() }
-            if (result == null) throw AssertionError("doWork() timed out")
+            worker.doWork()
 
             coVerify(exactly = 0) { durationValidator.validate(any(), any(), any()) }
             coVerify { ytDlpRuntime.ensure() }
@@ -228,14 +244,14 @@ class DownloadWorkerTest {
 
     @Test
     fun `yt-dlp download failure marks item failed`() =
-        runBlocking {
+        runTest {
             val item = ytDlpQueueItem()
             coEvery { queueRepository.findItemById(any()) } returns item
 
             val paths = mockk<YtDlpPaths>(relaxed = true)
             every { paths.ffmpegLauncher } returns File("/system/lib/ffmpeg")
-            coEvery { ytDlpRuntime.ensure() } returns paths
-            coEvery { ytDlpRuntime.environment(paths, any()) } returns emptyMap()
+            coEvery { ytDlpRuntime.ensure(any()) } returns paths
+            coEvery { ytDlpRuntime.environment(any(), any()) } returns emptyMap()
             every { ytDlpCommandBuilder.build(any()) } returns listOf("yt-dlp")
             coEvery { ytDlpProcessRunner.run(any(), any(), any()) }
                 .returns(
@@ -247,8 +263,12 @@ class DownloadWorkerTest {
                     ),
                 )
 
-            val result = withTimeoutOrNull(30000) { worker.doWork() }
-            if (result == null) throw AssertionError("doWork() timed out")
+            // yt-dlp output file exists (workDir is mocked to /tmp/ytdlp-work)
+            val workDir = File(System.getProperty("java.io.tmpdir"), "ytdlp-work")
+            workDir.mkdirs()
+            File(workDir, "out.mp4").createNewFile()
+
+            worker.doWork()
 
             coVerify { queueRepository.markFailed(item.id, any()) }
             coVerify(exactly = 0) { mediaProcessingManager.process(any(), any(), any(), any(), any()) }
@@ -256,7 +276,7 @@ class DownloadWorkerTest {
 
     @Test
     fun `non-yt-dlp path does not call yt-dlp components`() =
-        runBlocking {
+        runTest {
             val item =
                 ytDlpQueueItem(
                     downloadSource = DownloadSource.LOCAL_FILE,
@@ -266,8 +286,7 @@ class DownloadWorkerTest {
             coEvery { durationValidator.validate(any(), any(), any()) }
                 .returns(MediaFileMetadata(title = "Test", extension = "mp4", durationSeconds = 100L))
 
-            val result = withTimeoutOrNull(30000) { worker.doWork() }
-            if (result == null) throw AssertionError("doWork() timed out")
+            worker.doWork()
 
             coVerify(exactly = 0) { ytDlpRuntime.ensure() }
             verify(exactly = 0) { ytDlpCommandBuilder.build(any()) }

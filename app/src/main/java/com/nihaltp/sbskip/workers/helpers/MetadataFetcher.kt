@@ -15,7 +15,7 @@ import okhttp3.Request
 import java.io.IOException
 import javax.inject.Inject
 
-class MetadataFetcher
+open class MetadataFetcher
     @Inject
     constructor(
         private val sponsorBlockService: SponsorBlockService,
@@ -31,7 +31,7 @@ class MetadataFetcher
             val metadata: YouTubeMetadata,
         )
 
-        suspend fun fetchYouTubeMetadata(videoUrl: String): YouTubeMetadata =
+        open suspend fun fetchYouTubeMetadata(videoUrl: String): YouTubeMetadata =
             withContext(Dispatchers.IO) {
                 val videoId = com.nihaltp.sbskip.util.parser.YouTubeUrlParser.extractVideoId(videoUrl)
                 if (videoId != null) {
@@ -101,18 +101,18 @@ class MetadataFetcher
                 oEmbedMetadata
             }
 
-        suspend fun fetchSponsorSegments(
+        open suspend fun fetchSponsorSegments(
             videoId: String,
             categories: Set<SponsorBlockCategory>,
         ): List<SponsorBlockSegment> {
             return sponsorBlockService.fetchSegments(videoId, categories)
         }
 
-        suspend fun fetchVideoDuration(videoId: String): Long? {
+        open suspend fun fetchVideoDuration(videoId: String): Long? {
             return YouTubeDurationFetcher.fetchDuration(videoId)
         }
 
-        suspend fun checkApiStatus(): String {
+        open suspend fun checkApiStatus(): String {
             return sponsorBlockService.checkApiStatus()
         }
     }
