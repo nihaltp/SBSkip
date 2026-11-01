@@ -5,8 +5,11 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import com.arthenica.ffmpegkit.FFprobeKit
 import com.nihaltp.sbskip.model.MediaFileMetadata
-import com.nihaltp.sbskip.util.parser.SbskipFfprobeJson
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import java.io.File
 import javax.inject.Inject
 
@@ -15,6 +18,8 @@ class SbskipMetadataReader
     constructor(
         @ApplicationContext private val context: android.content.Context,
     ) {
+        private val json = Json { ignoreUnknownKeys = true }
+
         fun readSbskipMetadata(
             contentResolver: ContentResolver,
             fileUri: Uri,
@@ -86,36 +91,47 @@ class SbskipMetadataReader
                 AppLogger.metadata("SbskipMetadataReader: ffprobe returned empty output for $fileName")
                 return MediaFileMetadata(
                     title = fileName,
-                    extension = tempFile.extension.takeIf { it.isNotBlank() } ?: "unknown",
+                    extension = tempFile.extension.takeIf { it.isNotEmpty() } ?: "unknown",
                     durationSeconds = null,
                     fileSize = fileSize,
                 )
             }
 
             try {
-                val result = SbskipFfprobeJson.json.decodeFromString(output)
-                val tags = result.format?.tags ?: emptyMap()
+                val jsonElement = json.decodeFromString<JsonElement>(output)
+                val formatObj = (jsonElement as JsonObject)["format"] as? JsonObject
+                val tagsObj = formatObj?.get("tags") as? JsonObject
+
+                // Helper to read a string tag from the tags object
+                fun readTag(key: String): String? {
+                    return tagsObj?.get(key)?.let { element ->
+                        (element as? JsonPrimitive)?.content
+                    }?.takeIf { it.isNotEmpty() }
+                }
 
                 // Read SBSKIP_* tags directly (Picard-style named tags)
-                val youtubeId = tags["SBSKIP_YOUTUBE_VIDEO_ID"]?.takeIf { it.isNotBlank() }
-                val youtubeUrl = tags["SBSKIP_YOUTUBE_VIDEO_URL"]?.takeIf { it.isNotBlank() }
-                val youtubeTitle = tags["SBSKIP_YOUTUBE_TITLE"]?.takeIf { it.isNotBlank() }
-                val authorName = tags["SBSKIP_AUTHOR_NAME"]?.takeIf { it.isNotBlank() }
-                val authorUrl = tags["SBSKIP_AUTHOR_URL"]?.takeIf { it.isNotBlank() }
-                val thumbnailUrl = tags["SBSKIP_THUMBNAIL_URL"]?.takeIf { it.isNotBlank() }
-                val sbskipSegments = tags["SBSKIP_SEGMENTS"]?.takeIf { it.isNotBlank() }
-                val sbskipVersion = tags["SBSKIP_VERSION"]?.takeIf { it.isNotBlank() }
-                val sbskipProcessed = tags["SBSKIP_PROCESSED"]?.takeIf { it.isNotBlank() }?.toBooleanOrNull()
-                val sbskipProcessedAt = tags["SBSKIP_PROCESSED_AT"]?.takeIf { it.isNotBlank() }?.toLongOrNull()
+                val youtubeId = readTag("SBSKIP_YOUTUBE_VIDEO_ID")
+                val youtubeUrl = readTag("SBSKIP_YOUTUBE_VIDEO_URL")
+                val youtubeTitle = readTag("SBSKIP_YOUTUBE_TITLE")
+                val authorName = readTag("SBSKIP_AUTHOR_NAME")
+                val authorUrl = readTag("SBSKIP_AUTHOR_URL")
+                val thumbnailUrl = readTag("SBSKIP_THUMBNAIL_URL")
+                val sbskipSegments = readTag("SBSKIP_SEGMENTS")
+                val sbskipVersion = readTag("SBSKIP_VERSION")
+                val sbskipProcessed = readTag("SBSKIP_PROCESSED")?.toBoolean()
+                val sbskipProcessedAt = readTag("SBSKIP_PROCESSED_AT")?.toLong()
 
                 // Also read standard metadata fields
-                val title = tags["title"]?.takeIf { it.isNotBlank() } ?: fileName
+                val title: String = readTag("title") ?: fileName
 
-                val extension = tempFile.extension.takeIf { it.isNotBlank() } ?: "unknown"
+                val extension: String = tempFile.extension.takeIf { it.isNotEmpty() } ?: "unknown"
 
                 // Try to get duration from format
-                val durationStr = result.format?.duration
-                val durationSeconds = durationStr?.toDoubleOrNull()?.let { (it / 1000).toLong() }
+                val durationStr: String? =
+                    formatObj?.get("duration")?.let { element ->
+                        (element as? JsonPrimitive)?.content
+                    }
+                val durationSeconds: Long? = durationStr?.toDoubleOrNull()?.let { (it / 1000).toLong() }
 
                 if (youtubeId != null) {
                     AppLogger.metadata(
@@ -143,7 +159,7 @@ class SbskipMetadataReader
                 AppLogger.metadata("SbskipMetadataReader: Failed to parse ffprobe output for $fileName: ${e.message}")
                 return MediaFileMetadata(
                     title = fileName,
-                    extension = tempFile.extension.takeIf { it.isNotBlank() } ?: "unknown",
+                    extension = tempFile.extension.takeIf { it.isNotEmpty() } ?: "unknown",
                     durationSeconds = null,
                     fileSize = fileSize,
                 )
