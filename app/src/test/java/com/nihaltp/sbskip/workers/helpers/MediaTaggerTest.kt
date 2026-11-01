@@ -99,17 +99,37 @@ class MediaTaggerTest {
             // Assert
             assertTrue("Should have captured a command", capturedCommands.isNotEmpty())
             val command = capturedCommands.last()
-            assertTrue("Should contain SBSKIP_YOUTUBE_VIDEO_ID tag", command.contains("SBSKIP_YOUTUBE_VIDEO_ID"))
-            assertTrue("Should contain SBSKIP_YOUTUBE_VIDEO_URL tag", command.contains("SBSKIP_YOUTUBE_VIDEO_URL"))
-            assertTrue("Should contain SBSKIP_YOUTUBE_TITLE tag", command.contains("SBSKIP_YOUTUBE_TITLE"))
-            assertTrue("Should contain SBSKIP_AUTHOR_NAME tag", command.contains("SBSKIP_AUTHOR_NAME"))
-            assertTrue("Should contain SBSKIP_AUTHOR_URL tag", command.contains("SBSKIP_AUTHOR_URL"))
-            assertTrue("Should contain SBSKIP_THUMBNAIL_URL tag", command.contains("SBSKIP_THUMBNAIL_URL"))
-            assertTrue("Should contain SBSKIP_SEGMENTS tag", command.contains("SBSKIP_SEGMENTS"))
-            assertTrue("Should contain SBSKIP_VERSION tag", command.contains("SBSKIP_VERSION"))
-            assertTrue("Should contain SBSKIP_PROCESSED tag", command.contains("SBSKIP_PROCESSED"))
-            assertTrue("Should contain SBSKIP_PROCESSED_AT tag", command.contains("SBSKIP_PROCESSED_AT"))
-            assertTrue("Should contain SBSKIP_REMOVED_CATEGORIES tag", command.contains("SBSKIP_REMOVED_CATEGORIES=\"SPONSOR\""))
+
+            // Verify each SBSKIP tag includes its full key="value" assignment
+            assertTrue(
+                "Should contain SBSKIP_YOUTUBE_VIDEO_ID with value",
+                command.contains("-metadata SBSKIP_YOUTUBE_VIDEO_ID=\"dQw4w9WgXcQ\""),
+            )
+            assertTrue(
+                "Should contain SBSKIP_YOUTUBE_VIDEO_URL with value",
+                command.contains("-metadata SBSKIP_YOUTUBE_VIDEO_URL=\"https://youtube.com/watch?v=test\""),
+            )
+            assertTrue("Should contain SBSKIP_YOUTUBE_TITLE with value", command.contains("-metadata SBSKIP_YOUTUBE_TITLE=\"Test Video\""))
+            assertTrue("Should contain SBSKIP_AUTHOR_NAME with value", command.contains("-metadata SBSKIP_AUTHOR_NAME=\"Test Author\""))
+            assertTrue(
+                "Should contain SBSKIP_AUTHOR_URL with value",
+                command.contains("-metadata SBSKIP_AUTHOR_URL=\"https://youtube.com/@testauthor\""),
+            )
+            assertTrue(
+                "Should contain SBSKIP_THUMBNAIL_URL with value",
+                command.contains("-metadata SBSKIP_THUMBNAIL_URL=\"https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg\""),
+            )
+            assertTrue("Should contain SBSKIP_SEGMENTS with value", command.contains("-metadata SBSKIP_SEGMENTS=\"0-10;20-30\""))
+            assertTrue("Should contain SBSKIP_VERSION tag", command.contains("-metadata SBSKIP_VERSION=\"") && command.contains("\""))
+            assertTrue("Should contain SBSKIP_PROCESSED with value", command.contains("-metadata SBSKIP_PROCESSED=\"true\""))
+            assertTrue(
+                "Should contain SBSKIP_PROCESSED_AT with value",
+                command.contains("-metadata SBSKIP_PROCESSED_AT=\"") && command.contains("\""),
+            )
+            assertTrue(
+                "Should contain SBSKIP_REMOVED_CATEGORIES with value",
+                command.contains("-metadata SBSKIP_REMOVED_CATEGORIES=\"SPONSOR\""),
+            )
             assertTrue("Should NOT contain comment JSON tag", !command.contains("comment=\""))
             assertTrue("Should NOT contain old SB_ prefix", !command.contains("SB_VERSION"))
 
