@@ -10,6 +10,7 @@ import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
@@ -73,23 +74,24 @@ class SbskipMetadataReaderTest {
         val result = reader.readSbskipMetadata(contentResolver, fileUri, cacheDir)
 
         // Assert
-        assertEquals("Test Video", result.title)
-        assertEquals("mp4", result.extension)
-        assertEquals(120L, result.durationSeconds)
-        assertEquals("dQw4w9WgXcQ", result.youtubeId)
-        assertEquals("https://youtube.com/watch?v=dQw4w9WgXcQ", result.youtubeUrl)
-        assertEquals("Test Video", result.youtubeTitle)
-        assertEquals("Test Author", result.authorName)
-        assertEquals("https://youtube.com/@testauthor", result.authorUrl)
-        assertEquals("https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg", result.thumbnailUrl)
-        assertEquals("0-10;20-30", result.sbskipSegments)
-        assertEquals("1.9.4", result.sbskipVersion)
-        assertEquals(true, result.sbskipProcessed)
-        assertEquals(1234567890L, result.sbskipProcessedAt)
+        assertNotNull(result)
+        assertEquals("Test Video", result!!.title)
+        assertEquals("mp4", result!!.extension)
+        assertEquals(120L, result!!.durationSeconds)
+        assertEquals("dQw4w9WgXcQ", result!!.youtubeId)
+        assertEquals("https://youtube.com/watch?v=dQw4w9WgXcQ", result!!.youtubeUrl)
+        assertEquals("Test Video", result!!.youtubeTitle)
+        assertEquals("Test Author", result!!.authorName)
+        assertEquals("https://youtube.com/@testauthor", result!!.authorUrl)
+        assertEquals("https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg", result!!.thumbnailUrl)
+        assertEquals("0-10;20-30", result!!.sbskipSegments)
+        assertEquals("1.9.4", result!!.sbskipVersion)
+        assertEquals(true, result!!.sbskipProcessed)
+        assertEquals(1234567890L, result!!.sbskipProcessedAt)
     }
 
     @Test
-    fun `readSbskipMetadata should return default values when ffprobe returns empty output`() {
+    fun `readSbskipMetadata should return null when ffprobe returns empty output`() {
         // Arrange
         mockkStatic(FFprobeKit::class)
         every { FFprobeKit.execute(any()) } answers {
@@ -106,12 +108,7 @@ class SbskipMetadataReaderTest {
         val result = reader.readSbskipMetadata(contentResolver, fileUri, cacheDir)
 
         // Assert
-        assertEquals("test.mp4", result.title)
-        assertEquals("mp4", result.extension)
-        assertNull(result.youtubeId)
-        assertNull(result.youtubeUrl)
-        assertNull(result.sbskipSegments)
-        assertNull(result.sbskipVersion)
+        assertNull(result)
     }
 
     @Test
@@ -143,10 +140,11 @@ class SbskipMetadataReaderTest {
         val result = reader.readSbskipMetadata(contentResolver, fileUri, cacheDir)
 
         // Assert
-        assertEquals("Partial Video", result.title)
-        assertNull(result.youtubeId)
-        assertNull(result.authorName)
-        assertNull(result.sbskipSegments)
-        assertNull(result.sbskipProcessed)
+        assertNotNull(result)
+        assertEquals("Partial Video", result!!.title)
+        assertNull(result!!.youtubeId)
+        assertNull(result!!.authorName)
+        assertNull(result!!.sbskipSegments)
+        assertNull(result!!.sbskipProcessed)
     }
 }

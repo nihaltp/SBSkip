@@ -21,7 +21,7 @@ class SbskipMetadataReader
             contentResolver: ContentResolver,
             fileUri: Uri,
             cacheDir: File,
-        ): MediaFileMetadata {
+        ): MediaFileMetadata? {
             val fileName = fileUri.lastPathSegment ?: "unknown"
 
             val fileSize = fileSizeFromProvider(contentResolver, fileUri)
@@ -31,12 +31,7 @@ class SbskipMetadataReader
                     "SbskipMetadataReader: Not enough cache space to probe $fileName " +
                         "(file=$fileSize bytes, free=$freeSpace bytes)",
                 )
-                return MediaFileMetadata(
-                    title = fileName,
-                    extension = "unknown",
-                    durationSeconds = null,
-                    fileSize = fileSize,
-                )
+                return null
             }
 
             val tempFile =
@@ -46,12 +41,7 @@ class SbskipMetadataReader
                 val inputStream = contentResolver.openInputStream(fileUri)
                 if (inputStream == null) {
                     AppLogger.metadata("SbskipMetadataReader: Failed to open input stream for $fileName")
-                    return MediaFileMetadata(
-                        title = fileName,
-                        extension = "unknown",
-                        durationSeconds = null,
-                        fileSize = fileSize,
-                    )
+                    return null
                 }
 
                 inputStream.use { input ->
@@ -63,12 +53,7 @@ class SbskipMetadataReader
                 parseSbskipFile(tempFile, fileName, fileSize)
             } catch (e: Exception) {
                 AppLogger.metadata("SbskipMetadataReader: Error reading metadata for $fileName: ${e.message}")
-                MediaFileMetadata(
-                    title = fileName,
-                    extension = "unknown",
-                    durationSeconds = null,
-                    fileSize = fileSize,
-                )
+                null
             } finally {
                 tempFile.delete()
             }
@@ -78,7 +63,7 @@ class SbskipMetadataReader
             tempFile: File,
             fileName: String,
             fileSize: Long?,
-        ): MediaFileMetadata {
+        ): MediaFileMetadata? {
             val command = "-v quiet -print_format json -show_format \"${tempFile.absolutePath}\""
             AppLogger.metadata("SbskipMetadataReader: Probing $fileName with ffprobe")
             val session = FFprobeKit.execute(command)
@@ -86,12 +71,7 @@ class SbskipMetadataReader
 
             if (output == null || output.isBlank()) {
                 AppLogger.metadata("SbskipMetadataReader: ffprobe returned empty output for $fileName")
-                return MediaFileMetadata(
-                    title = fileName,
-                    extension = tempFile.extension.takeIf { it.isNotEmpty() } ?: "unknown",
-                    durationSeconds = null,
-                    fileSize = fileSize,
-                )
+                return null
             }
 
             try {
@@ -154,12 +134,7 @@ class SbskipMetadataReader
                 )
             } catch (e: Exception) {
                 AppLogger.metadata("SbskipMetadataReader: Failed to parse ffprobe output for $fileName: ${e.message}")
-                return MediaFileMetadata(
-                    title = fileName,
-                    extension = tempFile.extension.takeIf { it.isNotEmpty() } ?: "unknown",
-                    durationSeconds = null,
-                    fileSize = fileSize,
-                )
+                return null
             }
         }
 
