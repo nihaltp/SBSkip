@@ -78,6 +78,7 @@ abstract class AppModule {
         @Provides
         fun provideDownloadedVideoDao(database: SBSkipDatabase): DownloadedVideoDao = database.downloadedVideoDao()
 
+        @Provides
         @Singleton
         fun provideYtDlpCommandBuilder(): YtDlpCommandBuilder = YtDlpCommandBuilder
 
