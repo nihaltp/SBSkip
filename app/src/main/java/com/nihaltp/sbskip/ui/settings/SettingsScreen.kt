@@ -497,22 +497,6 @@ fun SettingsScreen(
                 }
 
                 item {
-                    SettingsSection(title = stringResource(id = R.string.settings_section_advanced)) {
-                        SettingToggleRow(
-                            title = stringResource(id = R.string.verbose_logging),
-                            description = stringResource(id = R.string.verbose_logging_desc),
-                            checked = settings.verboseLogging,
-                            onCheckedChange = viewModel::updateVerboseLogging,
-                        )
-                        SettingValueRow(
-                            title = stringResource(id = R.string.settings_view_logs_button),
-                            value = stringResource(id = R.string.logs_title),
-                            onClick = onNavigateToLogs,
-                        )
-                    }
-                }
-
-                item {
                     SettingsSection(
                         modifier = Modifier.testTag("downloadedHistoryCard"),
                         title = stringResource(id = R.string.settings_downloaded_videos_title),
@@ -583,6 +567,22 @@ fun SettingsScreen(
                                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                                 context.startActivity(intent)
                             },
+                        )
+                    }
+                }
+
+                item {
+                    SettingsSection(title = stringResource(id = R.string.settings_section_advanced)) {
+                        SettingToggleRow(
+                            title = stringResource(id = R.string.verbose_logging),
+                            description = stringResource(id = R.string.verbose_logging_desc),
+                            checked = settings.verboseLogging,
+                            onCheckedChange = viewModel::updateVerboseLogging,
+                        )
+                        SettingValueRow(
+                            title = stringResource(id = R.string.settings_view_logs_button),
+                            value = stringResource(id = R.string.logs_title),
+                            onClick = onNavigateToLogs,
                         )
                     }
                 }
