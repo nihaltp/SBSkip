@@ -24,14 +24,14 @@ object YtDlpCommandBuilder {
     private val internalMarkerKeys = internalMarkers.map { it.lowercase() }
 
     private const val PROGRESS_TEMPLATE =
-        "download:PROGRESS|%(progress._percent_str)|%(progress._downloaded_bytes)|" +
-            "%(progress._total_bytes_estimate)|%(progress._speed)|%(progress._eta)"
+        "download:PROGRESS|%(progress._percent_str)s|%(progress._downloaded_bytes)s|" +
+            "%(progress._total_bytes_estimate)s|%(progress._speed)s|%(progress._eta)s"
 
     internal const val OUTPUT_TEMPLATE = "out.%(ext)s"
 
     /** v1 quality presets (plan §5.1); new Video selection with a 1080p ceiling + mp4 bias. */
     internal const val BEST_VIDEO_FORMAT = "bv*+ba/b"
-    internal const val AUDIO_FORMAT_SPEC = "ba[ext=m4a]/ba/ba"
+    internal const val AUDIO_FORMAT_SPEC = "ba/b"
 
     data class Request(
         val mediaType: MediaType,
@@ -78,6 +78,10 @@ object YtDlpCommandBuilder {
             args.add("--ffmpeg-location")
             args.add(it.absolutePath)
         }
+        // Use the Android player client to avoid YouTube 403s on video data for the
+        // default web client (which increasingly requires proof-of-origin tokens).
+        args.add("--extractor-args")
+        args.add("youtube:player_client=android")
         when (request.mediaType) {
             MediaType.VIDEO -> {
                 args.add("-f")
