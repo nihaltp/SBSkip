@@ -13,9 +13,9 @@ import com.nihaltp.sbskip.data.repository.QueueRepository
 import com.nihaltp.sbskip.data.repository.SettingsRepository
 import com.nihaltp.sbskip.model.AlreadyDownloadedBehavior
 import com.nihaltp.sbskip.model.DetectedFile
-import com.nihaltp.sbskip.model.DuplicateVideoInfo
 import com.nihaltp.sbskip.model.DownloadSource
 import com.nihaltp.sbskip.model.DownloaderType
+import com.nihaltp.sbskip.model.DuplicateVideoInfo
 import com.nihaltp.sbskip.model.MainUiState
 import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.model.PendingDownload
@@ -43,6 +43,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
+import okhttp3.OkHttpClient
 import java.util.Locale
 import javax.inject.Inject
 
@@ -1216,6 +1218,24 @@ class MainViewModel
                 return
             }
 
+            // Check downloader setting early to branch between yt-dlp and NewPipe
+            val settings = settingsRepository.settings.first()
+            val useYtDlp = settings.downloader == DownloaderType.YTDLP
+
+            // yt-dlp currently supports single videos only; playlists fall through to NewPipe.
+            if (useYtDlp && !videoId.isNullOrBlank() && playlistId.isNullOrBlank()) {
+                // yt-dlp path: direct enqueue, worker handles download + processing
+                startYtDlpDownload(
+                    url = url,
+                    videoId = videoId!!,
+                    playlistId = playlistId,
+                    convertVideoToAudio = convertVideoToAudio,
+                    deleteOriginalVideo = deleteOriginalVideo,
+                    skipDuplicateCheck = skipDuplicateCheck,
+                )
+                return
+            }
+
             if (!state.isNewPipeInstalled) {
                 showToast(context.getString(R.string.newpipe_not_installed))
                 return
@@ -1406,6 +1426,100 @@ class MainViewModel
                     autoDetectAndCleanInternal(pendingDownload.copy(estimatedReadyAtEpochMillis = null))
                 }
             pendingDetectJobs[videoId] = detectJob
+        }
+
+        private suspend fun startYtDlpDownload(
+            url: String,
+            videoId: String,
+            playlistId: String?,
+            convertVideoToAudio: Boolean,
+            deleteOriginalVideo: Boolean,
+            skipDuplicateCheck: Boolean,
+        ) {
+            // Playlists are not supported by the yt-dlp path yet.
+            if (!playlistId.isNullOrBlank()) {
+                showToast("Playlist download with yt-dlp not yet supported")
+                return
+            }
+
+            val normalizedUrl = Constants.buildYouTubeWatchUrl(videoId)
+            val customCategories = uiState.value.customSponsorBlockCategories
+            val finalUrl =
+                if (customCategories != null) {
+                    "$normalizedUrl&categories=" + customCategories.joinToString(",") { it.name }
+                } else {
+                    normalizedUrl
+                }
+
+            // The video may already be tracked in the downloaded-videos database.
+            // Check before handing the URL over to NewPipe so nothing is downloaded twice.
+            if (!skipDuplicateCheck) {
+                // Claim the video ID first so concurrent submissions for the same video cannot
+                // both proceed. Hold the claim through the check-and-launch flow.
+                if (!claimDownload(videoId)) return
+                try {
+                    val decision =
+                        handleAlreadyDownloaded(
+                            videoId = videoId,
+                            youtubeUrl = finalUrl,
+                        )
+                    if (decision != DuplicateDecision.PROCEED) return
+                } finally {
+                    releaseDownload(videoId)
+                }
+            }
+
+            _uiState.update { it.copy(isFetchingMetadata = true) }
+
+            // Fetch metadata (title) only; duration is handled by the worker.
+            val metadataDeferred =
+                viewModelScope.async {
+                    runCatching { YouTubeOEmbedFetcher.fetch(videoId) }.getOrElse {
+                        YouTubeMetadata(
+                            title = url.ifBlank { videoId },
+                            authorName = null,
+                            authorUrl = null,
+                            thumbnailUrl = null,
+                        )
+                    }
+                }
+
+            val metadata = metadataDeferred.await()
+
+            _uiState.update { it.copy(isFetchingMetadata = false) }
+
+            // Enqueue directly with YT-DLP source - no local file needed, worker downloads via yt-dlp
+            val result =
+                queueRepository.enqueue(
+                    localFileUri = "", // yt-dlp downloads from URL
+                    title = metadata.title.orEmpty().ifBlank { videoId },
+                    youtubeUrl = finalUrl,
+                    mediaType = if (convertVideoToAudio) MediaType.AUDIO else MediaType.VIDEO,
+                    convertVideoToAudio = convertVideoToAudio,
+                    deleteOriginalVideo = deleteOriginalVideo,
+                    downloadSource = DownloadSource.YTDLP,
+                    bypassDurationCheck = false,
+                    skipDuplicateCheck = skipDuplicateCheck,
+                )
+
+            val successToast =
+                com.nihaltp.sbskip.model.ToastMessage(
+                    message = context.getString(R.string.snackbar_media_enqueued),
+                )
+            val failureToast = com.nihaltp.sbskip.model.ToastMessage(message = result.message)
+
+            if (result.success) scheduleToastDismiss(successToast.id) else scheduleToastDismiss(failureToast.id)
+            _uiState.update { state ->
+                if (result.success) {
+                    state.copy(
+                        urlInput = "",
+                        customSponsorBlockCategories = null,
+                        toastMessages = state.toastMessages + successToast,
+                    )
+                } else {
+                    state.copy(toastMessages = state.toastMessages + failureToast)
+                }
+            }
         }
 
         private suspend fun autoDetectAndCleanInternal(pendingDownload: PendingDownload) {
