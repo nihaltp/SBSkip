@@ -395,6 +395,48 @@ class MainViewModel
             val currentVideo = playlistState.videos.getOrNull(playlistState.currentIndex) ?: return
 
             viewModelScope.launch {
+                val useYtDlp = settingsRepository.settings.first().downloader == DownloaderType.YTDLP
+                if (useYtDlp) {
+                    if (!force) {
+                        val decision =
+                            handleAlreadyDownloaded(
+                                videoId = currentVideo.videoId,
+                                title = currentVideo.title,
+                                youtubeUrl = Constants.buildYouTubeWatchUrl(currentVideo.videoId),
+                                isFromPlaylist = true,
+                            )
+                        if (decision == DuplicateDecision.ASKED) {
+                            return@launch
+                        }
+                        if (decision == DuplicateDecision.SKIPPED) {
+                            skipPlaylistVideo()
+                            return@launch
+                        }
+                    }
+
+                    val state = uiState.value
+                    val plState = state.playlistDownloadState ?: return@launch
+                    val video = plState.videos.getOrNull(plState.currentIndex) ?: return@launch
+                    val normalizedUrl = Constants.buildYouTubeWatchUrl(video.videoId)
+
+                    startYtDlpDownload(
+                        url = normalizedUrl,
+                        videoId = video.videoId,
+                        playlistId = null,
+                        convertVideoToAudio = plState.convertVideoToAudio,
+                        deleteOriginalVideo = plState.deleteOriginalVideo,
+                        skipDuplicateCheck = true,
+                    )
+
+                    _uiState.update { st ->
+                        val ps = st.playlistDownloadState ?: return@update st
+                        val nextIndex = ps.currentIndex + 1
+                        val newPs = if (nextIndex < ps.videos.size) ps.copy(currentIndex = nextIndex) else null
+                        st.copy(playlistDownloadState = newPs)
+                    }
+                    return@launch
+                }
+
                 if (!force) {
                     val decision =
                         handleAlreadyDownloaded(
@@ -1222,7 +1264,54 @@ class MainViewModel
             val settings = settingsRepository.settings.first()
             val useYtDlp = settings.downloader == DownloaderType.YTDLP
 
-            // yt-dlp currently supports single videos only; playlists fall through to NewPipe.
+            // yt-dlp: enqueue playlist videos immediately instead of handing them to NewPipe.
+            if (useYtDlp && !playlistId.isNullOrBlank()) {
+                _uiState.update { it.copy(isFetchingMetadata = true) }
+                viewModelScope.launch {
+                    try {
+                        val videos = com.nihaltp.sbskip.util.fetcher.YouTubePlaylistFetcher.fetchPlaylistVideos(playlistId)
+                        if (videos.isEmpty()) {
+                            showToast("No videos found in playlist or playlist is private")
+                            _uiState.update { it.copy(isFetchingMetadata = false) }
+                            return@launch
+                        }
+                        var enqueued = 0
+                        var skipped = 0
+                        for (video in videos) {
+                            val existing = runCatching { downloadedVideoRepository.findByVideoId(video.videoId) }.getOrNull()
+                            if (existing != null) {
+                                skipped++
+                                continue
+                            }
+                            val result =
+                                queueRepository.enqueue(
+                                    localFileUri = "",
+                                    title = video.title,
+                                    youtubeUrl = Constants.buildYouTubeWatchUrl(video.videoId),
+                                    mediaType = if (convertVideoToAudio) MediaType.AUDIO else MediaType.VIDEO,
+                                    convertVideoToAudio = convertVideoToAudio,
+                                    deleteOriginalVideo = deleteOriginalVideo,
+                                    downloadSource = DownloadSource.YTDLP,
+                                    skipDuplicateCheck = true,
+                                )
+                            if (result.success) enqueued++ else skipped++
+                        }
+                        _uiState.update {
+                            it.copy(
+                                urlInput = "",
+                                isFetchingMetadata = false,
+                                customSponsorBlockCategories = null,
+                            )
+                        }
+                        showToast("Enqueued $enqueued video(s); skipped $skipped")
+                    } catch (e: Exception) {
+                        showToast("Failed to fetch playlist")
+                        _uiState.update { it.copy(isFetchingMetadata = false) }
+                    }
+                }
+                return
+            }
+
             if (useYtDlp && !videoId.isNullOrBlank() && playlistId.isNullOrBlank()) {
                 // yt-dlp path: direct enqueue, worker handles download + processing
                 startYtDlpDownload(
