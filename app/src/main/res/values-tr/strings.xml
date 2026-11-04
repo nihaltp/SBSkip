@@ -55,7 +55,7 @@
     <string name="settings_notifications_title">Bildirimler</string>
     <string name="settings_notifications_desc">Ön plan ve tamamlama güncellemelerini göster.</string>
     <string name="settings_theme_mode">Tema modu</string>
-    <string name="settings_section_newpipe">NewPipe</string>
+    <string name="settings_section_downloader">İndirici</string>
     <string name="settings_downloader_title">İndirici</string>
     <string name="settings_downloader_newpipe">NewPipe</string>
 

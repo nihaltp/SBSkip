@@ -308,7 +308,7 @@ fun SettingsScreen(
                 }
 
                 item {
-                    SettingsSection(title = stringResource(id = R.string.settings_section_newpipe)) {
+                    SettingsSection(title = stringResource(id = R.string.settings_section_downloader)) {
                         val downloaderName =
                             when (settings.downloader) {
                                 DownloaderType.YTDLP -> stringResource(id = R.string.settings_downloader_yt_dlp)
