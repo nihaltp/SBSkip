@@ -29,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -57,6 +58,14 @@ fun OnboardingScreen(
     val watchlistFolders by viewModel.watchlistFolders.collectAsState(initial = emptyList())
     val coroutineScope = rememberCoroutineScope()
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { viewModel.stepCount })
+
+    // Skip onboarding entirely if it was already completed (e.g. app update).
+    LaunchedEffect(Unit) {
+        val shouldShow = viewModel.shouldShowOnboarding()
+        if (!shouldShow) {
+            onExit()
+        }
+    }
 
     val filesPermissionLauncher =
         rememberLauncherForActivityResult(
