@@ -158,7 +158,7 @@ fun PlaylistDownloadCard(
                         onClick = onDownload,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text("Download via NewPipe")
+                        Text("Download")
                     }
                     OutlinedButton(
                         onClick = onSkip,
