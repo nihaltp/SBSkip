@@ -136,7 +136,7 @@ class DownloadWorker
                 }
 
                 val bypassCheck = item.bypassDurationCheck
-                val localMetadata: MediaFileMetadata
+                var localMetadata: MediaFileMetadata
                 val fileDuration: Long
                 if (isYtDlp) {
                     // yt-dlp download: no local file to validate yet; duration comes from YouTube API
@@ -189,6 +189,7 @@ class DownloadWorker
 
                 // For yt-dlp downloads, fetch the media from YouTube before processing.
                 var inputFileUri = item.localFileUri
+                var downloadedExtension: String? = null
                 if (isYtDlp) {
                     notificationManager.showActive(
                         notificationId,
@@ -207,7 +208,11 @@ class DownloadWorker
                             )
                         }
                     inputFileUri = downloadedFile.absolutePath
+                    downloadedExtension = downloadedFile.extension.ifBlank { null }
                     AppLogger.worker("yt-dlp download complete: ${downloadedFile.absolutePath}")
+                }
+                if (isYtDlp && downloadedExtension != null) {
+                    localMetadata = localMetadata.copy(extension = downloadedExtension)
                 }
 
                 // 2. Mark as PROCESSING
@@ -352,7 +357,9 @@ class DownloadWorker
                     maxQuality = settings.nativeQuality,
                     ffmpegLocation = paths.ffmpegLauncher,
                 )
-            val command = ytDlpCommandBuilder.build(request)
+            val command =
+                listOf(paths.pythonLauncher.absolutePath, paths.zipapp.absolutePath) +
+                    ytDlpCommandBuilder.build(request)
             val environment = ytDlpRuntime.environment(paths, workDir)
 
             val result =
@@ -372,7 +379,9 @@ class DownloadWorker
                     MediaType.VIDEO -> "mp4"
                     MediaType.AUDIO -> "m4a"
                 }
-            val downloadedFile = File(workDir, "out.$outputExt")
+            val downloadedFile =
+                workDir.listFiles()?.firstOrNull { it.name.startsWith("out.") && it.isFile }
+                    ?: File(workDir, "out.$outputExt")
             if (!downloadedFile.isFile) {
                 throw IOException(
                     "yt-dlp completed but output file not found: ${downloadedFile.absolutePath}",
