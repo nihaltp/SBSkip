@@ -45,7 +45,7 @@ class YtDlpCommandBuilderTest {
     @Test
     fun `audio-only download prefers m4a without merge`() {
         val args = YtDlpCommandBuilder.build(request(mediaType = MediaType.AUDIO))
-        assertEquals("ba[ext=m4a]/ba/ba", args[args.indexOf("-f") + 1])
+        assertEquals("ba/b", args[args.indexOf("-f") + 1])
         assertFalse(args.contains("--merge-output-format"))
     }
 
@@ -60,8 +60,8 @@ class YtDlpCommandBuilderTest {
 
         assertEquals("--newline", args.first())
         assertEquals(
-            "download:PROGRESS|%(progress._percent_str)|%(progress._downloaded_bytes)|" +
-                "%(progress._total_bytes_estimate)|%(progress._speed)|%(progress._eta)",
+            "download:PROGRESS|%(progress._percent_str)s|%(progress._downloaded_bytes)s|" +
+                "%(progress._total_bytes_estimate)s|%(progress._speed)s|%(progress._eta)s",
             args[args.indexOf("--progress-template") + 1],
         )
         for (flag in listOf("--no-playlist", "--no-cache-dir", "--no-warnings", "--no-mtime")) {
