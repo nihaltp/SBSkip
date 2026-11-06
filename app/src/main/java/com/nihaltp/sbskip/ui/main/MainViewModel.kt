@@ -43,8 +43,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.Json
-import okhttp3.OkHttpClient
 import java.util.Locale
 import javax.inject.Inject
 
@@ -58,9 +56,6 @@ class MainViewModel
         private val downloadStorage: DownloadStorage,
         @ApplicationContext private val context: Context,
     ) : ViewModel() {
-        private val httpClient = OkHttpClient()
-        private val json = Json { ignoreUnknownKeys = true }
-
         /** Determines the download source based on the user's selected downloader type. */
         private suspend fun enqueueDownloadSource(): DownloadSource =
             if (settingsRepository.settings.first().downloader == DownloaderType.YTDLP) {
@@ -546,6 +541,14 @@ class MainViewModel
             _uiState.update { state ->
                 state.playlistDownloadState?.let { pl ->
                     state.copy(playlistDownloadState = pl.copy(deleteOriginalVideo = value))
+                } ?: state
+            }
+        }
+
+        fun setPlaylistExpanded(value: Boolean) {
+            _uiState.update { state ->
+                state.playlistDownloadState?.let { pl ->
+                    state.copy(playlistDownloadState = pl.copy(expanded = value))
                 } ?: state
             }
         }

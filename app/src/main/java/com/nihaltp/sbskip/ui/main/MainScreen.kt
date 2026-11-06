@@ -121,6 +121,7 @@ fun MainScreen(
     onCancelPlaylistDownload: () -> Unit,
     onPlaylistConvertVideoToAudioChanged: (Boolean) -> Unit,
     onPlaylistDeleteOriginalVideoChanged: (Boolean) -> Unit,
+    onPlaylistExpandedChanged: (Boolean) -> Unit,
     onProceedDuplicateDownload: () -> Unit,
     onSkipDuplicateDownload: () -> Unit,
 ) {
@@ -150,6 +151,8 @@ fun MainScreen(
     var detailsPendingDownloadItem by remember { mutableStateOf<PendingDownload?>(null) }
     var showCategoriesDialog by remember { mutableStateOf(false) }
     var isOptionsExpanded by remember { mutableStateOf(false) }
+    var pendingExpanded by remember { mutableStateOf(false) }
+    var queueExpanded by remember { mutableStateOf(false) }
 
     val showLocalCleanButton = uiState.selectedFileUri != null && uiState.urlInput.isNotBlank()
     val showDownloadAndCleanButton = uiState.selectedFileUri == null && uiState.isNewPipeInstalled && uiState.urlInput.isNotBlank()
@@ -586,6 +589,7 @@ fun MainScreen(
                         onCancel = onCancelPlaylistDownload,
                         onConvertVideoToAudioChanged = onPlaylistConvertVideoToAudioChanged,
                         onDeleteOriginalVideoChanged = onPlaylistDeleteOriginalVideoChanged,
+                        onExpandedChanged = onPlaylistExpandedChanged,
                     )
                 }
             }
@@ -594,7 +598,10 @@ fun MainScreen(
                 item {
                     SectionHeader(title = stringResource(id = R.string.pending_downloads_title))
                 }
-                items(uiState.pendingDownloads, key = { it.videoId }) { pending ->
+                val pendingItems = uiState.pendingDownloads
+                val shouldExpandPending = pendingItems.size > 1 && pendingExpanded
+                val itemsToShow = if (shouldExpandPending) pendingItems else pendingItems.take(1)
+                items(itemsToShow, key = { it.videoId }) { pending ->
                     PendingDownloadCard(
                         pendingDownloadTitle = pending.title,
                         thumbnailUrl = pending.thumbnailUrl,
@@ -629,6 +636,40 @@ fun MainScreen(
                         onCardClick = { detailsPendingDownloadItem = pending },
                     )
                 }
+                if (pendingItems.size > 1) {
+                    item {
+                        Row(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable { pendingExpanded = !pendingExpanded }
+                                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text =
+                                    if (pendingExpanded) {
+                                        stringResource(id = R.string.show_less)
+                                    } else {
+                                        stringResource(id = R.string.show_all_videos, pendingItems.size)
+                                    },
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                            Icon(
+                                imageVector =
+                                    if (pendingExpanded) {
+                                        Icons.Filled.KeyboardDoubleArrowUp
+                                    } else {
+                                        Icons.Filled.KeyboardDoubleArrowDown
+                                    },
+                                contentDescription = if (pendingExpanded) "Collapse" else "Expand",
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
+                }
             }
 
             val activeItems = uiState.queueItems.filter { it.status != com.nihaltp.sbskip.model.DownloadQueueStatus.COMPLETED }
@@ -648,7 +689,9 @@ fun MainScreen(
                     )
                 }
             } else {
-                items(activeItems, key = { it.id }) { queueItem ->
+                val shouldExpandQueue = activeItems.size > 1 && queueExpanded
+                val queueItemsToShow = if (shouldExpandQueue) activeItems else activeItems.take(1)
+                items(queueItemsToShow, key = { it.id }) { queueItem ->
                     QueueItemCard(
                         item = queueItem,
                         onRetry = { id -> onRetryQueueItem(id, false) },
@@ -661,6 +704,40 @@ fun MainScreen(
                         onErrorClick = { errorDialogItem = it },
                         onCardClick = { detailsDialogItem = it },
                     )
+                }
+                if (activeItems.size > 1) {
+                    item {
+                        Row(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable { queueExpanded = !queueExpanded }
+                                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text =
+                                    if (queueExpanded) {
+                                        stringResource(id = R.string.show_less)
+                                    } else {
+                                        stringResource(id = R.string.show_all_videos, activeItems.size)
+                                    },
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                            Icon(
+                                imageVector =
+                                    if (queueExpanded) {
+                                        Icons.Filled.KeyboardDoubleArrowUp
+                                    } else {
+                                        Icons.Filled.KeyboardDoubleArrowDown
+                                    },
+                                contentDescription = if (queueExpanded) "Collapse" else "Expand",
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
                 }
             }
 

@@ -83,6 +83,7 @@ fun AppNavGraph(
                 onCancelPlaylistDownload = viewModel::cancelPlaylistDownload,
                 onPlaylistConvertVideoToAudioChanged = viewModel::setPlaylistConvertVideoToAudio,
                 onPlaylistDeleteOriginalVideoChanged = viewModel::setPlaylistDeleteOriginalVideo,
+                onPlaylistExpandedChanged = viewModel::setPlaylistExpanded,
                 onProceedDuplicateDownload = viewModel::proceedDuplicateDownload,
                 onSkipDuplicateDownload = viewModel::skipDuplicateDownload,
             )
