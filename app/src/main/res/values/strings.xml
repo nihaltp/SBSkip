@@ -61,7 +61,7 @@
     <string name="settings_section_downloader">Downloader</string>
     <string name="settings_downloader_title">Downloader</string>
     <string name="settings_downloader_newpipe">NewPipe</string>
-    <string name="settings_downloader_yt_dlp">Yt-dlp</string>
+    <string name="settings_downloader_yt_dlp">yt-dlp</string>
 
     <string name="settings_section_downloads">Downloads</string>
     <string name="settings_video_folder">Video folder</string>

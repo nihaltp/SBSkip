@@ -1346,25 +1346,31 @@ class MainViewModel
                             return@launch
                         }
 
-                        // Reorder playlist: move already-downloaded videos to the end so they
-                        // are easy to skip when the user reaches them.
+                        // Check already-downloaded behavior setting to decide how to handle duplicates.
+                        val alreadyDownloadedBehavior = settingsRepository.settings.first().alreadyDownloadedBehavior
                         val alreadyDownloadedIds = mutableSetOf<String>()
                         for (video in videos) {
                             val existing =
                                 runCatching { downloadedVideoRepository.findByVideoId(video.videoId) }.getOrNull()
                             if (existing != null) alreadyDownloadedIds.add(video.videoId)
                         }
+
                         val orderedVideos =
                             if (alreadyDownloadedIds.isEmpty()) {
                                 videos
+                            } else if (alreadyDownloadedBehavior == AlreadyDownloadedBehavior.SKIP) {
+                                // SKIP behavior: filter out already-downloaded videos entirely
+                                val filteredVideos = videos.filter { it.videoId !in alreadyDownloadedIds }
+                                if (filteredVideos.size != videos.size) {
+                                    showToast("${videos.size - filteredVideos.size} already downloaded video(s) skipped")
+                                }
+                                filteredVideos
                             } else {
+                                // ASK or DOWNLOAD_AGAIN: move already-downloaded videos to the end
                                 val (newVideos, dupVideos) = videos.partition { it.videoId !in alreadyDownloadedIds }
+                                showToast("${alreadyDownloadedIds.size} already downloaded video(s) moved to the end of the playlist")
                                 newVideos + dupVideos
                             }
-
-                        if (alreadyDownloadedIds.isNotEmpty()) {
-                            showToast("${alreadyDownloadedIds.size} already downloaded video(s) moved to the end of the playlist")
-                        }
 
                         _uiState.update { st ->
                             st.copy(
