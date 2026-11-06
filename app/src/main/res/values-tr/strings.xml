@@ -65,7 +65,17 @@
     <string name="settings_theme_mode">Tema modu</string>
     <string name="settings_section_downloader">İndirici</string>
     <string name="settings_downloader_title">İndirici</string>
+    <string name="settings_current_downloader">Mevcut</string>
     <string name="settings_downloader_newpipe">NewPipe</string>
+    <string name="settings_downloader_yt_dlp">yt-dlp</string>
+    <string name="settings_yt_dlp_settings_title">yt-dlp Ayarları</string>
+    <string name="settings_yt_dlp_quality_title">Video Kalitesi</string>
+    <string name="settings_yt_dlp_quality_desc">İndirmeler için maksimum video çözünürlüğü</string>
+    <string name="settings_yt_dlp_quality_720p">720p</string>
+    <string name="settings_yt_dlp_quality_1080p">1080p</string>
+    <string name="settings_yt_dlp_quality_best">En İyi Kullanılabilir</string>
+    <string name="settings_yt_dlp_auto_update_title">yt-dlp&#8217;yi Otomatik G&#252;ncelle</string>
+    <string name="settings_yt_dlp_auto_update_desc">Yeni bir s&#252;r&#252;m mevcut olduğunda paketlenmi&#351; yt-dlp&#8217;yi otomatik olarak g&#252;ncelle</string>
 
     <string name="settings_section_downloads">İndirilenler</string>
     <string name="settings_video_folder">Video klasörü</string>

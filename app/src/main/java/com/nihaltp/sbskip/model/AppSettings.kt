@@ -21,7 +21,7 @@ data class AppSettings(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val dynamicColor: Boolean = true,
     val notificationsEnabled: Boolean = true,
-    val downloader: DownloaderType = DownloaderType.NEWPIPE,
+    val downloader: DownloaderType = DownloaderType.YTDLP,
     val videoFolder: String = "Movies/SB Skip/",
     val audioFolder: String = "Music/SB Skip/",
     val videoFolderUri: String = "",

@@ -20,6 +20,7 @@ import com.nihaltp.sbskip.ui.main.MainViewModel
 import com.nihaltp.sbskip.ui.onboarding.OnboardingScreen
 import com.nihaltp.sbskip.ui.settings.NotificationSettingsScreen
 import com.nihaltp.sbskip.ui.settings.SettingsScreen
+import com.nihaltp.sbskip.ui.settings.YtDlpSettingsScreen
 
 @Composable
 fun AppNavGraph(
@@ -99,6 +100,7 @@ fun AppNavGraph(
                     navController.navigate(Destination.DownloadedVideos.route)
                 },
                 onNavigateToNotificationSettings = { navController.navigate(Destination.NotificationSettings.route) },
+                onNavigateToYtDlpSettings = { navController.navigate(Destination.YtDlpSettings.route) },
             )
         }
 
@@ -110,6 +112,12 @@ fun AppNavGraph(
 
         composable(Destination.NotificationSettings.route) {
             NotificationSettingsScreen(
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable(Destination.YtDlpSettings.route) {
+            YtDlpSettingsScreen(
                 onBack = { navController.popBackStack() },
             )
         }
