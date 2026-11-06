@@ -30,11 +30,11 @@ class WorkManagerDownloadScheduler
                     )
                     .build()
 
-            WorkManager.getInstance(context).enqueueUniqueWork(
-                "CleanMedia_$queueItemId",
-                ExistingWorkPolicy.KEEP,
-                workRequest,
-            )
+            // Use a single work chain name so downloads run sequentially (one at a time).
+            // This ensures only one foreground service notification is visible at a time.
+            WorkManager.getInstance(context)
+                .beginUniqueWork("CleanMedia_Queue", ExistingWorkPolicy.APPEND, workRequest)
+                .enqueue()
         }
 
         override fun scheduleSponsorBlockStatusCheck() {
