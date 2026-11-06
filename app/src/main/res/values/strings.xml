@@ -68,8 +68,17 @@
     <string name="settings_theme_mode">Theme mode</string>
     <string name="settings_section_downloader">Downloader</string>
     <string name="settings_downloader_title">Downloader</string>
+    <string name="settings_current_downloader">Current</string>
     <string name="settings_downloader_newpipe">NewPipe</string>
     <string name="settings_downloader_yt_dlp">yt-dlp</string>
+    <string name="settings_yt_dlp_settings_title">yt-dlp Settings</string>
+    <string name="settings_yt_dlp_quality_title">Video Quality</string>
+    <string name="settings_yt_dlp_quality_desc">Maximum video resolution for downloads</string>
+    <string name="settings_yt_dlp_quality_720p">720p</string>
+    <string name="settings_yt_dlp_quality_1080p">1080p</string>
+    <string name="settings_yt_dlp_quality_best">Best Available</string>
+    <string name="settings_yt_dlp_auto_update_title">Auto-update yt-dlp</string>
+    <string name="settings_yt_dlp_auto_update_desc">Automatically update the bundled yt-dlp when a new version is available</string>
 
     <string name="settings_section_downloads">Downloads</string>
     <string name="settings_video_folder">Video folder</string>

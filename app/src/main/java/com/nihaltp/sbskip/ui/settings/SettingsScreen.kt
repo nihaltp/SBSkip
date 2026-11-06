@@ -74,6 +74,7 @@ fun SettingsScreen(
     onNavigateToLogs: () -> Unit,
     onNavigateToDownloadedVideos: () -> Unit,
     onNavigateToNotificationSettings: () -> Unit,
+    onNavigateToYtDlpSettings: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val settingsState by viewModel.settings.collectAsState()
@@ -348,10 +349,17 @@ fun SettingsScreen(
                                 DownloaderType.NEWPIPE -> stringResource(id = R.string.settings_downloader_newpipe)
                             }
                         SettingValueRow(
-                            title = stringResource(id = R.string.settings_downloader_title),
+                            title = stringResource(id = R.string.settings_current_downloader),
                             value = downloaderName,
                             onClick = { activeDialogType = SettingsDialogType.DOWNLOADER },
                         )
+                        if (settings.downloader == DownloaderType.YTDLP) {
+                            SettingValueRow(
+                                title = stringResource(id = R.string.settings_yt_dlp_settings_title),
+                                value = "",
+                                onClick = onNavigateToYtDlpSettings,
+                            )
+                        }
                     }
                 }
 

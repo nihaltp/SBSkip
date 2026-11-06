@@ -16,4 +16,6 @@ abstract class Destination(val route: String) {
     data object DownloadedVideos : Destination("downloaded_videos")
 
     data object NotificationSettings : Destination("notification_settings")
+
+    data object YtDlpSettings : Destination("yt_dlp_settings")
 }
