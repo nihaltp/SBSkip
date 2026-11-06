@@ -83,6 +83,7 @@ fun NotificationSettingsScreen(
                         channel = channel,
                         onToggleExpand = { viewModel.toggleExpand(channel.config.id) },
                         onToggleEnabled = { viewModel.toggleChannel(channel.config.id, it) },
+                        onToggleNotificationId = { id, enabled -> viewModel.toggleNotificationId(id, enabled) },
                         onOpenSystemSettings = {
                             openSystemChannelSettings(context, channel.config.id)
                         },
@@ -99,6 +100,7 @@ private fun NotificationChannelCard(
     channel: NotificationSettingsViewModel.ChannelUiState,
     onToggleExpand: () -> Unit,
     onToggleEnabled: (Boolean) -> Unit,
+    onToggleNotificationId: (Int, Boolean) -> Unit,
     onOpenSystemSettings: () -> Unit,
 ) {
     Card(
@@ -157,11 +159,10 @@ private fun NotificationChannelCard(
                             .animateContentSize(spring(dampingRatio = Spring.DampingRatioMediumBouncy)),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    channel.config.notificationIds.forEach { notifId ->
+                    channel.notificationIds.forEach { notifId ->
                         NotificationIdRow(
-                            name = stringResource(id = notifId.nameRes),
-                            description = stringResource(id = notifId.descriptionRes),
-                            enabled = channel.isEnabled && channel.canToggle,
+                            notifId = notifId,
+                            onToggle = onToggleNotificationId,
                         )
                     }
                 }
@@ -172,11 +173,10 @@ private fun NotificationChannelCard(
 
 @Composable
 private fun NotificationIdRow(
-    name: String,
-    description: String,
-    enabled: Boolean,
+    notifId: NotificationSettingsViewModel.NotificationIdUiState,
+    onToggle: (Int, Boolean) -> Unit,
 ) {
-    val alpha = if (enabled) 1f else 0.5f
+    val alpha = if (notifId.isEnabled) 1f else 0.5f
     Row(
         modifier =
             Modifier
@@ -187,30 +187,22 @@ private fun NotificationIdRow(
     ) {
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
-                text = name,
+                text = stringResource(id = notifId.config.nameRes),
                 fontWeight = FontWeight.Medium,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha),
             )
             Text(
-                text = description,
+                text = stringResource(id = notifId.config.descriptionRes),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha),
             )
         }
-        if (enabled) {
-            Text(
-                text = stringResource(id = R.string.notification_channel_enabled),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary.copy(alpha = alpha),
-            )
-        } else {
-            Text(
-                text = stringResource(id = R.string.notification_channel_disabled),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha),
-            )
-        }
+        Switch(
+            checked = notifId.isEnabled,
+            onCheckedChange = if (notifId.canToggle) { enabled -> onToggle(notifId.config.id, enabled) } else null,
+            enabled = notifId.canToggle,
+        )
     }
 }
 
