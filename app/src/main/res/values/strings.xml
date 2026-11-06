@@ -50,6 +50,14 @@
     <string name="notification_channel_download_description">Active and completed download notifications.</string>
     <string name="notification_download_in_progress">Download in progress...</string>
 
+    <!-- Queue notification strings -->
+    <string name="notification_queue_active_title">Downloading</string>
+    <string name="notification_queue_active_text">%1$s (%2$d%%) • %3$d remaining</string>
+    <string name="notification_queue_completed_title">Downloads completed</string>
+    <string name="notification_queue_completed_message">%1$d video(s) completed</string>
+    <string name="notification_queue_failed_title">Downloads failed</string>
+    <string name="notification_queue_failed_message">%1$d video(s) failed</string>
+
     <!-- Settings -->
     <string name="settings_title">Settings</string>
     <string name="settings_section_general">General</string>

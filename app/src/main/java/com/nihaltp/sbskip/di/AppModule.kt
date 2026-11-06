@@ -56,10 +56,16 @@ abstract class AppModule {
     @Binds
     abstract fun bindDownloadScheduler(impl: WorkManagerDownloadScheduler): DownloadWorkScheduler
 
-    @Binds
-    abstract fun bindDownloadNotificationManager(impl: AndroidDownloadNotificationManager): DownloadNotificationManager
-
     companion object {
+        @Provides
+        @Singleton
+        fun provideDownloadNotificationManager(
+            @ApplicationContext context: Context,
+            queueRepository: QueueRepository,
+        ): DownloadNotificationManager {
+            return AndroidDownloadNotificationManager(context, queueRepository)
+        }
+
         @Provides
         @Singleton
         fun provideDatabase(
