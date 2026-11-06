@@ -18,6 +18,7 @@ import com.nihaltp.sbskip.ui.history.DownloadedHistoryScreen
 import com.nihaltp.sbskip.ui.main.MainScreen
 import com.nihaltp.sbskip.ui.main.MainViewModel
 import com.nihaltp.sbskip.ui.onboarding.OnboardingScreen
+import com.nihaltp.sbskip.ui.settings.NotificationSettingsScreen
 import com.nihaltp.sbskip.ui.settings.SettingsScreen
 
 @Composable
@@ -97,12 +98,19 @@ fun AppNavGraph(
                 onNavigateToDownloadedVideos = {
                     navController.navigate(Destination.DownloadedVideos.route)
                 },
+                onNavigateToNotificationSettings = { navController.navigate(Destination.NotificationSettings.route) },
             )
         }
 
         composable(Destination.DownloadedVideos.route) {
             DownloadedHistoryScreen(
                 onNavigateBack = { navController.popBackStack() },
+            )
+        }
+
+        composable(Destination.NotificationSettings.route) {
+            NotificationSettingsScreen(
+                onBack = { navController.popBackStack() },
             )
         }
 

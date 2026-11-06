@@ -11,6 +11,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.work.ForegroundInfo
 import com.nihaltp.sbskip.R
 import com.nihaltp.sbskip.data.repository.QueueRepository
+import com.nihaltp.sbskip.data.repository.SettingsRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -25,20 +26,32 @@ class AndroidDownloadNotificationManager
     constructor(
         @ApplicationContext private val context: Context,
         private val queueRepository: QueueRepository,
+        private val settingsRepository: SettingsRepository,
     ) : DownloadNotificationManager {
         private val scope = CoroutineScope(Dispatchers.Default + Job())
         private var completionCount = 0
         private var failureCount = 0
         private var queuedCount = 0
+        private var channelEnabled = true
 
         init {
             observeQueue()
+            observeChannelEnabled()
         }
 
         private fun observeQueue() {
             scope.launch {
                 queueRepository.observeQueue().collect { items ->
                     queuedCount = items.count { it.status == com.nihaltp.sbskip.model.DownloadQueueStatus.QUEUED }
+                }
+            }
+        }
+
+        private fun observeChannelEnabled() {
+            scope.launch {
+                settingsRepository.settings.collect { settings ->
+                    val prefs = settings?.notificationChannelPrefs ?: emptyMap()
+                    channelEnabled = prefs[CHANNEL_ID] ?: true
                 }
             }
         }
@@ -168,6 +181,8 @@ class AndroidDownloadNotificationManager
             id: Int,
             notification: Notification,
         ) {
+            // Check if channel is enabled before posting
+            if (!channelEnabled) return
             ensureChannel()
             NotificationManagerCompat.from(context).notify(id, notification)
         }
