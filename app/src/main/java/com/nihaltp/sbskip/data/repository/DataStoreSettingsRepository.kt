@@ -71,6 +71,7 @@ class DataStoreSettingsRepository
             val ALREADY_DOWNLOADED_BEHAVIOR = stringPreferencesKey("already_downloaded_behavior")
             val IMPORT_QUEUE = stringPreferencesKey("import_queue")
             val NOTIFICATION_CHANNEL_PREFS = stringPreferencesKey("notification_channel_prefs")
+            val NOTIFICATION_ID_PREFS = stringPreferencesKey("notification_id_prefs")
         }
 
         override val settings: Flow<AppSettings> =
@@ -161,6 +162,10 @@ class DataStoreSettingsRepository
                         runCatching {
                             json.decodeFromString<Map<String, Boolean>>(preferences[PreferencesKeys.NOTIFICATION_CHANNEL_PREFS] ?: "{}")
                         }.getOrElse { emptyMap() },
+                    notificationIdPrefs =
+                        runCatching {
+                            json.decodeFromString<Map<Int, Boolean>>(preferences[PreferencesKeys.NOTIFICATION_ID_PREFS] ?: "{}")
+                        }.getOrElse { emptyMap() },
                 )
             }
 
@@ -242,6 +247,10 @@ class DataStoreSettingsRepository
                             runCatching {
                                 json.decodeFromString<Map<String, Boolean>>(preferences[PreferencesKeys.NOTIFICATION_CHANNEL_PREFS] ?: "{}")
                             }.getOrElse { emptyMap() },
+                        notificationIdPrefs =
+                            runCatching {
+                                json.decodeFromString<Map<Int, Boolean>>(preferences[PreferencesKeys.NOTIFICATION_ID_PREFS] ?: "{}")
+                            }.getOrElse { emptyMap() },
                     )
                 val updated = transform(current)
 
@@ -282,6 +291,7 @@ class DataStoreSettingsRepository
                 preferences[PreferencesKeys.ALREADY_DOWNLOADED_BEHAVIOR] = updated.alreadyDownloadedBehavior.name
                 preferences[PreferencesKeys.IMPORT_QUEUE] = json.encodeToString(updated.importQueue)
                 preferences[PreferencesKeys.NOTIFICATION_CHANNEL_PREFS] = json.encodeToString(updated.notificationChannelPrefs)
+                preferences[PreferencesKeys.NOTIFICATION_ID_PREFS] = json.encodeToString(updated.notificationIdPrefs)
             }
         }
     }

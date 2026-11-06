@@ -52,4 +52,6 @@ data class AppSettings(
     val importQueue: List<PersistedFolderImport> = emptyList(),
     // Notification channel preferences. Empty = all enabled (default). Only stores disabled channels.
     val notificationChannelPrefs: Map<String, Boolean> = emptyMap(),
+    // Notification ID preferences. Empty = all enabled (default). Only stores disabled notification IDs.
+    val notificationIdPrefs: Map<Int, Boolean> = emptyMap(),
 )
