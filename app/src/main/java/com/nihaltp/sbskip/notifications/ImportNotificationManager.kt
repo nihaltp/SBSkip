@@ -11,7 +11,12 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.nihaltp.sbskip.MainActivity
 import com.nihaltp.sbskip.R
+import com.nihaltp.sbskip.data.repository.SettingsRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -31,8 +36,24 @@ class ImportNotificationManager
     @Inject
     constructor(
         @ApplicationContext private val context: Context,
+        private val settingsRepository: SettingsRepository,
     ) {
         private val notificationManager: NotificationManagerCompat = NotificationManagerCompat.from(context)
+        private val scope = CoroutineScope(Dispatchers.Default + Job())
+        private var channelEnabled = true
+
+        init {
+            observeChannelEnabled()
+        }
+
+        private fun observeChannelEnabled() {
+            scope.launch {
+                settingsRepository.settings.collect { settings ->
+                    val prefs = settings?.notificationChannelPrefs ?: emptyMap()
+                    channelEnabled = prefs[CHANNEL_ID] ?: true
+                }
+            }
+        }
 
         /**
          * Updates the notification that tracks the files of the folder that is currently scanned.
@@ -51,6 +72,7 @@ class ImportNotificationManager
                 notificationManager.cancel(NOTIFICATION_FILE_QUEUE)
                 return
             }
+            if (!channelEnabled) return
 
             val notification =
                 buildNotification(
@@ -79,6 +101,7 @@ class ImportNotificationManager
                 notificationManager.cancel(NOTIFICATION_FOLDER_QUEUE)
                 return
             }
+            if (!channelEnabled) return
 
             val notification =
                 buildNotification(

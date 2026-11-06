@@ -70,6 +70,7 @@ class DataStoreSettingsRepository
             val NATIVE_AUTO_UPDATE = booleanPreferencesKey("native_auto_update")
             val ALREADY_DOWNLOADED_BEHAVIOR = stringPreferencesKey("already_downloaded_behavior")
             val IMPORT_QUEUE = stringPreferencesKey("import_queue")
+            val NOTIFICATION_CHANNEL_PREFS = stringPreferencesKey("notification_channel_prefs")
         }
 
         override val settings: Flow<AppSettings> =
@@ -156,6 +157,10 @@ class DataStoreSettingsRepository
                                 preferences[PreferencesKeys.IMPORT_QUEUE] ?: "[]",
                             )
                         }.getOrElse { emptyList() },
+                    notificationChannelPrefs =
+                        runCatching {
+                            json.decodeFromString<Map<String, Boolean>>(preferences[PreferencesKeys.NOTIFICATION_CHANNEL_PREFS] ?: "{}")
+                        }.getOrElse { emptyMap() },
                 )
             }
 
@@ -233,6 +238,10 @@ class DataStoreSettingsRepository
                                     preferences[PreferencesKeys.IMPORT_QUEUE] ?: "[]",
                                 )
                             }.getOrElse { emptyList() },
+                        notificationChannelPrefs =
+                            runCatching {
+                                json.decodeFromString<Map<String, Boolean>>(preferences[PreferencesKeys.NOTIFICATION_CHANNEL_PREFS] ?: "{}")
+                            }.getOrElse { emptyMap() },
                     )
                 val updated = transform(current)
 
@@ -272,6 +281,7 @@ class DataStoreSettingsRepository
                 preferences[PreferencesKeys.NATIVE_AUTO_UPDATE] = updated.nativeAutoUpdate
                 preferences[PreferencesKeys.ALREADY_DOWNLOADED_BEHAVIOR] = updated.alreadyDownloadedBehavior.name
                 preferences[PreferencesKeys.IMPORT_QUEUE] = json.encodeToString(updated.importQueue)
+                preferences[PreferencesKeys.NOTIFICATION_CHANNEL_PREFS] = json.encodeToString(updated.notificationChannelPrefs)
             }
         }
     }

@@ -14,6 +14,7 @@ import com.nihaltp.sbskip.data.repository.QueueRepository
 import com.nihaltp.sbskip.data.repository.SettingsRepository
 import com.nihaltp.sbskip.notifications.AndroidDownloadNotificationManager
 import com.nihaltp.sbskip.notifications.DownloadNotificationManager
+import com.nihaltp.sbskip.notifications.ImportNotificationManager
 import com.nihaltp.sbskip.processing.FFmpegMediaProcessor
 import com.nihaltp.sbskip.processing.MediaProcessor
 import com.nihaltp.sbskip.sponsorblock.DefaultSponsorBlockService
@@ -62,8 +63,18 @@ abstract class AppModule {
         fun provideDownloadNotificationManager(
             @ApplicationContext context: Context,
             queueRepository: QueueRepository,
+            settingsRepository: SettingsRepository,
         ): DownloadNotificationManager {
-            return AndroidDownloadNotificationManager(context, queueRepository)
+            return AndroidDownloadNotificationManager(context, queueRepository, settingsRepository)
+        }
+
+        @Provides
+        @Singleton
+        fun provideImportNotificationManager(
+            @ApplicationContext context: Context,
+            settingsRepository: SettingsRepository,
+        ): ImportNotificationManager {
+            return ImportNotificationManager(context, settingsRepository)
         }
 
         @Provides

@@ -50,4 +50,6 @@ data class AppSettings(
     val alreadyDownloadedBehavior: AlreadyDownloadedBehavior = AlreadyDownloadedBehavior.ASK,
     // The folder import queue, so that the imports survive a restart of the app.
     val importQueue: List<PersistedFolderImport> = emptyList(),
+    // Notification channel preferences. Empty = all enabled (default). Only stores disabled channels.
+    val notificationChannelPrefs: Map<String, Boolean> = emptyMap(),
 )

@@ -469,6 +469,25 @@
 
     <string name="downloaded_history_file_missing">File not found on this device</string>
 
+    <!-- Notification Settings -->
+    <string name="settings_notification_channels_title">Notification Channels</string>
+    <string name="settings_notification_channels_desc">Manage individual notification channels.</string>
+    <string name="settings_manage_notifications">Manage notifications</string>
+    <string name="settings_fix_notifications">Fix notification permission</string>
+    <string name="notification_channel_enabled">Enabled</string>
+    <string name="notification_channel_disabled">Disabled</string>
+    <string name="notification_id_description_prefix">%1$s: %2$s</string>
+
+    <!-- Notification ID Descriptions -->
+    <string name="notification_import_files_desc">Shows progress while importing media files from a folder.</string>
+    <string name="notification_import_folders_desc">Shows how many folders are queued for import.</string>
+    <string name="notification_active_download_title">Active Download</string>
+    <string name="notification_active_download_desc">Shows progress of the currently downloading video.</string>
+    <string name="notification_completed_title">Download Completed</string>
+    <string name="notification_completed_desc">Shows when a download completes successfully.</string>
+    <string name="notification_failed_title">Download Failed</string>
+    <string name="notification_failed_desc">Shows when a download fails.</string>
+
     <!-- Import Queue Notifications -->
 
     <!-- Folder import queue status -->
