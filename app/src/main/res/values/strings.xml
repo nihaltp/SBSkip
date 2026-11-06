@@ -333,6 +333,19 @@
     <string name="dialog_download_options_title">Download Options</string>
     <string name="dialog_download_options_proceed">Proceed</string>
     <string name="options_button">Options</string>
+    <string name="show_less">Show less</string>
+    <string name="show_all_videos">Show all videos (%1$d)</string>
+
+    <!-- Playlist Download -->
+    <string name="playlist_loading">Playlist loading or finished</string>
+    <string name="playlist_close">Close</string>
+    <string name="playlist_download">Download</string>
+    <string name="playlist_skip_video">Skip Video</string>
+    <string name="playlist_cancel_download">Cancel Playlist Download</string>
+    <string name="playlist_downloading">Downloading…</string>
+    <string name="playlist_currently_downloading">Currently downloading</string>
+    <string name="playlist_collapse">Collapse</string>
+    <string name="playlist_expand">Expand</string>
 
     <!-- Onboarding -->
     <string name="onboarding_exit">Exit</string>

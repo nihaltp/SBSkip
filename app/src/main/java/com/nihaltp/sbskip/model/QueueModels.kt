@@ -106,6 +106,7 @@ data class PlaylistDownloadState(
     val currentIndex: Int = 0,
     val convertVideoToAudio: Boolean = false,
     val deleteOriginalVideo: Boolean = true,
+    val expanded: Boolean = false,
 )
 
 data class PendingEnqueueData(
