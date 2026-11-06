@@ -49,7 +49,7 @@ class NotificationSettingsViewModel
                     ChannelUiState(
                         config = config,
                         isEnabled = channelEnabled,
-                        isExpanded = expanded.contains(config.id) || channelEnabled,
+                        isExpanded = expanded.contains(config.id),
                         canToggle = canToggle,
                         notificationIds = notificationIds,
                     )

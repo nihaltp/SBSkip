@@ -474,6 +474,7 @@
     <string name="settings_notification_channels_desc">Manage individual notification channels.</string>
     <string name="settings_manage_notifications">Manage notifications</string>
     <string name="settings_fix_notifications">Fix notification permission</string>
+    <string name="settings_manage_in_system">Manage in system</string>
     <string name="notification_channel_enabled">Enabled</string>
     <string name="notification_channel_disabled">Disabled</string>
     <string name="notification_id_description_prefix">%1$s: %2$s</string>
