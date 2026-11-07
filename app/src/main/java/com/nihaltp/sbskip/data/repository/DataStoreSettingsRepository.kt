@@ -64,8 +64,14 @@ class DataStoreSettingsRepository
             val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
             val PENDING_DOWNLOADS = stringPreferencesKey("pending_downloads")
             val PLAYLIST_DOWNLOAD_STATE = stringPreferencesKey("playlist_download_state")
+            val NATIVE_DOWNLOADER_VERSION = stringPreferencesKey("native_downloader_version")
+            val NATIVE_DOWNLOADER_SHA = stringPreferencesKey("native_downloader_sha")
+            val NATIVE_QUALITY = stringPreferencesKey("native_quality")
+            val NATIVE_AUTO_UPDATE = booleanPreferencesKey("native_auto_update")
             val ALREADY_DOWNLOADED_BEHAVIOR = stringPreferencesKey("already_downloaded_behavior")
             val IMPORT_QUEUE = stringPreferencesKey("import_queue")
+            val NOTIFICATION_CHANNEL_PREFS = stringPreferencesKey("notification_channel_prefs")
+            val NOTIFICATION_ID_PREFS = stringPreferencesKey("notification_id_prefs")
         }
 
         override val settings: Flow<AppSettings> =
@@ -77,8 +83,13 @@ class DataStoreSettingsRepository
 
                 val downloader =
                     runCatching {
-                        DownloaderType.valueOf(preferences[PreferencesKeys.DOWNLOADER] ?: DownloaderType.NEWPIPE.name)
-                    }.getOrDefault(DownloaderType.NEWPIPE)
+                        DownloaderType.valueOf(preferences[PreferencesKeys.DOWNLOADER] ?: DownloaderType.YTDLP.name)
+                    }.getOrDefault(DownloaderType.YTDLP)
+
+                val nativeDownloaderVersion = preferences[PreferencesKeys.NATIVE_DOWNLOADER_VERSION] ?: ""
+                val nativeDownloaderSha = preferences[PreferencesKeys.NATIVE_DOWNLOADER_SHA] ?: ""
+                val nativeQuality = preferences[PreferencesKeys.NATIVE_QUALITY] ?: "1080"
+                val nativeAutoUpdate = preferences[PreferencesKeys.NATIVE_AUTO_UPDATE] ?: false
 
                 val categories =
                     preferences[PreferencesKeys.SB_CATEGORIES]?.mapNotNull { name ->
@@ -130,6 +141,10 @@ class DataStoreSettingsRepository
                                 json.decodeFromString<PlaylistDownloadState>(it)
                             }
                         }.getOrNull(),
+                    nativeDownloaderVersion = nativeDownloaderVersion,
+                    nativeDownloaderSha = nativeDownloaderSha,
+                    nativeQuality = nativeQuality,
+                    nativeAutoUpdate = nativeAutoUpdate,
                     alreadyDownloadedBehavior =
                         runCatching {
                             AlreadyDownloadedBehavior.valueOf(
@@ -143,6 +158,14 @@ class DataStoreSettingsRepository
                                 preferences[PreferencesKeys.IMPORT_QUEUE] ?: "[]",
                             )
                         }.getOrElse { emptyList() },
+                    notificationChannelPrefs =
+                        runCatching {
+                            json.decodeFromString<Map<String, Boolean>>(preferences[PreferencesKeys.NOTIFICATION_CHANNEL_PREFS] ?: "{}")
+                        }.getOrElse { emptyMap() },
+                    notificationIdPrefs =
+                        runCatching {
+                            json.decodeFromString<Map<Int, Boolean>>(preferences[PreferencesKeys.NOTIFICATION_ID_PREFS] ?: "{}")
+                        }.getOrElse { emptyMap() },
                 )
             }
 
@@ -158,8 +181,8 @@ class DataStoreSettingsRepository
                         notificationsEnabled = preferences[PreferencesKeys.NOTIFICATIONS_ENABLED] ?: true,
                         downloader =
                             runCatching {
-                                DownloaderType.valueOf(preferences[PreferencesKeys.DOWNLOADER] ?: DownloaderType.NEWPIPE.name)
-                            }.getOrDefault(DownloaderType.NEWPIPE),
+                                DownloaderType.valueOf(preferences[PreferencesKeys.DOWNLOADER] ?: DownloaderType.YTDLP.name)
+                            }.getOrDefault(DownloaderType.YTDLP),
                         videoFolder = preferences[PreferencesKeys.VIDEO_FOLDER] ?: "Movies/SB Skip/",
                         audioFolder = preferences[PreferencesKeys.AUDIO_FOLDER] ?: "Music/SB Skip/",
                         videoFolderUri = preferences[PreferencesKeys.VIDEO_FOLDER_URI] ?: "",
@@ -203,6 +226,10 @@ class DataStoreSettingsRepository
                                     json.decodeFromString<PlaylistDownloadState>(it)
                                 }
                             }.getOrNull(),
+                        nativeDownloaderVersion = preferences[PreferencesKeys.NATIVE_DOWNLOADER_VERSION] ?: "",
+                        nativeDownloaderSha = preferences[PreferencesKeys.NATIVE_DOWNLOADER_SHA] ?: "",
+                        nativeQuality = preferences[PreferencesKeys.NATIVE_QUALITY] ?: "1080",
+                        nativeAutoUpdate = preferences[PreferencesKeys.NATIVE_AUTO_UPDATE] ?: false,
                         alreadyDownloadedBehavior =
                             runCatching {
                                 AlreadyDownloadedBehavior.valueOf(
@@ -216,6 +243,14 @@ class DataStoreSettingsRepository
                                     preferences[PreferencesKeys.IMPORT_QUEUE] ?: "[]",
                                 )
                             }.getOrElse { emptyList() },
+                        notificationChannelPrefs =
+                            runCatching {
+                                json.decodeFromString<Map<String, Boolean>>(preferences[PreferencesKeys.NOTIFICATION_CHANNEL_PREFS] ?: "{}")
+                            }.getOrElse { emptyMap() },
+                        notificationIdPrefs =
+                            runCatching {
+                                json.decodeFromString<Map<Int, Boolean>>(preferences[PreferencesKeys.NOTIFICATION_ID_PREFS] ?: "{}")
+                            }.getOrElse { emptyMap() },
                     )
                 val updated = transform(current)
 
@@ -249,8 +284,14 @@ class DataStoreSettingsRepository
                 } else {
                     preferences.remove(PreferencesKeys.PLAYLIST_DOWNLOAD_STATE)
                 }
+                preferences[PreferencesKeys.NATIVE_DOWNLOADER_VERSION] = updated.nativeDownloaderVersion
+                preferences[PreferencesKeys.NATIVE_DOWNLOADER_SHA] = updated.nativeDownloaderSha
+                preferences[PreferencesKeys.NATIVE_QUALITY] = updated.nativeQuality
+                preferences[PreferencesKeys.NATIVE_AUTO_UPDATE] = updated.nativeAutoUpdate
                 preferences[PreferencesKeys.ALREADY_DOWNLOADED_BEHAVIOR] = updated.alreadyDownloadedBehavior.name
                 preferences[PreferencesKeys.IMPORT_QUEUE] = json.encodeToString(updated.importQueue)
+                preferences[PreferencesKeys.NOTIFICATION_CHANNEL_PREFS] = json.encodeToString(updated.notificationChannelPrefs)
+                preferences[PreferencesKeys.NOTIFICATION_ID_PREFS] = json.encodeToString(updated.notificationIdPrefs)
             }
         }
     }

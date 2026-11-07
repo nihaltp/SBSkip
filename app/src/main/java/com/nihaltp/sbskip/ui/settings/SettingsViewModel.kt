@@ -225,4 +225,16 @@ class SettingsViewModel
                 downloadedVideoRepository.deleteAll()
             }
         }
+
+        fun updateYtDlpQuality(quality: String) {
+            viewModelScope.launch {
+                settingsRepository.update { it.copy(nativeQuality = quality) }
+            }
+        }
+
+        fun updateYtDlpAutoUpdate(enabled: Boolean) {
+            viewModelScope.launch {
+                settingsRepository.update { it.copy(nativeAutoUpdate = enabled) }
+            }
+        }
     }

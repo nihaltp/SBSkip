@@ -5,9 +5,14 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
+import com.arthenica.ffmpegkit.FFmpegKit
+import com.arthenica.ffmpegkit.ReturnCode
 import com.nihaltp.sbskip.R
 import com.nihaltp.sbskip.data.repository.QueueRepository
 import com.nihaltp.sbskip.data.repository.SettingsRepository
+import com.nihaltp.sbskip.model.DownloadSource
+import com.nihaltp.sbskip.model.MediaFileMetadata
+import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.model.ProcessingContext
 import com.nihaltp.sbskip.model.SponsorBlockCategory
 import com.nihaltp.sbskip.model.SponsorBlockSegment
@@ -17,6 +22,9 @@ import com.nihaltp.sbskip.util.AppLogger
 import com.nihaltp.sbskip.util.Constants
 import com.nihaltp.sbskip.util.NetworkErrorClassifier
 import com.nihaltp.sbskip.util.parser.YouTubeUrlParser
+import com.nihaltp.sbskip.util.ytdlp.YtDlpCommandBuilder
+import com.nihaltp.sbskip.util.ytdlp.YtDlpProcessRunner
+import com.nihaltp.sbskip.util.ytdlp.YtDlpRuntime
 import com.nihaltp.sbskip.workers.helpers.DurationValidator
 import com.nihaltp.sbskip.workers.helpers.MediaProcessingManager
 import com.nihaltp.sbskip.workers.helpers.MediaTagger
@@ -27,6 +35,7 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
 import java.io.File
+import java.io.IOException
 
 @HiltWorker
 class DownloadWorker
@@ -44,6 +53,9 @@ class DownloadWorker
         private val mediaProcessingManager: MediaProcessingManager,
         private val mediaTagger: MediaTagger,
         private val outputSaver: OutputSaver,
+        private val ytDlpRuntime: YtDlpRuntime,
+        private val ytDlpCommandBuilder: YtDlpCommandBuilder,
+        private val ytDlpProcessRunner: YtDlpProcessRunner,
     ) : CoroutineWorker(appContext, params) {
         override suspend fun doWork(): Result {
             val queueItemId = inputData.getLong(KEY_QUEUE_ITEM_ID, -1L)
@@ -79,6 +91,8 @@ class DownloadWorker
             )
 
             var tempOutputFile: File? = null
+            var isYtDlp = false
+            var downloadedFile: File? = null
 
             return try {
                 AppLogger.worker("Cleaner pipeline started for queueItemId=$queueItemId url=${item.url}")
@@ -95,6 +109,7 @@ class DownloadWorker
 
                 // Fetch settings
                 val settings = settingsRepository.settings.first()
+                isYtDlp = item.downloadSource == DownloadSource.YTDLP
 
                 // Query & validate local file metadata
                 notificationManager.showActive(notificationId, taskTitle, 10, applicationContext.getString(R.string.status_fetching_info))
@@ -125,8 +140,25 @@ class DownloadWorker
                 }
 
                 val bypassCheck = item.bypassDurationCheck
-                val localMetadata = durationValidator.validate(item.localFileUri, youtubeDuration, bypassCheck)
-                val fileDuration = localMetadata.durationSeconds ?: 0L
+                var localMetadata: MediaFileMetadata
+                var fileDuration: Long
+                if (isYtDlp) {
+                    // yt-dlp download: no local file to validate yet; duration comes from YouTube API
+                    fileDuration = youtubeDuration ?: 0L
+                    localMetadata =
+                        MediaFileMetadata(
+                            title = item.title,
+                            extension =
+                                when (item.mediaType) {
+                                    MediaType.VIDEO -> "mp4"
+                                    MediaType.AUDIO -> "m4a"
+                                },
+                            durationSeconds = youtubeDuration,
+                        )
+                } else {
+                    localMetadata = durationValidator.validate(item.localFileUri, youtubeDuration, bypassCheck)
+                    fileDuration = localMetadata.durationSeconds ?: 0L
+                }
 
                 if (videoId != null) {
                     // Fetch YouTube oEmbed metadata if possible
@@ -159,22 +191,62 @@ class DownloadWorker
                     AppLogger.worker("No YouTube URL provided; skipping SponsorBlock segmentation checks.")
                 }
 
+                // For yt-dlp downloads, fetch the media from YouTube before processing.
+                var inputFileUri = item.localFileUri
+                var downloadedExtension: String? = null
+                if (isYtDlp) {
+                    notificationManager.showActive(
+                        notificationId,
+                        taskTitle,
+                        20,
+                        applicationContext.getString(R.string.status_downloading),
+                    )
+                    downloadedFile =
+                        downloadViaYtDlp(item, settings) { percent ->
+                            val mappedProgress = (20 + percent.toInt() * 10 / 100).coerceIn(20, 30)
+                            notificationManager.showActive(
+                                id = notificationId,
+                                title = taskTitle,
+                                progress = mappedProgress,
+                                message = applicationContext.getString(R.string.status_downloading),
+                            )
+                        }
+                    inputFileUri = downloadedFile!!.absolutePath
+                    downloadedExtension = downloadedFile.extension.ifBlank { null }
+                    AppLogger.worker("yt-dlp download complete: ${downloadedFile.absolutePath}")
+
+                    // Probe the downloaded file for duration if YouTube API didn't provide one
+                    if (fileDuration <= 0L) {
+                        val probedDuration = probeFileDuration(downloadedFile.absolutePath)
+                        if (probedDuration > 0L) {
+                            fileDuration = probedDuration
+                            localMetadata = localMetadata.copy(durationSeconds = fileDuration)
+                            AppLogger.worker("Probed duration from downloaded file: ${fileDuration}s")
+                        }
+                    }
+                }
+                if (isYtDlp && downloadedExtension != null) {
+                    localMetadata = localMetadata.copy(extension = downloadedExtension)
+                }
+
                 // 2. Mark as PROCESSING
                 queueRepository.markProcessing(queueItemId)
                 notificationManager.showActive(
                     notificationId,
                     taskTitle,
-                    20,
-                    applicationContext.getString(R.string.notification_copying_cache),
+                    30,
+                    applicationContext.getString(R.string.notification_trimming_segments, 0),
                 )
 
                 // Build processing plan
                 val plan = processingPlanBuilder.createPlan(item, localMetadata.extension, fileDuration, segments)
 
                 // Build Processing Context
+                // For yt-dlp there is no local original file, so never delete one.
+                val queueItemForContext = if (isYtDlp) item.copy(deleteOriginalVideo = false) else item
                 val context =
                     ProcessingContext(
-                        queueItem = item,
+                        queueItem = queueItemForContext,
                         localMetadata = localMetadata,
                         videoId = videoId,
                         oembedTitle = oembedTitle,
@@ -193,7 +265,7 @@ class DownloadWorker
                 tempOutputFile =
                     mediaProcessingManager.process(
                         queueItemId = queueItemId,
-                        localFileUri = item.localFileUri,
+                        localFileUri = inputFileUri,
                         localExtension = localMetadata.extension,
                         plan = plan,
                     ) { percent ->
@@ -278,6 +350,99 @@ class DownloadWorker
             } finally {
                 // Clean up temporary output file
                 tempOutputFile?.let { if (it.exists()) it.delete() }
+                // Clean up yt-dlp work directory to prevent cache buildup
+                if (isYtDlp) {
+                    val workDir = ytDlpRuntime.workDir(applicationContext.cacheDir, item.id)
+                    if (workDir.exists()) {
+                        workDir.deleteRecursively()
+                    }
+                }
+                // Clean up downloaded source file for yt-dlp (worker downloads to work dir)
+                if (isYtDlp && downloadedFile?.exists() == true) {
+                    downloadedFile.delete()
+                }
+            }
+        }
+
+        /** Downloads media via yt-dlp into a per-item work dir and returns the output file. */
+        private suspend fun downloadViaYtDlp(
+            item: com.nihaltp.sbskip.model.DownloadQueueItem,
+            settings: com.nihaltp.sbskip.model.AppSettings,
+            onProgress: (Float) -> Unit,
+        ): File {
+            val paths = ytDlpRuntime.ensure()
+            val workDir = ytDlpRuntime.workDir(applicationContext.cacheDir, item.id)
+            workDir.mkdirs()
+
+            val request =
+                YtDlpCommandBuilder.Request(
+                    mediaType = item.mediaType,
+                    url = item.url,
+                    workDir = workDir,
+                    maxQuality = settings.nativeQuality,
+                    ffmpegLocation = paths.ffmpegLauncher,
+                )
+            val command =
+                listOf(paths.pythonLauncher.absolutePath, paths.zipapp.absolutePath) +
+                    ytDlpCommandBuilder.build(request)
+            val environment = ytDlpRuntime.environment(paths, workDir)
+
+            val result =
+                ytDlpProcessRunner.run(command, environment) { progress ->
+                    onProgress(progress.percent ?: 0f)
+                }
+
+            if (result.exitCode != 0) {
+                throw IOException(
+                    applicationContext.getString(R.string.download_failed_yt_dlp) +
+                        ": exit=${result.exitCode} stderr=${result.stderrTail}",
+                )
+            }
+
+            val outputExt =
+                when (item.mediaType) {
+                    MediaType.VIDEO -> "mp4"
+                    MediaType.AUDIO -> "m4a"
+                }
+            val downloadedFile =
+                workDir.listFiles()?.firstOrNull { it.name.startsWith("out.") && it.isFile }
+                    ?: File(workDir, "out.$outputExt")
+            if (!downloadedFile.isFile) {
+                throw IOException(
+                    "yt-dlp completed but output file not found: ${downloadedFile.absolutePath}",
+                )
+            }
+            return downloadedFile
+        }
+
+        /** Uses ffprobe via ffmpeg-kit to probe the duration of a media file. */
+        private suspend fun probeFileDuration(filePath: String): Long {
+            return try {
+                // Skip probing for empty or very small files (likely test dummies)
+                val file = File(filePath)
+                if (!file.exists() || file.length() < 1024) {
+                    return 0L
+                }
+                val command = "-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 \"$filePath\""
+                val session = FFmpegKit.execute(command)
+                if (ReturnCode.isSuccess(session.returnCode)) {
+                    val output = session.output.trim()
+                    if (output.isNotBlank()) {
+                        output.toDoubleOrNull()?.let { (it * 1000).toLong() } ?: 0L
+                    } else {
+                        0L
+                    }
+                } else {
+                    AppLogger.error(
+                        "DownloadWorker",
+                        RuntimeException("ffprobe failed"),
+                        "ffprobe failed for $filePath: exit=${session.returnCode}, output=${session.output}",
+                    )
+                    0L
+                }
+            } catch (e: Exception) {
+                AppLogger.error("DownloadWorker", e, "Failed to probe file duration for $filePath")
+                0L
             }
         }
 

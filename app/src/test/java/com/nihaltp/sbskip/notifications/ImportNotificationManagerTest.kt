@@ -5,6 +5,11 @@ import android.content.Context
 import android.service.notification.StatusBarNotification
 import androidx.core.app.NotificationManagerCompat
 import androidx.test.core.app.ApplicationProvider
+import com.nihaltp.sbskip.data.repository.SettingsRepository
+import com.nihaltp.sbskip.model.AppSettings
+import io.mockk.every
+import io.mockk.mockk
+import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -21,12 +26,14 @@ class ImportNotificationManagerTest {
     private lateinit var context: Context
     private lateinit var manager: ImportNotificationManager
     private lateinit var notificationManager: NotificationManager
+    private val settingsRepository: SettingsRepository = mockk(relaxed = true)
 
     @Before
     fun setup() {
         val appContext = ApplicationProvider.getApplicationContext<Context>()
         context = appContext
-        manager = ImportNotificationManager(context)
+        every { settingsRepository.settings } returns flowOf(AppSettings())
+        manager = ImportNotificationManager(context, settingsRepository)
         notificationManager = appContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         manager.cancelAll()
     }

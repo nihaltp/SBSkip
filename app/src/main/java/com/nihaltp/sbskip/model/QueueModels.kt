@@ -10,6 +10,12 @@ enum class DownloadQueueStatus {
     FAILED,
 }
 
+enum class DownloadSource {
+    NEWPIPE_HANDOFF,
+    LOCAL_FILE,
+    YTDLP,
+}
+
 data class DownloadQueueItem(
     val id: Long,
     val url: String,
@@ -32,6 +38,7 @@ data class DownloadQueueItem(
     val overwrite: Boolean = false,
     val bypassDurationCheck: Boolean = false,
     val noSuffix: Boolean = false,
+    val downloadSource: DownloadSource = DownloadSource.LOCAL_FILE,
 ) {
     val displayDuration: String
         get() {
@@ -99,6 +106,7 @@ data class PlaylistDownloadState(
     val currentIndex: Int = 0,
     val convertVideoToAudio: Boolean = false,
     val deleteOriginalVideo: Boolean = true,
+    val expanded: Boolean = false,
 )
 
 data class PendingEnqueueData(
@@ -141,6 +149,7 @@ data class MainUiState(
     val convertVideoToAudio: Boolean = false,
     val deleteOriginalVideo: Boolean = true,
     val isNewPipeInstalled: Boolean = false,
+    val selectedDownloader: DownloaderType = DownloaderType.YTDLP,
     val isFetchingMetadata: Boolean = false,
     val isDetectingFile: Boolean = false,
     val isVerifyingDuration: Boolean = false,
@@ -164,6 +173,12 @@ data class MainUiState(
     // Duplicate download dialog (shown when a video is already in the downloaded-videos database)
     val showDuplicateDownloadDialog: Boolean = false,
     val duplicateVideoInfo: DuplicateVideoInfo? = null,
+    // Playlist duplicate dialog (shown when playlist has already-downloaded videos and behavior is ASK)
+    val showPlaylistDuplicateDialog: Boolean = false,
+    val playlistDuplicateVideos: List<PlaylistVideo> = emptyList(),
+    val playlistDuplicateAction: ((Set<String>) -> Unit)? = null,
+    // URL has both videoId and playlistId - show both download options
+    val urlHasVideoAndPlaylist: Boolean = false,
 )
 
 data class QueueActionResult(

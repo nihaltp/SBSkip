@@ -5,17 +5,19 @@ import com.nihaltp.sbskip.model.ProcessingPlan
 import com.nihaltp.sbskip.processing.MediaProcessor
 import com.nihaltp.sbskip.storage.DownloadStorage
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 import javax.inject.Inject
 
-class MediaProcessingManager
+open class MediaProcessingManager
     @Inject
     constructor(
         @ApplicationContext private val context: Context,
         private val downloadStorage: DownloadStorage,
         private val mediaProcessor: MediaProcessor,
     ) {
-        suspend fun process(
+        open suspend fun process(
             queueItemId: Long,
             localFileUri: String,
             localExtension: String,
@@ -27,8 +29,15 @@ class MediaProcessingManager
             val tempOutputFile = File(cacheDir, "clean_out_$queueItemId.${plan.outputExtension}")
 
             try {
-                // Copy imported SAF Content URI file locally to cache for native random-access FFmpeg copy seeking
-                downloadStorage.copyUriToTempFile(localFileUri, tempInputFile)
+                // Copy the source into the cache. yt-dlp downloads land as plain files on disk,
+                // while imported media arrives as SAF content URIs.
+                if (localFileUri.startsWith("content://") || localFileUri.startsWith("file://")) {
+                    downloadStorage.copyUriToTempFile(localFileUri, tempInputFile)
+                } else {
+                    withContext(Dispatchers.IO) {
+                        File(localFileUri).copyTo(tempInputFile, overwrite = true)
+                    }
+                }
 
                 if (plan.keepRanges.isEmpty() && !plan.convertVideoToAudio) {
                     onProgress(100)

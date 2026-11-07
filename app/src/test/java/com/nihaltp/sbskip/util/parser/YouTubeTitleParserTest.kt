@@ -23,6 +23,14 @@ class YouTubeTitleParserTest {
     }
 
     @Test
+    fun `preserves internal hyphen in featured artist`() {
+        val title = "Song Name feat. Jay-Z (Official Video)"
+
+        val result = YouTubeTitleParser.extractArtistsFromTitle(title, null)
+        assertEquals(listOf("Jay-Z"), result)
+    }
+
+    @Test
     fun `extracts @ handles as artists`() {
         val title = "@ SaiAbhyankkar - Pavazha Malli (Music Video) | ft. Kayadu | feat. Shruti_Haasan"
         val authorName = "Think Indie"

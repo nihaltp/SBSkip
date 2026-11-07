@@ -10,7 +10,13 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.work.ForegroundInfo
 import com.nihaltp.sbskip.R
+import com.nihaltp.sbskip.data.repository.QueueRepository
+import com.nihaltp.sbskip.data.repository.SettingsRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -19,24 +25,64 @@ class AndroidDownloadNotificationManager
     @Inject
     constructor(
         @ApplicationContext private val context: Context,
+        private val queueRepository: QueueRepository,
+        private val settingsRepository: SettingsRepository,
     ) : DownloadNotificationManager {
+        private val scope = CoroutineScope(Dispatchers.Default + Job())
+        private var completionCount = 0
+        private var failureCount = 0
+        private var queuedCount = 0
+        private var channelEnabled = true
+        private var notificationIdPrefs = emptyMap<Int, Boolean>()
+
+        init {
+            observeQueue()
+            observeChannelEnabled()
+            observeNotificationIdPrefs()
+        }
+
+        private fun observeQueue() {
+            scope.launch {
+                queueRepository.observeQueue().collect { items ->
+                    queuedCount = items.count { it.status == com.nihaltp.sbskip.model.DownloadQueueStatus.QUEUED }
+                }
+            }
+        }
+
+        private fun observeChannelEnabled() {
+            scope.launch {
+                settingsRepository.settings.collect { settings ->
+                    val prefs = settings?.notificationChannelPrefs ?: emptyMap()
+                    channelEnabled = prefs[CHANNEL_ID] ?: true
+                }
+            }
+        }
+
+        private fun observeNotificationIdPrefs() {
+            scope.launch {
+                settingsRepository.settings.collect { settings ->
+                    notificationIdPrefs = settings?.notificationIdPrefs ?: emptyMap()
+                }
+            }
+        }
+
         override fun createForegroundInfo(
             id: Long,
             title: String,
             message: String,
         ): ForegroundInfo {
             val notification =
-                buildNotification(
+                buildActiveNotification(
                     title = title,
-                    message = message,
-                    ongoing = true,
-                    indeterminate = true,
                     progress = 0,
+                    message = message,
                 )
             // Use DATA_SYNC foreground service type for uploads/downloads so apps
             // targeting SDK 31+ don't get InvalidForegroundServiceTypeException.
             val fgType = ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
-            return ForegroundInfo(id.toInt(), notification, fgType)
+            // Use ACTIVE_ID (2000) for foreground notification so it matches showActive
+            // and can be properly cancelled when the worker finishes.
+            return ForegroundInfo(ACTIVE_ID, notification, fgType)
         }
 
         override fun showActive(
@@ -46,14 +92,12 @@ class AndroidDownloadNotificationManager
             message: String,
         ) {
             notify(
-                id = id,
+                id = ACTIVE_ID,
                 notification =
-                    buildNotification(
+                    buildActiveNotification(
                         title = title,
-                        message = message,
-                        ongoing = true,
-                        indeterminate = progress <= 0,
                         progress = progress.coerceIn(0, 100),
+                        message = message,
                     ),
             )
         }
@@ -62,15 +106,15 @@ class AndroidDownloadNotificationManager
             id: Long,
             title: String,
         ) {
+            completionCount++
+            // Cancel the active notification when worker completes
+            cancelActiveNotification()
             notify(
-                id = id,
+                id = COMPLETION_ID,
                 notification =
-                    buildNotification(
-                        title = title,
-                        message = context.getString(R.string.download_completed),
-                        ongoing = false,
-                        indeterminate = false,
-                        progress = 100,
+                    buildSummaryNotification(
+                        title = context.getString(R.string.notification_queue_completed_title),
+                        message = context.getString(R.string.notification_queue_completed_message, completionCount),
                     ),
             )
         }
@@ -80,15 +124,15 @@ class AndroidDownloadNotificationManager
             title: String,
             errorMessage: String,
         ) {
+            failureCount++
+            // Cancel the active notification when worker fails
+            cancelActiveNotification()
             notify(
-                id = id,
+                id = FAILURE_ID,
                 notification =
-                    buildNotification(
-                        title = title,
-                        message = errorMessage,
-                        ongoing = false,
-                        indeterminate = false,
-                        progress = 0,
+                    buildSummaryNotification(
+                        title = context.getString(R.string.notification_queue_failed_title),
+                        message = context.getString(R.string.notification_queue_failed_message, failureCount),
                     ),
             )
         }
@@ -97,44 +141,74 @@ class AndroidDownloadNotificationManager
             id: Long,
             title: String,
         ) {
+            // Use failure notification for cancelled items as well
+            failureCount++
+            // Cancel the active notification when worker is cancelled
+            cancelActiveNotification()
             notify(
-                id = id,
+                id = FAILURE_ID,
                 notification =
-                    buildNotification(
-                        title = title,
-                        message = context.getString(R.string.download_cancelled),
-                        ongoing = false,
-                        indeterminate = false,
-                        progress = 0,
+                    buildSummaryNotification(
+                        title = context.getString(R.string.notification_queue_failed_title),
+                        message = context.getString(R.string.notification_queue_failed_message, failureCount),
                     ),
             )
         }
 
-        private fun buildNotification(
+        private fun cancelActiveNotification() {
+            NotificationManagerCompat.from(context).cancel(ACTIVE_ID)
+        }
+
+        private fun buildActiveNotification(
+            title: String,
+            progress: Int,
+            message: String,
+        ): Notification {
+            ensureChannel()
+            val remaining = queuedCount
+            val contentText =
+                if (remaining > 0) {
+                    context.getString(R.string.notification_queue_active_text, title, progress, remaining)
+                } else {
+                    message
+                }
+            return NotificationCompat.Builder(context, CHANNEL_ID)
+                .setSmallIcon(android.R.drawable.stat_sys_download)
+                .setContentTitle(context.getString(R.string.notification_queue_active_title))
+                .setContentText(contentText)
+                .setOngoing(true)
+                .setOnlyAlertOnce(true)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setProgress(100, progress, progress <= 0)
+                .build()
+        }
+
+        private fun buildSummaryNotification(
             title: String,
             message: String,
-            ongoing: Boolean,
-            indeterminate: Boolean,
-            progress: Int,
         ): Notification {
             ensureChannel()
             return NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.stat_sys_download)
                 .setContentTitle(title)
                 .setContentText(message)
-                .setOngoing(ongoing)
+                .setOngoing(false)
                 .setOnlyAlertOnce(true)
-                .setPriority(NotificationCompat.PRIORITY_LOW)
-                .setProgress(100, progress, indeterminate)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setProgress(0, 0, false)
                 .build()
         }
 
         private fun notify(
-            id: Long,
+            id: Int,
             notification: Notification,
         ) {
+            // Check if channel is enabled before posting
+            if (!channelEnabled) return
+            // Check if this specific notification ID is disabled
+            if (notificationIdPrefs[id] == false) return
             ensureChannel()
-            NotificationManagerCompat.from(context).notify(id.toInt(), notification)
+            NotificationManagerCompat.from(context).notify(id, notification)
         }
 
         /**
@@ -160,5 +234,8 @@ class AndroidDownloadNotificationManager
 
         private companion object {
             const val CHANNEL_ID = "download_status"
+            const val ACTIVE_ID = 2000
+            const val COMPLETION_ID = 2001
+            const val FAILURE_ID = 2002
         }
     }

@@ -6,6 +6,7 @@ import com.nihaltp.sbskip.data.local.dao.DownloadQueueDao
 import com.nihaltp.sbskip.model.DownloadQueueEntity
 import com.nihaltp.sbskip.model.DownloadQueueItem
 import com.nihaltp.sbskip.model.DownloadQueueStatus
+import com.nihaltp.sbskip.model.DownloadSource
 import com.nihaltp.sbskip.model.DownloadedVideoEntity
 import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.model.QueueActionResult
@@ -47,6 +48,7 @@ class DefaultQueueRepository
             bypassDurationCheck: Boolean,
             noSuffix: Boolean,
             skipDuplicateCheck: Boolean,
+            downloadSource: DownloadSource,
         ): QueueActionResult {
             val videoId =
                 if (youtubeUrl.isBlank() || youtubeUrl.startsWith("sbskip://")) {
@@ -72,9 +74,17 @@ class DefaultQueueRepository
             // bypassDurationCheck, noSuffix) are stored as explicit entity columns instead of
             // being appended to the URL, which previously produced malformed double-? URLs like
             // "...watch?v=VIDEO_ID?overwrite=true".
+            // Preserve custom SponsorBlock categories from the original URL so the worker can use them.
             val normalizedUrl =
                 if (videoId != null) {
-                    Constants.buildYouTubeWatchUrl(videoId)
+                    val baseUrl = Constants.buildYouTubeWatchUrl(videoId)
+                    // Extract and preserve categories parameter from original URL
+                    val categoriesParam = youtubeUrl.substringAfter("categories=").substringBefore("&")
+                    if (categoriesParam.isNotBlank() && categoriesParam != youtubeUrl) {
+                        "$baseUrl&categories=$categoriesParam"
+                    } else {
+                        baseUrl
+                    }
                 } else {
                     youtubeUrl
                 }
@@ -101,6 +111,7 @@ class DefaultQueueRepository
                     overwrite = overwrite,
                     bypassDurationCheck = bypassDurationCheck,
                     noSuffix = noSuffix,
+                    downloadSource = downloadSource.name,
                 )
 
             val id = dao.insert(entity)
@@ -264,6 +275,9 @@ class DefaultQueueRepository
                 overwrite = overwrite,
                 bypassDurationCheck = bypassDurationCheck,
                 noSuffix = noSuffix,
+                downloadSource =
+                    runCatching { DownloadSource.valueOf(downloadSource) }
+                        .getOrDefault(DownloadSource.LOCAL_FILE),
             )
         }
     }

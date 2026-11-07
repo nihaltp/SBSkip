@@ -7,10 +7,10 @@ import com.nihaltp.sbskip.processing.SegmentProcessor
 import com.nihaltp.sbskip.util.AppLogger
 import javax.inject.Inject
 
-class ProcessingPlanBuilder
+open class ProcessingPlanBuilder
     @Inject
     constructor() {
-        fun createPlan(
+        open suspend fun createPlan(
             item: DownloadQueueItem,
             localExtension: String,
             fileDuration: Long,

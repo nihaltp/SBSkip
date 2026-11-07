@@ -18,7 +18,9 @@ import com.nihaltp.sbskip.ui.history.DownloadedHistoryScreen
 import com.nihaltp.sbskip.ui.main.MainScreen
 import com.nihaltp.sbskip.ui.main.MainViewModel
 import com.nihaltp.sbskip.ui.onboarding.OnboardingScreen
+import com.nihaltp.sbskip.ui.settings.NotificationSettingsScreen
 import com.nihaltp.sbskip.ui.settings.SettingsScreen
+import com.nihaltp.sbskip.ui.settings.YtDlpSettingsScreen
 
 @Composable
 fun AppNavGraph(
@@ -83,8 +85,12 @@ fun AppNavGraph(
                 onCancelPlaylistDownload = viewModel::cancelPlaylistDownload,
                 onPlaylistConvertVideoToAudioChanged = viewModel::setPlaylistConvertVideoToAudio,
                 onPlaylistDeleteOriginalVideoChanged = viewModel::setPlaylistDeleteOriginalVideo,
+                onPlaylistExpandedChanged = viewModel::setPlaylistExpanded,
                 onProceedDuplicateDownload = viewModel::proceedDuplicateDownload,
                 onSkipDuplicateDownload = viewModel::skipDuplicateDownload,
+                onPlaylistDuplicateConfirm = viewModel::confirmPlaylistDuplicates,
+                onPlaylistDuplicateDismiss = viewModel::dismissPlaylistDuplicates,
+                onStartPlaylistDownload = viewModel::startPlaylistDownload,
             )
         }
 
@@ -96,12 +102,26 @@ fun AppNavGraph(
                 onNavigateToDownloadedVideos = {
                     navController.navigate(Destination.DownloadedVideos.route)
                 },
+                onNavigateToNotificationSettings = { navController.navigate(Destination.NotificationSettings.route) },
+                onNavigateToYtDlpSettings = { navController.navigate(Destination.YtDlpSettings.route) },
             )
         }
 
         composable(Destination.DownloadedVideos.route) {
             DownloadedHistoryScreen(
                 onNavigateBack = { navController.popBackStack() },
+            )
+        }
+
+        composable(Destination.NotificationSettings.route) {
+            NotificationSettingsScreen(
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable(Destination.YtDlpSettings.route) {
+            YtDlpSettingsScreen(
+                onBack = { navController.popBackStack() },
             )
         }
 

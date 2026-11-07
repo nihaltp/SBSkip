@@ -73,6 +73,8 @@ fun SettingsScreen(
     onNavigateToLicenses: () -> Unit,
     onNavigateToLogs: () -> Unit,
     onNavigateToDownloadedVideos: () -> Unit,
+    onNavigateToNotificationSettings: () -> Unit,
+    onNavigateToYtDlpSettings: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val settingsState by viewModel.settings.collectAsState()
@@ -231,22 +233,54 @@ fun SettingsScreen(
                             checked = settings.dynamicColor,
                             onCheckedChange = viewModel::updateDynamicColor,
                         )
-                        SettingToggleRow(
-                            title = stringResource(id = R.string.settings_notifications_title),
-                            description = stringResource(id = R.string.settings_notifications_desc),
-                            checked = settings.notificationsEnabled,
-                            onCheckedChange = { checked ->
-                                if (checked) {
-                                    if (PermissionHelper.hasNotificationPermission(context)) {
-                                        viewModel.updateNotificationsEnabled(true)
-                                    } else {
-                                        notificationPermissionLauncher.launch(PermissionHelper.getRequiredNotificationPermissions())
-                                    }
-                                } else {
-                                    viewModel.updateNotificationsEnabled(false)
+                        // Notifications master toggle / fix button
+                        if (PermissionHelper.hasNotificationPermissionTarget()) {
+                            if (notificationPermissionGranted) {
+                                SettingToggleRow(
+                                    title = stringResource(id = R.string.settings_notifications_title),
+                                    description = stringResource(id = R.string.settings_notifications_desc),
+                                    checked = settings.notificationsEnabled,
+                                    onCheckedChange = { checked ->
+                                        if (checked) {
+                                            viewModel.updateNotificationsEnabled(true)
+                                        } else {
+                                            viewModel.updateNotificationsEnabled(false)
+                                        }
+                                    },
+                                )
+                                // Manage notifications row - only show when enabled and permission granted
+                                if (settings.notificationsEnabled) {
+                                    SettingValueRow(
+                                        title = stringResource(id = R.string.settings_manage_notifications),
+                                        value = stringResource(id = R.string.settings_notification_channels_desc),
+                                        onClick = onNavigateToNotificationSettings,
+                                    )
                                 }
-                            },
-                        )
+                            } else {
+                                SettingValueRow(
+                                    title = stringResource(id = R.string.settings_notifications_title),
+                                    value = stringResource(id = R.string.settings_fix_notifications),
+                                    onClick = {
+                                        notificationPermissionLauncher.launch(PermissionHelper.getRequiredNotificationPermissions())
+                                    },
+                                )
+                            }
+                        } else {
+                            // Pre-Android 13: no runtime permission needed, just show toggle
+                            SettingToggleRow(
+                                title = stringResource(id = R.string.settings_notifications_title),
+                                description = stringResource(id = R.string.settings_notifications_desc),
+                                checked = settings.notificationsEnabled,
+                                onCheckedChange = viewModel::updateNotificationsEnabled,
+                            )
+                            if (settings.notificationsEnabled) {
+                                SettingValueRow(
+                                    title = stringResource(id = R.string.settings_manage_notifications),
+                                    value = stringResource(id = R.string.settings_notification_channels_desc),
+                                    onClick = onNavigateToNotificationSettings,
+                                )
+                            }
+                        }
                         val themeModeLabel =
                             when (settings.themeMode) {
                                 ThemeMode.LIGHT -> stringResource(id = R.string.theme_mode_light)
@@ -308,12 +342,24 @@ fun SettingsScreen(
                 }
 
                 item {
-                    SettingsSection(title = stringResource(id = R.string.settings_section_newpipe)) {
+                    SettingsSection(title = stringResource(id = R.string.settings_section_downloader)) {
+                        val downloaderName =
+                            when (settings.downloader) {
+                                DownloaderType.YTDLP -> stringResource(id = R.string.settings_downloader_yt_dlp)
+                                DownloaderType.NEWPIPE -> stringResource(id = R.string.settings_downloader_newpipe)
+                            }
                         SettingValueRow(
-                            title = stringResource(id = R.string.settings_downloader_title),
-                            value = stringResource(id = R.string.settings_downloader_newpipe),
+                            title = stringResource(id = R.string.settings_current_downloader),
+                            value = downloaderName,
                             onClick = { activeDialogType = SettingsDialogType.DOWNLOADER },
                         )
+                        if (settings.downloader == DownloaderType.YTDLP) {
+                            SettingValueRow(
+                                title = stringResource(id = R.string.settings_yt_dlp_settings_title),
+                                value = "",
+                                onClick = onNavigateToYtDlpSettings,
+                            )
+                        }
                     }
                 }
 
@@ -492,22 +538,6 @@ fun SettingsScreen(
                 }
 
                 item {
-                    SettingsSection(title = stringResource(id = R.string.settings_section_advanced)) {
-                        SettingToggleRow(
-                            title = stringResource(id = R.string.verbose_logging),
-                            description = stringResource(id = R.string.verbose_logging_desc),
-                            checked = settings.verboseLogging,
-                            onCheckedChange = viewModel::updateVerboseLogging,
-                        )
-                        SettingValueRow(
-                            title = stringResource(id = R.string.settings_view_logs_button),
-                            value = stringResource(id = R.string.logs_title),
-                            onClick = onNavigateToLogs,
-                        )
-                    }
-                }
-
-                item {
                     SettingsSection(
                         modifier = Modifier.testTag("downloadedHistoryCard"),
                         title = stringResource(id = R.string.settings_downloaded_videos_title),
@@ -578,6 +608,22 @@ fun SettingsScreen(
                                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                                 context.startActivity(intent)
                             },
+                        )
+                    }
+                }
+
+                item {
+                    SettingsSection(title = stringResource(id = R.string.settings_section_advanced)) {
+                        SettingToggleRow(
+                            title = stringResource(id = R.string.verbose_logging),
+                            description = stringResource(id = R.string.verbose_logging_desc),
+                            checked = settings.verboseLogging,
+                            onCheckedChange = viewModel::updateVerboseLogging,
+                        )
+                        SettingValueRow(
+                            title = stringResource(id = R.string.settings_view_logs_button),
+                            value = stringResource(id = R.string.logs_title),
+                            onClick = onNavigateToLogs,
                         )
                     }
                 }
@@ -686,6 +732,27 @@ fun SettingsScreen(
                         text = {
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 val selected = nonNullSettings.downloader
+                                Row(
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                viewModel.updateDownloaderType(DownloaderType.YTDLP)
+                                                activeDialogType = null
+                                            }
+                                            .padding(vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    RadioButton(
+                                        selected = selected == DownloaderType.YTDLP,
+                                        onClick = {
+                                            viewModel.updateDownloaderType(DownloaderType.YTDLP)
+                                            activeDialogType = null
+                                        },
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(stringResource(id = R.string.settings_downloader_yt_dlp))
+                                }
                                 Row(
                                     modifier =
                                         Modifier

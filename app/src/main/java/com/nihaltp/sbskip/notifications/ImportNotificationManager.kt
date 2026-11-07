@@ -11,7 +11,12 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.nihaltp.sbskip.MainActivity
 import com.nihaltp.sbskip.R
+import com.nihaltp.sbskip.data.repository.SettingsRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -23,16 +28,43 @@ import javax.inject.Singleton
  *    currently being scanned.
  *  - [NOTIFICATION_FOLDER_QUEUE] shows how many folders are still queued.
  *
- * Both are posted on a low importance channel, so they never make a sound and never show up as a
- * heads-up notification. They are dismissed automatically as soon as their counter reaches zero.
+ * Both are posted on the same low importance channel (sbskip_import_queue), so they never make a sound
+ * and never show up as a heads-up notification. They are dismissed automatically as soon as their
+ * counter reaches zero. Using a single channel allows the notification settings to properly control both.
  */
 @Singleton
 class ImportNotificationManager
     @Inject
     constructor(
         @ApplicationContext private val context: Context,
+        private val settingsRepository: SettingsRepository,
     ) {
         private val notificationManager: NotificationManagerCompat = NotificationManagerCompat.from(context)
+        private val scope = CoroutineScope(Dispatchers.Default + Job())
+        private var channelEnabled = true
+        private var notificationIdPrefs = emptyMap<Int, Boolean>()
+
+        init {
+            observeChannelEnabled()
+            observeNotificationIdPrefs()
+        }
+
+        private fun observeChannelEnabled() {
+            scope.launch {
+                settingsRepository.settings.collect { settings ->
+                    val prefs = settings?.notificationChannelPrefs ?: emptyMap()
+                    channelEnabled = prefs[CHANNEL_ID] ?: true
+                }
+            }
+        }
+
+        private fun observeNotificationIdPrefs() {
+            scope.launch {
+                settingsRepository.settings.collect { settings ->
+                    notificationIdPrefs = settings?.notificationIdPrefs ?: emptyMap()
+                }
+            }
+        }
 
         /**
          * Updates the notification that tracks the files of the folder that is currently scanned.
@@ -51,6 +83,8 @@ class ImportNotificationManager
                 notificationManager.cancel(NOTIFICATION_FILE_QUEUE)
                 return
             }
+            if (!channelEnabled) return
+            if (notificationIdPrefs[NOTIFICATION_FILE_QUEUE] == false) return
 
             val notification =
                 buildNotification(
@@ -79,6 +113,8 @@ class ImportNotificationManager
                 notificationManager.cancel(NOTIFICATION_FOLDER_QUEUE)
                 return
             }
+            if (!channelEnabled) return
+            if (notificationIdPrefs[NOTIFICATION_FOLDER_QUEUE] == false) return
 
             val notification =
                 buildNotification(

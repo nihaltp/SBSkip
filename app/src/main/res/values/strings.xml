@@ -50,6 +50,14 @@
     <string name="notification_channel_download_description">Active and completed download notifications.</string>
     <string name="notification_download_in_progress">Download in progress...</string>
 
+    <!-- Queue notification strings -->
+    <string name="notification_queue_active_title">Downloading</string>
+    <string name="notification_queue_active_text">%1$s (%2$d%%) • %3$d remaining</string>
+    <string name="notification_queue_completed_title">Downloads completed</string>
+    <string name="notification_queue_completed_message">%1$d video(s) completed</string>
+    <string name="notification_queue_failed_title">Downloads failed</string>
+    <string name="notification_queue_failed_message">%1$d video(s) failed</string>
+
     <!-- Settings -->
     <string name="settings_title">Settings</string>
     <string name="settings_section_general">General</string>
@@ -58,9 +66,19 @@
     <string name="settings_notifications_title">Notifications</string>
     <string name="settings_notifications_desc">Show foreground and completion updates.</string>
     <string name="settings_theme_mode">Theme mode</string>
-    <string name="settings_section_newpipe">NewPipe</string>
+    <string name="settings_section_downloader">Downloader</string>
     <string name="settings_downloader_title">Downloader</string>
+    <string name="settings_current_downloader">Current</string>
     <string name="settings_downloader_newpipe">NewPipe</string>
+    <string name="settings_downloader_yt_dlp">yt-dlp</string>
+    <string name="settings_yt_dlp_settings_title">yt-dlp Settings</string>
+    <string name="settings_yt_dlp_quality_title">Video Quality</string>
+    <string name="settings_yt_dlp_quality_desc">Maximum video resolution for downloads</string>
+    <string name="settings_yt_dlp_quality_720p">720p</string>
+    <string name="settings_yt_dlp_quality_1080p">1080p</string>
+    <string name="settings_yt_dlp_quality_best">Best Available</string>
+    <string name="settings_yt_dlp_auto_update_title">Auto-update yt-dlp</string>
+    <string name="settings_yt_dlp_auto_update_desc">Automatically update the bundled yt-dlp when a new version is available</string>
 
     <string name="settings_section_downloads">Downloads</string>
     <string name="settings_video_folder">Video folder</string>
@@ -332,6 +350,21 @@
     <string name="dialog_download_options_title">Download Options</string>
     <string name="dialog_download_options_proceed">Proceed</string>
     <string name="options_button">Options</string>
+    <string name="show_less">Show less</string>
+    <string name="show_all_videos">Show all videos (%1$d)</string>
+
+    <!-- Playlist Download -->
+    <string name="playlist_loading">Playlist loading or finished</string>
+    <string name="playlist_close">Close</string>
+    <string name="playlist_download">Download</string>
+    <string name="playlist_skip_video">Skip Video</string>
+    <string name="playlist_cancel_download">Cancel Playlist Download</string>
+    <string name="playlist_downloading">Downloading…</string>
+    <string name="playlist_currently_downloading">Currently downloading</string>
+    <string name="playlist_collapse">Collapse</string>
+    <string name="playlist_expand">Expand</string>
+    <string name="playlist_enqueue_summary">Enqueued %1$d video(s); skipped %2$d</string>
+    <string name="playlist_enqueue_summary_with_asked">Enqueued %1$d video(s); skipped %2$d; %3$d already downloaded (set to ASK)</string>
 
     <!-- Onboarding -->
     <string name="onboarding_exit">Exit</string>
@@ -352,10 +385,20 @@
     <!-- Duplicate Download Dialog -->
     <string name="dialog_duplicate_download_title">Already Downloaded</string>
     <string name="dialog_duplicate_download_message">This video is already in your downloaded videos. Download it again?</string>
-    <string name="dialog_duplicate_download_message_named">“%1$s” is already in your downloaded videos. Download it again?</string>
+    <string name="dialog_duplicate_download_message_named">"%1$s" is already in your downloaded videos. Download it again?</string>
     <string name="dialog_duplicate_download_again">Download Again</string>
     <string name="dialog_duplicate_download_skip">Skip</string>
     <string name="duplicate_download_skipped">Already downloaded, skipped.</string>
+
+    <!-- Playlist Duplicate Dialog -->
+    <string name="dialog_playlist_duplicate_title">Already Downloaded Videos in Playlist</string>
+    <string name="dialog_playlist_duplicate_message">%1$d video(s) in this playlist are already in your downloaded videos.</string>
+    <string name="dialog_playlist_duplicate_select">Select which videos to download again:</string>
+    <string name="dialog_playlist_duplicate_download_selected">Download Selected</string>
+    <string name="dialog_playlist_duplicate_skip_all">Skip All</string>
+
+    <!-- Main Screen Buttons -->
+    <string name="download_playlist_button">Download Playlist</string>
 
     <!-- Already Downloaded Behavior Setting -->
     <string name="settings_already_downloaded_title">Already Downloaded Videos</string>
@@ -446,6 +489,26 @@
     <string name="downloaded_history_search_no_results_body">No results for "%1$s". Try a different search.</string>
 
     <string name="downloaded_history_file_missing">File not found on this device</string>
+
+    <!-- Notification Settings -->
+    <string name="settings_notification_channels_title">Notification Channels</string>
+    <string name="settings_notification_channels_desc">Manage individual notification channels.</string>
+    <string name="settings_manage_notifications">Manage notifications</string>
+    <string name="settings_fix_notifications">Fix notification permission</string>
+    <string name="settings_manage_in_system">Manage in system</string>
+    <string name="notification_channel_enabled">Enabled</string>
+    <string name="notification_channel_disabled">Disabled</string>
+    <string name="notification_id_description_prefix">%1$s: %2$s</string>
+
+    <!-- Notification ID Descriptions -->
+    <string name="notification_import_files_desc">Shows progress while importing media files from a folder.</string>
+    <string name="notification_import_folders_desc">Shows how many folders are queued for import.</string>
+    <string name="notification_active_download_title">Active Download</string>
+    <string name="notification_active_download_desc">Shows progress of the currently downloading video.</string>
+    <string name="notification_completed_title">Download Completed</string>
+    <string name="notification_completed_desc">Shows when a download completes successfully.</string>
+    <string name="notification_failed_title">Download Failed</string>
+    <string name="notification_failed_desc">Shows when a download fails.</string>
 
     <!-- Import Queue Notifications -->
 

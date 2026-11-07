@@ -64,6 +64,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.nihaltp.sbskip.R
 import com.nihaltp.sbskip.model.DownloadQueueItem
+import com.nihaltp.sbskip.model.DownloaderType
 import com.nihaltp.sbskip.model.MainUiState
 import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.model.PendingDownload
@@ -80,6 +81,7 @@ import com.nihaltp.sbskip.ui.main.dialogs.ErrorDetailsDialog
 import com.nihaltp.sbskip.ui.main.dialogs.MediaConflictDialog
 import com.nihaltp.sbskip.ui.main.dialogs.MediaDetailsDialog
 import com.nihaltp.sbskip.ui.main.dialogs.PendingDownloadDetailsDialog
+import com.nihaltp.sbskip.ui.main.dialogs.PlaylistDuplicateDialog
 import com.nihaltp.sbskip.ui.main.dialogs.WatchlistPromptDialog
 import com.nihaltp.sbskip.util.AppLogger
 import com.nihaltp.sbskip.util.PermissionHelper
@@ -121,8 +123,12 @@ fun MainScreen(
     onCancelPlaylistDownload: () -> Unit,
     onPlaylistConvertVideoToAudioChanged: (Boolean) -> Unit,
     onPlaylistDeleteOriginalVideoChanged: (Boolean) -> Unit,
+    onPlaylistExpandedChanged: (Boolean) -> Unit,
     onProceedDuplicateDownload: () -> Unit,
     onSkipDuplicateDownload: () -> Unit,
+    onPlaylistDuplicateConfirm: (Set<String>) -> Unit,
+    onPlaylistDuplicateDismiss: () -> Unit,
+    onStartPlaylistDownload: () -> Unit,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val clipboardManager = LocalClipboardManager.current
@@ -150,9 +156,17 @@ fun MainScreen(
     var detailsPendingDownloadItem by remember { mutableStateOf<PendingDownload?>(null) }
     var showCategoriesDialog by remember { mutableStateOf(false) }
     var isOptionsExpanded by remember { mutableStateOf(false) }
+    var pendingExpanded by remember { mutableStateOf(false) }
+    var queueExpanded by remember { mutableStateOf(false) }
 
     val showLocalCleanButton = uiState.selectedFileUri != null && uiState.urlInput.isNotBlank()
-    val showDownloadAndCleanButton = uiState.selectedFileUri == null && uiState.isNewPipeInstalled && uiState.urlInput.isNotBlank()
+    val showDownloadAndCleanButton =
+        uiState.selectedFileUri == null && uiState.urlInput.isNotBlank() &&
+            (uiState.selectedDownloader == DownloaderType.YTDLP || uiState.isNewPipeInstalled)
+    val showPlaylistDownloadButton =
+        uiState.selectedFileUri == null && uiState.urlInput.isNotBlank() &&
+            uiState.urlHasVideoAndPlaylist &&
+            (uiState.selectedDownloader == DownloaderType.YTDLP || uiState.isNewPipeInstalled)
     val isVideoFile = uiState.selectedFileMediaType == MediaType.VIDEO
     val showConvertOnlyButton = uiState.selectedFileUri != null && uiState.urlInput.isBlank() && isVideoFile
 
@@ -293,32 +307,68 @@ fun MainScreen(
                             }
                         }
 
-                        if (showLocalCleanButton || showDownloadAndCleanButton || showConvertOnlyButton) {
+                        if (showLocalCleanButton || showDownloadAndCleanButton || showConvertOnlyButton || showPlaylistDownloadButton) {
                             val isLoading = uiState.isFetchingMetadata || uiState.isVerifyingDuration
-                            Button(
-                                onClick = onSubmit,
-                                enabled = !isLoading,
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                if (isLoading) {
-                                    CircularProgressIndicator(modifier = Modifier.height(18.dp).width(18.dp), strokeWidth = 2.dp)
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                } else {
-                                    Icon(Icons.Filled.CleaningServices, contentDescription = null)
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                }
-                                Text(
-                                    text =
-                                        if (uiState.isVerifyingDuration) {
-                                            stringResource(id = R.string.dialog_verifying_duration)
-                                        } else if (showDownloadAndCleanButton) {
-                                            stringResource(id = R.string.download_and_clean_button)
-                                        } else if (showConvertOnlyButton) {
-                                            stringResource(id = R.string.convert_to_audio_button)
+                            if (showPlaylistDownloadButton) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                ) {
+                                    Button(
+                                        onClick = onSubmit,
+                                        enabled = !isLoading,
+                                        modifier = Modifier.weight(1f),
+                                    ) {
+                                        if (isLoading) {
+                                            CircularProgressIndicator(modifier = Modifier.height(18.dp).width(18.dp), strokeWidth = 2.dp)
+                                            Spacer(modifier = Modifier.width(8.dp))
                                         } else {
-                                            stringResource(id = R.string.clean_media_button)
-                                        },
-                                )
+                                            Icon(Icons.Filled.CleaningServices, contentDescription = null)
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                        }
+                                        Text(stringResource(id = R.string.download_and_clean_button))
+                                    }
+                                    Button(
+                                        onClick = onStartPlaylistDownload,
+                                        enabled = !isLoading,
+                                        modifier = Modifier.weight(1f),
+                                    ) {
+                                        if (isLoading) {
+                                            CircularProgressIndicator(modifier = Modifier.height(18.dp).width(18.dp), strokeWidth = 2.dp)
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                        } else {
+                                            Icon(Icons.Filled.KeyboardDoubleArrowDown, contentDescription = null)
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                        }
+                                        Text(stringResource(id = R.string.download_playlist_button))
+                                    }
+                                }
+                            } else {
+                                Button(
+                                    onClick = onSubmit,
+                                    enabled = !isLoading,
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    if (isLoading) {
+                                        CircularProgressIndicator(modifier = Modifier.height(18.dp).width(18.dp), strokeWidth = 2.dp)
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                    } else {
+                                        Icon(Icons.Filled.CleaningServices, contentDescription = null)
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                    }
+                                    Text(
+                                        text =
+                                            if (uiState.isVerifyingDuration) {
+                                                stringResource(id = R.string.dialog_verifying_duration)
+                                            } else if (showDownloadAndCleanButton) {
+                                                stringResource(id = R.string.download_and_clean_button)
+                                            } else if (showConvertOnlyButton) {
+                                                stringResource(id = R.string.convert_to_audio_button)
+                                            } else {
+                                                stringResource(id = R.string.clean_media_button)
+                                            },
+                                    )
+                                }
                             }
                         }
 
@@ -586,6 +636,7 @@ fun MainScreen(
                         onCancel = onCancelPlaylistDownload,
                         onConvertVideoToAudioChanged = onPlaylistConvertVideoToAudioChanged,
                         onDeleteOriginalVideoChanged = onPlaylistDeleteOriginalVideoChanged,
+                        onExpandedChanged = onPlaylistExpandedChanged,
                     )
                 }
             }
@@ -594,7 +645,10 @@ fun MainScreen(
                 item {
                     SectionHeader(title = stringResource(id = R.string.pending_downloads_title))
                 }
-                items(uiState.pendingDownloads, key = { it.videoId }) { pending ->
+                val pendingItems = uiState.pendingDownloads
+                val shouldExpandPending = pendingItems.size > 1 && pendingExpanded
+                val itemsToShow = if (shouldExpandPending) pendingItems else pendingItems.take(1)
+                items(itemsToShow, key = { it.videoId }) { pending ->
                     PendingDownloadCard(
                         pendingDownloadTitle = pending.title,
                         thumbnailUrl = pending.thumbnailUrl,
@@ -629,6 +683,40 @@ fun MainScreen(
                         onCardClick = { detailsPendingDownloadItem = pending },
                     )
                 }
+                if (pendingItems.size > 1) {
+                    item {
+                        Row(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable { pendingExpanded = !pendingExpanded }
+                                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text =
+                                    if (pendingExpanded) {
+                                        stringResource(id = R.string.show_less)
+                                    } else {
+                                        stringResource(id = R.string.show_all_videos, pendingItems.size)
+                                    },
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                            Icon(
+                                imageVector =
+                                    if (pendingExpanded) {
+                                        Icons.Filled.KeyboardDoubleArrowUp
+                                    } else {
+                                        Icons.Filled.KeyboardDoubleArrowDown
+                                    },
+                                contentDescription = if (pendingExpanded) "Collapse" else "Expand",
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
+                }
             }
 
             val activeItems = uiState.queueItems.filter { it.status != com.nihaltp.sbskip.model.DownloadQueueStatus.COMPLETED }
@@ -648,7 +736,9 @@ fun MainScreen(
                     )
                 }
             } else {
-                items(activeItems, key = { it.id }) { queueItem ->
+                val shouldExpandQueue = activeItems.size > 1 && queueExpanded
+                val queueItemsToShow = if (shouldExpandQueue) activeItems else activeItems.take(1)
+                items(queueItemsToShow, key = { it.id }) { queueItem ->
                     QueueItemCard(
                         item = queueItem,
                         onRetry = { id -> onRetryQueueItem(id, false) },
@@ -661,6 +751,40 @@ fun MainScreen(
                         onErrorClick = { errorDialogItem = it },
                         onCardClick = { detailsDialogItem = it },
                     )
+                }
+                if (activeItems.size > 1) {
+                    item {
+                        Row(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable { queueExpanded = !queueExpanded }
+                                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text =
+                                    if (queueExpanded) {
+                                        stringResource(id = R.string.show_less)
+                                    } else {
+                                        stringResource(id = R.string.show_all_videos, activeItems.size)
+                                    },
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                            Icon(
+                                imageVector =
+                                    if (queueExpanded) {
+                                        Icons.Filled.KeyboardDoubleArrowUp
+                                    } else {
+                                        Icons.Filled.KeyboardDoubleArrowDown
+                                    },
+                                contentDescription = if (queueExpanded) "Collapse" else "Expand",
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
                 }
             }
 
@@ -731,6 +855,20 @@ fun MainScreen(
         onDownloadAgain = onProceedDuplicateDownload,
         onSkip = onSkipDuplicateDownload,
     )
+
+    if (uiState.showPlaylistDuplicateDialog && uiState.playlistDuplicateVideos.isNotEmpty()) {
+        PlaylistDuplicateDialog(
+            show = true,
+            duplicateVideos = uiState.playlistDuplicateVideos,
+            onConfirm = { selectedVideoIds ->
+                uiState.playlistDuplicateAction?.invoke(selectedVideoIds)
+                onPlaylistDuplicateConfirm(selectedVideoIds)
+            },
+            onDismiss = {
+                onPlaylistDuplicateDismiss()
+            },
+        )
+    }
 
     if (showCategoriesDialog) {
         val title = stringResource(id = R.string.categories_dialog_title_runtime)

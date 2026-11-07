@@ -60,7 +60,7 @@ class MainViewModelTest {
         downloadedVideoRepository = mockk(relaxed = true)
         downloadStorage = mockk(relaxed = true)
 
-        coEvery { settingsRepository.settings } returns flowOf(AppSettings())
+        coEvery { settingsRepository.settings } returns flowOf(AppSettings(downloader = com.nihaltp.sbskip.model.DownloaderType.NEWPIPE))
         coEvery { queueRepository.observeQueue() } returns flowOf(emptyList())
         // A relaxed mock would return a mocked entity instead of null, which would make every
         // video look like a duplicate.
@@ -546,9 +546,12 @@ class MainViewModelTest {
             )
     }
 
-    private fun setBehavior(behavior: com.nihaltp.sbskip.model.AlreadyDownloadedBehavior) {
+    private fun setBehavior(
+        behavior: com.nihaltp.sbskip.model.AlreadyDownloadedBehavior,
+        downloader: com.nihaltp.sbskip.model.DownloaderType = com.nihaltp.sbskip.model.DownloaderType.NEWPIPE,
+    ) {
         coEvery { settingsRepository.settings } returns
-            flowOf(AppSettings(alreadyDownloadedBehavior = behavior))
+            flowOf(AppSettings(alreadyDownloadedBehavior = behavior, downloader = downloader))
     }
 
     private fun injectPlaylist(vararg videoIds: String) {

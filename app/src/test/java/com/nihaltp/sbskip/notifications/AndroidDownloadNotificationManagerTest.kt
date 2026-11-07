@@ -3,6 +3,13 @@ package com.nihaltp.sbskip.notifications
 import android.app.NotificationManager
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import com.nihaltp.sbskip.data.repository.QueueRepository
+import com.nihaltp.sbskip.data.repository.SettingsRepository
+import com.nihaltp.sbskip.model.AppSettings
+import io.mockk.every
+import io.mockk.mockk
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Before
@@ -18,11 +25,15 @@ class AndroidDownloadNotificationManagerTest {
     private lateinit var context: Context
     private lateinit var manager: AndroidDownloadNotificationManager
     private lateinit var notificationManager: NotificationManager
+    private val queueRepository: QueueRepository = mockk(relaxed = true)
+    private val settingsRepository: SettingsRepository = mockk(relaxed = true)
 
     @Before
     fun setup() {
         context = ApplicationProvider.getApplicationContext()
-        manager = AndroidDownloadNotificationManager(context)
+        every { queueRepository.observeQueue() } returns emptyFlow()
+        every { settingsRepository.settings } returns flowOf(AppSettings())
+        manager = AndroidDownloadNotificationManager(context, queueRepository, settingsRepository)
         notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     }
 

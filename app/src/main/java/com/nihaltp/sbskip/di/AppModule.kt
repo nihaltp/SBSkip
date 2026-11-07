@@ -14,12 +14,15 @@ import com.nihaltp.sbskip.data.repository.QueueRepository
 import com.nihaltp.sbskip.data.repository.SettingsRepository
 import com.nihaltp.sbskip.notifications.AndroidDownloadNotificationManager
 import com.nihaltp.sbskip.notifications.DownloadNotificationManager
+import com.nihaltp.sbskip.notifications.ImportNotificationManager
 import com.nihaltp.sbskip.processing.FFmpegMediaProcessor
 import com.nihaltp.sbskip.processing.MediaProcessor
 import com.nihaltp.sbskip.sponsorblock.DefaultSponsorBlockService
 import com.nihaltp.sbskip.sponsorblock.SponsorBlockService
 import com.nihaltp.sbskip.storage.AndroidDownloadStorage
 import com.nihaltp.sbskip.storage.DownloadStorage
+import com.nihaltp.sbskip.util.ytdlp.YtDlpCommandBuilder
+import com.nihaltp.sbskip.util.ytdlp.YtDlpProcessRunner
 import com.nihaltp.sbskip.workers.DownloadWorkScheduler
 import com.nihaltp.sbskip.workers.WorkManagerDownloadScheduler
 import dagger.Binds
@@ -54,10 +57,26 @@ abstract class AppModule {
     @Binds
     abstract fun bindDownloadScheduler(impl: WorkManagerDownloadScheduler): DownloadWorkScheduler
 
-    @Binds
-    abstract fun bindDownloadNotificationManager(impl: AndroidDownloadNotificationManager): DownloadNotificationManager
-
     companion object {
+        @Provides
+        @Singleton
+        fun provideDownloadNotificationManager(
+            @ApplicationContext context: Context,
+            queueRepository: QueueRepository,
+            settingsRepository: SettingsRepository,
+        ): DownloadNotificationManager {
+            return AndroidDownloadNotificationManager(context, queueRepository, settingsRepository)
+        }
+
+        @Provides
+        @Singleton
+        fun provideImportNotificationManager(
+            @ApplicationContext context: Context,
+            settingsRepository: SettingsRepository,
+        ): ImportNotificationManager {
+            return ImportNotificationManager(context, settingsRepository)
+        }
+
         @Provides
         @Singleton
         fun provideDatabase(
@@ -75,5 +94,13 @@ abstract class AppModule {
 
         @Provides
         fun provideDownloadedVideoDao(database: SBSkipDatabase): DownloadedVideoDao = database.downloadedVideoDao()
+
+        @Provides
+        @Singleton
+        fun provideYtDlpCommandBuilder(): YtDlpCommandBuilder = YtDlpCommandBuilder
+
+        @Provides
+        @Singleton
+        fun provideYtDlpProcessRunner(): YtDlpProcessRunner = YtDlpProcessRunner()
     }
 }

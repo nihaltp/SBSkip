@@ -21,7 +21,7 @@ data class AppSettings(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val dynamicColor: Boolean = true,
     val notificationsEnabled: Boolean = true,
-    val downloader: DownloaderType = DownloaderType.NEWPIPE,
+    val downloader: DownloaderType = DownloaderType.YTDLP,
     val videoFolder: String = "Movies/SB Skip/",
     val audioFolder: String = "Music/SB Skip/",
     val videoFolderUri: String = "",
@@ -43,7 +43,15 @@ data class AppSettings(
     val onboardingCompleted: Boolean = false,
     val pendingDownloads: List<PendingDownload> = emptyList(),
     val playlistDownloadState: PlaylistDownloadState? = null,
+    val nativeDownloaderVersion: String = "",
+    val nativeDownloaderSha: String = "",
+    val nativeQuality: String = "1080",
+    val nativeAutoUpdate: Boolean = false,
     val alreadyDownloadedBehavior: AlreadyDownloadedBehavior = AlreadyDownloadedBehavior.ASK,
     // The folder import queue, so that the imports survive a restart of the app.
     val importQueue: List<PersistedFolderImport> = emptyList(),
+    // Notification channel preferences. Empty = all enabled (default). Only stores disabled channels.
+    val notificationChannelPrefs: Map<String, Boolean> = emptyMap(),
+    // Notification ID preferences. Empty = all enabled (default). Only stores disabled notification IDs.
+    val notificationIdPrefs: Map<Int, Boolean> = emptyMap(),
 )

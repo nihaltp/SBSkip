@@ -1,6 +1,7 @@
 package com.nihaltp.sbskip.data.repository
 
 import com.nihaltp.sbskip.model.DownloadQueueItem
+import com.nihaltp.sbskip.model.DownloadSource
 import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.model.QueueActionResult
 import kotlinx.coroutines.flow.Flow
@@ -22,6 +23,7 @@ interface QueueRepository {
         bypassDurationCheck: Boolean = false,
         noSuffix: Boolean = false,
         skipDuplicateCheck: Boolean = false,
+        downloadSource: DownloadSource = DownloadSource.LOCAL_FILE,
     ): QueueActionResult
 
     suspend fun retry(
