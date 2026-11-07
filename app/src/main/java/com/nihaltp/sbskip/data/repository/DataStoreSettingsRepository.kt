@@ -83,8 +83,8 @@ class DataStoreSettingsRepository
 
                 val downloader =
                     runCatching {
-                        DownloaderType.valueOf(preferences[PreferencesKeys.DOWNLOADER] ?: DownloaderType.NEWPIPE.name)
-                    }.getOrDefault(DownloaderType.NEWPIPE)
+                        DownloaderType.valueOf(preferences[PreferencesKeys.DOWNLOADER] ?: DownloaderType.YTDLP.name)
+                    }.getOrDefault(DownloaderType.YTDLP)
 
                 val nativeDownloaderVersion = preferences[PreferencesKeys.NATIVE_DOWNLOADER_VERSION] ?: ""
                 val nativeDownloaderSha = preferences[PreferencesKeys.NATIVE_DOWNLOADER_SHA] ?: ""
@@ -181,8 +181,8 @@ class DataStoreSettingsRepository
                         notificationsEnabled = preferences[PreferencesKeys.NOTIFICATIONS_ENABLED] ?: true,
                         downloader =
                             runCatching {
-                                DownloaderType.valueOf(preferences[PreferencesKeys.DOWNLOADER] ?: DownloaderType.NEWPIPE.name)
-                            }.getOrDefault(DownloaderType.NEWPIPE),
+                                DownloaderType.valueOf(preferences[PreferencesKeys.DOWNLOADER] ?: DownloaderType.YTDLP.name)
+                            }.getOrDefault(DownloaderType.YTDLP),
                         videoFolder = preferences[PreferencesKeys.VIDEO_FOLDER] ?: "Movies/SB Skip/",
                         audioFolder = preferences[PreferencesKeys.AUDIO_FOLDER] ?: "Music/SB Skip/",
                         videoFolderUri = preferences[PreferencesKeys.VIDEO_FOLDER_URI] ?: "",
