@@ -93,11 +93,15 @@ class MainViewModel
                         deleteOriginalVideo = initialSettings.defaultDeleteOriginalVideo,
                         pendingDownloads = initialSettings.pendingDownloads,
                         playlistDownloadState = initialSettings.playlistDownloadState,
+                        selectedDownloader = initialSettings.downloader,
                     )
                 }
                 settingsRepository.settings.collect { settings ->
                     _uiState.update {
-                        it.copy(globalSponsorBlockCategories = settings.sponsorBlockSettings.categories)
+                        it.copy(
+                            globalSponsorBlockCategories = settings.sponsorBlockSettings.categories,
+                            selectedDownloader = settings.downloader,
+                        )
                     }
                 }
             }
@@ -1038,7 +1042,8 @@ class MainViewModel
                     return
                 }
 
-                if (!state.isNewPipeInstalled) {
+                val useYtDlp = state.selectedDownloader == DownloaderType.YTDLP
+                if (!useYtDlp && !state.isNewPipeInstalled) {
                     showToast(context.getString(R.string.newpipe_not_installed))
                     return
                 }

@@ -149,6 +149,7 @@ data class MainUiState(
     val convertVideoToAudio: Boolean = false,
     val deleteOriginalVideo: Boolean = true,
     val isNewPipeInstalled: Boolean = false,
+    val selectedDownloader: DownloaderType = DownloaderType.YTDLP,
     val isFetchingMetadata: Boolean = false,
     val isDetectingFile: Boolean = false,
     val isVerifyingDuration: Boolean = false,
