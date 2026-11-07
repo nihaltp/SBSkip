@@ -28,4 +28,6 @@ data class DownloadQueueEntity(
     val overwrite: Boolean = false,
     val bypassDurationCheck: Boolean = false,
     val noSuffix: Boolean = false,
+    // Custom SponsorBlock categories for this download (comma-separated category names)
+    val customSponsorBlockCategories: String = "",
 )

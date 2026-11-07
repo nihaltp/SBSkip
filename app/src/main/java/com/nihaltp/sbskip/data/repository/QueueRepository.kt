@@ -4,6 +4,7 @@ import com.nihaltp.sbskip.model.DownloadQueueItem
 import com.nihaltp.sbskip.model.DownloadSource
 import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.model.QueueActionResult
+import com.nihaltp.sbskip.model.SponsorBlockCategory
 import kotlinx.coroutines.flow.Flow
 
 interface QueueRepository {
@@ -24,6 +25,7 @@ interface QueueRepository {
         noSuffix: Boolean = false,
         skipDuplicateCheck: Boolean = false,
         downloadSource: DownloadSource = DownloadSource.LOCAL_FILE,
+        customSponsorBlockCategories: Set<SponsorBlockCategory>? = null,
     ): QueueActionResult
 
     suspend fun retry(

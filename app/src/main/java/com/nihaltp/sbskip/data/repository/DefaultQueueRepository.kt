@@ -10,6 +10,7 @@ import com.nihaltp.sbskip.model.DownloadSource
 import com.nihaltp.sbskip.model.DownloadedVideoEntity
 import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.model.QueueActionResult
+import com.nihaltp.sbskip.model.SponsorBlockCategory
 import com.nihaltp.sbskip.util.AppLogger
 import com.nihaltp.sbskip.util.Constants
 import com.nihaltp.sbskip.util.parser.YouTubeUrlParser
@@ -49,6 +50,7 @@ class DefaultQueueRepository
             noSuffix: Boolean,
             skipDuplicateCheck: Boolean,
             downloadSource: DownloadSource,
+            customSponsorBlockCategories: Set<SponsorBlockCategory>?,
         ): QueueActionResult {
             val videoId =
                 if (youtubeUrl.isBlank() || youtubeUrl.startsWith("sbskip://")) {
@@ -74,20 +76,15 @@ class DefaultQueueRepository
             // bypassDurationCheck, noSuffix) are stored as explicit entity columns instead of
             // being appended to the URL, which previously produced malformed double-? URLs like
             // "...watch?v=VIDEO_ID?overwrite=true".
-            // Preserve custom SponsorBlock categories from the original URL so the worker can use them.
             val normalizedUrl =
                 if (videoId != null) {
-                    val baseUrl = Constants.buildYouTubeWatchUrl(videoId)
-                    // Extract and preserve categories parameter from original URL
-                    val categoriesParam = youtubeUrl.substringAfter("categories=").substringBefore("&")
-                    if (categoriesParam.isNotBlank() && categoriesParam != youtubeUrl) {
-                        "$baseUrl&categories=$categoriesParam"
-                    } else {
-                        baseUrl
-                    }
+                    Constants.buildYouTubeWatchUrl(videoId)
                 } else {
                     youtubeUrl
                 }
+
+            // Convert custom categories to comma-separated string for storage
+            val customCategoriesString = customSponsorBlockCategories?.joinToString(",") { it.name } ?: ""
 
             val now = System.currentTimeMillis()
             val entity =
@@ -112,6 +109,7 @@ class DefaultQueueRepository
                     bypassDurationCheck = bypassDurationCheck,
                     noSuffix = noSuffix,
                     downloadSource = downloadSource.name,
+                    customSponsorBlockCategories = customCategoriesString,
                 )
 
             val id = dao.insert(entity)
@@ -253,6 +251,15 @@ class DefaultQueueRepository
 
         private fun DownloadQueueEntity.toDomain(): DownloadQueueItem {
             val parsedMediaType = runCatching { MediaType.valueOf(mediaType) }.getOrDefault(MediaType.VIDEO)
+            val customCategories =
+                customSponsorBlockCategories
+                    .split(",")
+                    .filter { it.isNotBlank() }
+                    .mapNotNull { name ->
+                        runCatching { SponsorBlockCategory.valueOf(name) }.getOrNull()
+                    }
+                    .toSet()
+                    .takeIf { it.isNotEmpty() }
             return DownloadQueueItem(
                 id = id,
                 url = url,
@@ -278,6 +285,7 @@ class DefaultQueueRepository
                 downloadSource =
                     runCatching { DownloadSource.valueOf(downloadSource) }
                         .getOrDefault(DownloadSource.LOCAL_FILE),
+                customSponsorBlockCategories = customCategories,
             )
         }
     }

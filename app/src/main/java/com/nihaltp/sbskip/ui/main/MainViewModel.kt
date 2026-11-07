@@ -504,16 +504,10 @@ class MainViewModel
                 // Launch NewPipe
                 val normalizedUrl = Constants.buildYouTubeWatchUrl(video.videoId)
                 val customCategories = state.customSponsorBlockCategories
-                val finalUrl =
-                    if (customCategories != null) {
-                        "$normalizedUrl&categories=" + customCategories.joinToString(",") { it.name }
-                    } else {
-                        normalizedUrl
-                    }
                 // Launch NewPipe before doing network metadata requests so the download begins immediately.
                 launchNewPipe(normalizedUrl)
 
-                // Spawn pending download
+                // Spawn pending download with custom categories (not encoded in URL)
                 val now = System.currentTimeMillis()
                 val maxExistingTimer = state.pendingDownloads.mapNotNull { it.estimatedReadyAtEpochMillis }.maxOrNull() ?: now
                 val startFrom = maxOf(now, maxExistingTimer)
@@ -523,13 +517,14 @@ class MainViewModel
                 val pendingDownload =
                     PendingDownload(
                         videoId = video.videoId,
-                        url = finalUrl,
+                        url = normalizedUrl,
                         title = video.title,
                         thumbnailUrl = video.thumbnailUrl,
                         createdAtEpochMillis = now,
                         convertVideoToAudio = plState.convertVideoToAudio,
                         deleteOriginalVideo = plState.deleteOriginalVideo,
                         estimatedReadyAtEpochMillis = estimatedReady,
+                        customSponsorBlockCategories = customCategories,
                     )
 
                 _uiState.update { st ->
@@ -726,6 +721,7 @@ class MainViewModel
                     videoOutputDirUri = if (mediaType == MediaType.VIDEO) finalFolderUri else null,
                     relativePath = relativePath,
                     downloadSource = enqueueDownloadSource(fileUri),
+                    customSponsorBlockCategories = pendingDownload.customSponsorBlockCategories,
                 )
 
             val toast =
@@ -768,12 +764,6 @@ class MainViewModel
 
             val normalizedUrl = Constants.buildYouTubeWatchUrl(videoId)
             val customCategories = state.customSponsorBlockCategories
-            val finalUrl =
-                if (customCategories != null) {
-                    "$normalizedUrl&categories=" + customCategories.joinToString(",") { it.name }
-                } else {
-                    normalizedUrl
-                }
 
             val metadata =
                 runCatching { YouTubeOEmbedFetcher.fetch(videoId) }.getOrElse {
@@ -788,12 +778,13 @@ class MainViewModel
             val pendingDownload =
                 PendingDownload(
                     videoId = videoId,
-                    url = finalUrl,
+                    url = normalizedUrl,
                     title = metadata.title.orEmpty().ifBlank { videoId },
                     thumbnailUrl = metadata.thumbnailUrl,
                     createdAtEpochMillis = System.currentTimeMillis(),
                     convertVideoToAudio = convertVideoToAudio,
                     deleteOriginalVideo = deleteOriginalVideo,
+                    customSponsorBlockCategories = customCategories,
                 )
 
             _uiState.update { state ->
@@ -959,6 +950,7 @@ class MainViewModel
                         videoOutputDirUri = if (pending.mediaType == MediaType.VIDEO) pending.customFolderUri else null,
                         downloadSource = enqueueDownloadSource(pending.fileUri),
                         overwrite = true,
+                        customSponsorBlockCategories = pending.pendingDownload?.customSponsorBlockCategories,
                     )
 
                 val successToast =
@@ -1026,6 +1018,7 @@ class MainViewModel
                         videoOutputDirUri = if (pending.mediaType == MediaType.VIDEO) pending.customFolderUri else null,
                         relativePath = pending.relativePath,
                         noSuffix = true,
+                        customSponsorBlockCategories = pending.pendingDownload?.customSponsorBlockCategories,
                     )
 
                 val successToast =
@@ -1243,19 +1236,14 @@ class MainViewModel
                 return
             }
 
-            var finalUrl = youtubeUrl
-
-            if (finalUrl.isNotBlank() && state.customSponsorBlockCategories != null) {
-                val hasParams = finalUrl.contains("?")
-                val separator = if (hasParams) "&" else "?"
-                finalUrl = finalUrl + separator + "categories=" + state.customSponsorBlockCategories.joinToString(",") { it.name }
-            }
+            // Pass custom categories directly to enqueue instead of encoding in URL
+            val customCategories = state.customSponsorBlockCategories
 
             val result =
                 queueRepository.enqueue(
                     localFileUri = fileUri,
                     title = title,
-                    youtubeUrl = finalUrl,
+                    youtubeUrl = youtubeUrl, // Use clean URL without categories parameter
                     mediaType = mediaType,
                     convertVideoToAudio = if (isConvertOnly) true else state.convertVideoToAudio,
                     deleteOriginalVideo = state.deleteOriginalVideo,
@@ -1265,6 +1253,7 @@ class MainViewModel
                     downloadSource = enqueueDownloadSource(fileUri),
                     bypassDurationCheck = force,
                     skipDuplicateCheck = skipDuplicateCheck,
+                    customSponsorBlockCategories = customCategories,
                 )
 
             val successToast =
@@ -1502,12 +1491,6 @@ class MainViewModel
 
             val normalizedUrl = Constants.buildYouTubeWatchUrl(videoId!!)
             val customCategories = state.customSponsorBlockCategories
-            val finalUrl =
-                if (customCategories != null) {
-                    "$normalizedUrl&categories=" + customCategories.joinToString(",") { it.name }
-                } else {
-                    normalizedUrl
-                }
 
             // The video may already be tracked in the downloaded-videos database.
             // Check before handing the URL over to NewPipe so nothing is downloaded twice.
@@ -1584,13 +1567,14 @@ class MainViewModel
             val pendingDownload =
                 PendingDownload(
                     videoId = videoId,
-                    url = finalUrl,
+                    url = normalizedUrl,
                     title = metadata.title.orEmpty().ifBlank { videoId },
                     thumbnailUrl = metadata.thumbnailUrl,
                     createdAtEpochMillis = now,
                     convertVideoToAudio = convertVideoToAudio,
                     deleteOriginalVideo = deleteOriginalVideo,
                     estimatedReadyAtEpochMillis = estimatedReady,
+                    customSponsorBlockCategories = customCategories,
                 )
 
             val showPrompt = settingsRepository.settings.first().watchlist.isEmpty()
@@ -1646,12 +1630,6 @@ class MainViewModel
 
             val normalizedUrl = Constants.buildYouTubeWatchUrl(videoId)
             val customCategories = uiState.value.customSponsorBlockCategories
-            val finalUrl =
-                if (customCategories != null) {
-                    "$normalizedUrl&categories=" + customCategories.joinToString(",") { it.name }
-                } else {
-                    normalizedUrl
-                }
 
             // The video may already be tracked in the downloaded-videos database.
             // Check before handing the URL over to NewPipe so nothing is downloaded twice.
@@ -1663,7 +1641,7 @@ class MainViewModel
                     val decision =
                         handleAlreadyDownloaded(
                             videoId = videoId,
-                            youtubeUrl = finalUrl,
+                            youtubeUrl = normalizedUrl,
                         )
                     if (decision != DuplicateDecision.PROCEED) return false
                 } catch (e: Exception) {
@@ -1692,17 +1670,19 @@ class MainViewModel
             _uiState.update { it.copy(isFetchingMetadata = false) }
 
             // Enqueue directly with YT-DLP source - no local file needed, worker downloads via yt-dlp
+            // Pass custom categories directly to enqueue instead of encoding in URL
             val result =
                 queueRepository.enqueue(
                     localFileUri = "", // yt-dlp downloads from URL
                     title = metadata.title.orEmpty().ifBlank { videoId },
-                    youtubeUrl = finalUrl,
+                    youtubeUrl = normalizedUrl, // Use clean URL without categories parameter
                     mediaType = if (convertVideoToAudio) MediaType.AUDIO else MediaType.VIDEO,
                     convertVideoToAudio = convertVideoToAudio,
                     deleteOriginalVideo = deleteOriginalVideo,
                     downloadSource = DownloadSource.YTDLP,
                     bypassDurationCheck = false,
                     skipDuplicateCheck = skipDuplicateCheck,
+                    customSponsorBlockCategories = customCategories,
                 )
 
             // Release the download claim after successful enqueue
