@@ -28,8 +28,9 @@ import javax.inject.Singleton
  *    currently being scanned.
  *  - [NOTIFICATION_FOLDER_QUEUE] shows how many folders are still queued.
  *
- * Both are posted on a low importance channel, so they never make a sound and never show up as a
- * heads-up notification. They are dismissed automatically as soon as their counter reaches zero.
+ * Both are posted on the same low importance channel (sbskip_import_queue), so they never make a sound
+ * and never show up as a heads-up notification. They are dismissed automatically as soon as their
+ * counter reaches zero. Using a single channel allows the notification settings to properly control both.
  */
 @Singleton
 class ImportNotificationManager
@@ -41,9 +42,11 @@ class ImportNotificationManager
         private val notificationManager: NotificationManagerCompat = NotificationManagerCompat.from(context)
         private val scope = CoroutineScope(Dispatchers.Default + Job())
         private var channelEnabled = true
+        private var notificationIdPrefs = emptyMap<Int, Boolean>()
 
         init {
             observeChannelEnabled()
+            observeNotificationIdPrefs()
         }
 
         private fun observeChannelEnabled() {
@@ -51,6 +54,14 @@ class ImportNotificationManager
                 settingsRepository.settings.collect { settings ->
                     val prefs = settings?.notificationChannelPrefs ?: emptyMap()
                     channelEnabled = prefs[CHANNEL_ID] ?: true
+                }
+            }
+        }
+
+        private fun observeNotificationIdPrefs() {
+            scope.launch {
+                settingsRepository.settings.collect { settings ->
+                    notificationIdPrefs = settings?.notificationIdPrefs ?: emptyMap()
                 }
             }
         }
@@ -73,6 +84,7 @@ class ImportNotificationManager
                 return
             }
             if (!channelEnabled) return
+            if (notificationIdPrefs[NOTIFICATION_FILE_QUEUE] == false) return
 
             val notification =
                 buildNotification(
@@ -102,6 +114,7 @@ class ImportNotificationManager
                 return
             }
             if (!channelEnabled) return
+            if (notificationIdPrefs[NOTIFICATION_FOLDER_QUEUE] == false) return
 
             val notification =
                 buildNotification(
