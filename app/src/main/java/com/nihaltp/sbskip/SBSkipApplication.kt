@@ -9,6 +9,7 @@ import com.nihaltp.sbskip.model.ThemeMode
 import com.nihaltp.sbskip.notifications.DownloadNotificationManager
 import com.nihaltp.sbskip.notifications.ImportNotificationManager
 import com.nihaltp.sbskip.util.ImportManager
+import com.nihaltp.sbskip.util.ytdlp.YtDlpRuntime
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
@@ -35,10 +36,16 @@ class SBSkipApplication : Application(), Configuration.Provider {
     @Inject
     lateinit var importNotificationManager: ImportNotificationManager
 
+    @Inject
+    lateinit var ytDlpRuntime: YtDlpRuntime
+
     @OptIn(DelicateCoroutinesApi::class)
     override fun onCreate() {
         super.onCreate()
         com.nihaltp.sbskip.util.AppLogger.init(this)
+
+        // Clean up stale yt-dlp work directories from crashed/previous runs
+        ytDlpRuntime.cleanStaleWorkDirs(cacheDir)
 
         // Create the notification channels up front, so that the first notification is always
         // posted on an existing (silent) channel.
