@@ -177,6 +177,8 @@ data class MainUiState(
     val showPlaylistDuplicateDialog: Boolean = false,
     val playlistDuplicateVideos: List<PlaylistVideo> = emptyList(),
     val playlistDuplicateAction: ((Set<String>) -> Unit)? = null,
+    // URL has both videoId and playlistId - show both download options
+    val urlHasVideoAndPlaylist: Boolean = false,
 )
 
 data class QueueActionResult(
