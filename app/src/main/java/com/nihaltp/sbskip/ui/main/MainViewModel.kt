@@ -131,10 +131,14 @@ class MainViewModel
         }
 
         fun onUrlChanged(value: String) {
+            val videoId = YouTubeUrlParser.extractVideoId(value)
+            val playlistId = YouTubeUrlParser.extractPlaylistId(value)
+            val hasBoth = !videoId.isNullOrBlank() && !playlistId.isNullOrBlank()
             _uiState.update {
                 it.copy(
                     urlInput = value,
                     customSponsorBlockCategories = if (value.isBlank()) null else it.customSponsorBlockCategories,
+                    urlHasVideoAndPlaylist = hasBoth,
                 )
             }
         }
@@ -203,6 +207,13 @@ class MainViewModel
             viewModelScope.launch {
                 val state = uiState.value
                 startDownloadAndCleanInternal(state.convertVideoToAudio, state.deleteOriginalVideo)
+            }
+        }
+
+        fun startPlaylistDownload() {
+            viewModelScope.launch {
+                val state = uiState.value
+                startDownloadAndCleanInternal(state.convertVideoToAudio, state.deleteOriginalVideo, forcePlaylist = true)
             }
         }
 
@@ -1288,6 +1299,7 @@ class MainViewModel
             deleteOriginalVideo: Boolean,
             skipDuplicateCheck: Boolean = false,
             inputUrl: String? = null,
+            forcePlaylist: Boolean = false,
         ) {
             val state = uiState.value
             val url = (inputUrl ?: state.urlInput).trim()
@@ -1303,11 +1315,15 @@ class MainViewModel
             val settings = settingsRepository.settings.first()
             val useYtDlp = settings.downloader == DownloaderType.YTDLP
 
+            // Determine if this is a playlist URL (has playlistId and no videoId, or explicitly forced)
+            val isPlaylistUrl = forcePlaylist || (!playlistId.isNullOrBlank() && videoId.isNullOrBlank())
+
             // yt-dlp: enqueue playlist videos immediately instead of handing them to NewPipe.
-            if (useYtDlp && !playlistId.isNullOrBlank()) {
+            if (useYtDlp && isPlaylistUrl) {
                 _uiState.update { it.copy(isFetchingMetadata = true) }
                 viewModelScope.launch {
                     try {
+                        val playlistId = playlistId ?: return@launch
                         val videos = com.nihaltp.sbskip.util.fetcher.YouTubePlaylistFetcher.fetchPlaylistVideos(playlistId)
                         if (videos.isEmpty()) {
                             showToast("No videos found in playlist or playlist is private")

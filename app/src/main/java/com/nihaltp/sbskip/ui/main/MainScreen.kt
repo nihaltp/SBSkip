@@ -128,6 +128,7 @@ fun MainScreen(
     onSkipDuplicateDownload: () -> Unit,
     onPlaylistDuplicateConfirm: (Set<String>) -> Unit,
     onPlaylistDuplicateDismiss: () -> Unit,
+    onStartPlaylistDownload: () -> Unit,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val clipboardManager = LocalClipboardManager.current
@@ -161,6 +162,10 @@ fun MainScreen(
     val showLocalCleanButton = uiState.selectedFileUri != null && uiState.urlInput.isNotBlank()
     val showDownloadAndCleanButton =
         uiState.selectedFileUri == null && uiState.urlInput.isNotBlank() &&
+            (uiState.selectedDownloader == DownloaderType.YTDLP || uiState.isNewPipeInstalled)
+    val showPlaylistDownloadButton =
+        uiState.selectedFileUri == null && uiState.urlInput.isNotBlank() &&
+            uiState.urlHasVideoAndPlaylist &&
             (uiState.selectedDownloader == DownloaderType.YTDLP || uiState.isNewPipeInstalled)
     val isVideoFile = uiState.selectedFileMediaType == MediaType.VIDEO
     val showConvertOnlyButton = uiState.selectedFileUri != null && uiState.urlInput.isBlank() && isVideoFile
@@ -302,32 +307,68 @@ fun MainScreen(
                             }
                         }
 
-                        if (showLocalCleanButton || showDownloadAndCleanButton || showConvertOnlyButton) {
+                        if (showLocalCleanButton || showDownloadAndCleanButton || showConvertOnlyButton || showPlaylistDownloadButton) {
                             val isLoading = uiState.isFetchingMetadata || uiState.isVerifyingDuration
-                            Button(
-                                onClick = onSubmit,
-                                enabled = !isLoading,
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                if (isLoading) {
-                                    CircularProgressIndicator(modifier = Modifier.height(18.dp).width(18.dp), strokeWidth = 2.dp)
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                } else {
-                                    Icon(Icons.Filled.CleaningServices, contentDescription = null)
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                }
-                                Text(
-                                    text =
-                                        if (uiState.isVerifyingDuration) {
-                                            stringResource(id = R.string.dialog_verifying_duration)
-                                        } else if (showDownloadAndCleanButton) {
-                                            stringResource(id = R.string.download_and_clean_button)
-                                        } else if (showConvertOnlyButton) {
-                                            stringResource(id = R.string.convert_to_audio_button)
+                            if (showPlaylistDownloadButton) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                ) {
+                                    Button(
+                                        onClick = onSubmit,
+                                        enabled = !isLoading,
+                                        modifier = Modifier.weight(1f),
+                                    ) {
+                                        if (isLoading) {
+                                            CircularProgressIndicator(modifier = Modifier.height(18.dp).width(18.dp), strokeWidth = 2.dp)
+                                            Spacer(modifier = Modifier.width(8.dp))
                                         } else {
-                                            stringResource(id = R.string.clean_media_button)
-                                        },
-                                )
+                                            Icon(Icons.Filled.CleaningServices, contentDescription = null)
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                        }
+                                        Text(stringResource(id = R.string.download_and_clean_button))
+                                    }
+                                    Button(
+                                        onClick = onStartPlaylistDownload,
+                                        enabled = !isLoading,
+                                        modifier = Modifier.weight(1f),
+                                    ) {
+                                        if (isLoading) {
+                                            CircularProgressIndicator(modifier = Modifier.height(18.dp).width(18.dp), strokeWidth = 2.dp)
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                        } else {
+                                            Icon(Icons.Filled.KeyboardDoubleArrowDown, contentDescription = null)
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                        }
+                                        Text(stringResource(id = R.string.download_playlist_button))
+                                    }
+                                }
+                            } else {
+                                Button(
+                                    onClick = onSubmit,
+                                    enabled = !isLoading,
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    if (isLoading) {
+                                        CircularProgressIndicator(modifier = Modifier.height(18.dp).width(18.dp), strokeWidth = 2.dp)
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                    } else {
+                                        Icon(Icons.Filled.CleaningServices, contentDescription = null)
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                    }
+                                    Text(
+                                        text =
+                                            if (uiState.isVerifyingDuration) {
+                                                stringResource(id = R.string.dialog_verifying_duration)
+                                            } else if (showDownloadAndCleanButton) {
+                                                stringResource(id = R.string.download_and_clean_button)
+                                            } else if (showConvertOnlyButton) {
+                                                stringResource(id = R.string.convert_to_audio_button)
+                                            } else {
+                                                stringResource(id = R.string.clean_media_button)
+                                            },
+                                    )
+                                }
                             }
                         }
 

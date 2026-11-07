@@ -397,6 +397,9 @@
     <string name="dialog_playlist_duplicate_download_selected">Download Selected</string>
     <string name="dialog_playlist_duplicate_skip_all">Skip All</string>
 
+    <!-- Main Screen Buttons -->
+    <string name="download_playlist_button">Download Playlist</string>
+
     <!-- Already Downloaded Behavior Setting -->
     <string name="settings_already_downloaded_title">Already Downloaded Videos</string>
     <string name="settings_already_downloaded_desc">What to do when a video that you already downloaded is requested again.</string>

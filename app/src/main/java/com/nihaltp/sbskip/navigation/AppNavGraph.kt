@@ -90,6 +90,7 @@ fun AppNavGraph(
                 onSkipDuplicateDownload = viewModel::skipDuplicateDownload,
                 onPlaylistDuplicateConfirm = viewModel::confirmPlaylistDuplicates,
                 onPlaylistDuplicateDismiss = viewModel::dismissPlaylistDuplicates,
+                onStartPlaylistDownload = viewModel::startPlaylistDownload,
             )
         }
 
