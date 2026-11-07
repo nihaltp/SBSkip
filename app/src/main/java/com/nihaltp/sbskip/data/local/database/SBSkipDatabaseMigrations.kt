@@ -61,6 +61,7 @@ object SBSkipDatabaseMigrations {
                 db.execSQL("ALTER TABLE download_queue ADD COLUMN overwrite INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("ALTER TABLE download_queue ADD COLUMN bypassDurationCheck INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("ALTER TABLE download_queue ADD COLUMN noSuffix INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE download_queue ADD COLUMN downloadSource TEXT NOT NULL DEFAULT 'LOCAL_FILE'")
             }
         }
 
