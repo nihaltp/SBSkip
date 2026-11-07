@@ -6,6 +6,7 @@ import com.nihaltp.sbskip.model.DownloadQueueEntity
 import com.nihaltp.sbskip.model.DownloadQueueStatus
 import com.nihaltp.sbskip.model.DownloadedVideoEntity
 import com.nihaltp.sbskip.model.MediaType
+import com.nihaltp.sbskip.model.SponsorBlockCategory
 import com.nihaltp.sbskip.workers.DownloadWorkScheduler
 import io.mockk.Runs
 import io.mockk.coEvery
@@ -24,6 +25,8 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -346,6 +349,7 @@ class DefaultQueueRepositoryTest {
                     overwrite = false,
                     bypassDurationCheck = false,
                     noSuffix = false,
+                    customSponsorBlockCategories = "",
                 )
 
             coEvery { dao.findById(5L) } returns entity
@@ -357,6 +361,158 @@ class DefaultQueueRepositoryTest {
             assertEquals(MediaType.VIDEO, item?.mediaType)
             assertEquals(180L, item?.durationSeconds)
             assertEquals(DownloadQueueStatus.QUEUED, item?.status)
+            // Empty string results in null (not empty set) due to takeIf { it.isNotEmpty() }
+            assertNull(item?.customSponsorBlockCategories)
+        }
+
+    @Test
+    fun `enqueue stores custom categories as comma-separated string in entity`() =
+        runTest(testDispatcher) {
+            val insertedEntitySlot = slot<DownloadQueueEntity>()
+            coEvery { dao.insert(capture(insertedEntitySlot)) } returns 14L
+            coEvery { downloadedVideoRepository.findByVideoId(any()) } returns null
+
+            val customCategories =
+                setOf(
+                    com.nihaltp.sbskip.model.SponsorBlockCategory.SPONSOR,
+                    com.nihaltp.sbskip.model.SponsorBlockCategory.INTRO,
+                )
+
+            val result =
+                repository.enqueue(
+                    localFileUri = "content://media/video/1",
+                    title = "Test",
+                    youtubeUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                    mediaType = MediaType.VIDEO,
+                    customSponsorBlockCategories = customCategories,
+                )
+
+            assertTrue("Expected success", result.success)
+            // URL must be clean (no categories parameter)
+            assertEquals(
+                "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                insertedEntitySlot.captured.url,
+            )
+            // Categories stored as comma-separated string in entity column
+            assertEquals("SPONSOR,INTRO", insertedEntitySlot.captured.customSponsorBlockCategories)
+        }
+
+    @Test
+    fun `enqueue with empty custom categories stores empty string`() =
+        runTest(testDispatcher) {
+            val insertedEntitySlot = slot<DownloadQueueEntity>()
+            coEvery { dao.insert(capture(insertedEntitySlot)) } returns 15L
+            coEvery { downloadedVideoRepository.findByVideoId(any()) } returns null
+
+            val result =
+                repository.enqueue(
+                    localFileUri = "content://media/video/1",
+                    title = "Test",
+                    youtubeUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                    mediaType = MediaType.VIDEO,
+                    customSponsorBlockCategories = emptySet(),
+                )
+
+            assertTrue("Expected success", result.success)
+            assertEquals("", insertedEntitySlot.captured.customSponsorBlockCategories)
+        }
+
+    @Test
+    fun `enqueue with null custom categories stores empty string`() =
+        runTest(testDispatcher) {
+            val insertedEntitySlot = slot<DownloadQueueEntity>()
+            coEvery { dao.insert(capture(insertedEntitySlot)) } returns 16L
+            coEvery { downloadedVideoRepository.findByVideoId(any()) } returns null
+
+            val result =
+                repository.enqueue(
+                    localFileUri = "content://media/video/1",
+                    title = "Test",
+                    youtubeUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                    mediaType = MediaType.VIDEO,
+                    customSponsorBlockCategories = null,
+                )
+
+            assertTrue("Expected success", result.success)
+            assertEquals("", insertedEntitySlot.captured.customSponsorBlockCategories)
+        }
+
+    @Test
+    fun `toDomain parses comma-separated categories back to Set`() =
+        runTest(testDispatcher) {
+            val entity =
+                DownloadQueueEntity(
+                    id = 7L,
+                    url = "https://www.youtube.com/watch?v=abc123",
+                    title = "Test Video",
+                    localFileUri = "content://media/7",
+                    mediaType = "VIDEO",
+                    thumbnailUrl = null,
+                    durationSeconds = 180L,
+                    status = DownloadQueueStatus.QUEUED,
+                    createdAtEpochMillis = 1000L,
+                    updatedAtEpochMillis = 1000L,
+                    outputDurationSeconds = null,
+                    convertVideoToAudio = false,
+                    deleteOriginalVideo = true,
+                    audioOutputDirUri = null,
+                    videoOutputDirUri = null,
+                    relativePath = null,
+                    overwrite = false,
+                    bypassDurationCheck = false,
+                    noSuffix = false,
+                    customSponsorBlockCategories = "SPONSOR,INTRO,OUTRO",
+                )
+
+            coEvery { dao.findById(7L) } returns entity
+
+            val item = repository.findItemById(7L)
+
+            assertNotNull(item)
+            val categories = item?.customSponsorBlockCategories
+            assertNotNull(categories)
+            // Smart cast after assertNotNull
+            val nonNullCategories = categories!!
+            assertEquals(3, nonNullCategories.size)
+            assertTrue(nonNullCategories.contains(com.nihaltp.sbskip.model.SponsorBlockCategory.SPONSOR))
+            assertTrue(nonNullCategories.contains(com.nihaltp.sbskip.model.SponsorBlockCategory.INTRO))
+            assertTrue(nonNullCategories.contains(com.nihaltp.sbskip.model.SponsorBlockCategory.OUTRO))
+        }
+
+    @Test
+    fun `toDomain handles empty categories string`() =
+        runTest(testDispatcher) {
+            val entity =
+                DownloadQueueEntity(
+                    id = 8L,
+                    url = "https://www.youtube.com/watch?v=abc123",
+                    title = "Test Video",
+                    localFileUri = "content://media/8",
+                    mediaType = "VIDEO",
+                    thumbnailUrl = null,
+                    durationSeconds = 180L,
+                    status = DownloadQueueStatus.QUEUED,
+                    createdAtEpochMillis = 1000L,
+                    updatedAtEpochMillis = 1000L,
+                    outputDurationSeconds = null,
+                    convertVideoToAudio = false,
+                    deleteOriginalVideo = true,
+                    audioOutputDirUri = null,
+                    videoOutputDirUri = null,
+                    relativePath = null,
+                    overwrite = false,
+                    bypassDurationCheck = false,
+                    noSuffix = false,
+                    customSponsorBlockCategories = "",
+                )
+
+            coEvery { dao.findById(8L) } returns entity
+
+            val item = repository.findItemById(8L)
+
+            assertNotNull(item)
+            // Empty string results in null (not empty set) due to takeIf { it.isNotEmpty() }
+            assertNull(item?.customSponsorBlockCategories)
         }
 
     // ── enqueue: duplicate detection ────────────────────────────────────────────
