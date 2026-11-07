@@ -64,6 +64,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.nihaltp.sbskip.R
 import com.nihaltp.sbskip.model.DownloadQueueItem
+import com.nihaltp.sbskip.model.DownloaderType
 import com.nihaltp.sbskip.model.MainUiState
 import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.model.PendingDownload
@@ -155,7 +156,9 @@ fun MainScreen(
     var queueExpanded by remember { mutableStateOf(false) }
 
     val showLocalCleanButton = uiState.selectedFileUri != null && uiState.urlInput.isNotBlank()
-    val showDownloadAndCleanButton = uiState.selectedFileUri == null && uiState.isNewPipeInstalled && uiState.urlInput.isNotBlank()
+    val showDownloadAndCleanButton =
+        uiState.selectedFileUri == null && uiState.urlInput.isNotBlank() &&
+            (uiState.selectedDownloader == DownloaderType.YTDLP || uiState.isNewPipeInstalled)
     val isVideoFile = uiState.selectedFileMediaType == MediaType.VIDEO
     val showConvertOnlyButton = uiState.selectedFileUri != null && uiState.urlInput.isBlank() && isVideoFile
 
