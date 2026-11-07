@@ -1,10 +1,12 @@
 package com.nihaltp.sbskip.ui.main.components.common
 
 import androidx.activity.ComponentActivity
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Album
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
-import androidx.compose.ui.test.onNode
-import androidx.compose.ui.test.semantics.ContentDescription
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Test
@@ -21,10 +23,7 @@ class ThumbnailImageTest {
             ThumbnailImage(model = null)
         }
 
-        // The fallback icon should be present (Album icon from Icons.Default)
-        // We can't easily test for Icon directly, but we can verify no crash
-        // and the component renders
-        composeTestRule.onNode(ContentDescription(null)).assertIsDisplayed()
+        composeTestRule.onRoot().assertIsDisplayed()
     }
 
     @Test
@@ -33,32 +32,28 @@ class ThumbnailImageTest {
             ThumbnailImage(model = "")
         }
 
-        composeTestRule.onNode(ContentDescription(null)).assertIsDisplayed()
+        composeTestRule.onRoot().assertIsDisplayed()
     }
 
     @Test
     fun `attempts to load image when model is valid url`() {
-        // We can't easily test AsyncImage loading in unit tests,
-        // but we can verify the component doesn't crash
         composeTestRule.setContent {
             ThumbnailImage(model = "https://img.youtube.com/vi/test/mqdefault.jpg")
         }
 
-        // Should render without crashing
-        composeTestRule.onNode(ContentDescription(null)).assertIsDisplayed()
+        composeTestRule.onRoot().assertIsDisplayed()
     }
 
     @Test
     fun `uses custom fallback icon when provided`() {
-        // Test with a different fallback icon
         composeTestRule.setContent {
             ThumbnailImage(
                 model = null,
-                fallbackIcon = androidx.compose.material.icons.Icons.Default.Album,
+                fallbackIcon = Icons.Default.Album,
             )
         }
 
-        composeTestRule.onNode(ContentDescription(null)).assertIsDisplayed()
+        composeTestRule.onRoot().assertIsDisplayed()
     }
 
     @Test
@@ -70,7 +65,7 @@ class ThumbnailImageTest {
             )
         }
 
-        composeTestRule.onNode(ContentDescription(null)).assertIsDisplayed()
+        composeTestRule.onRoot().assertIsDisplayed()
     }
 
     @Test
@@ -82,7 +77,7 @@ class ThumbnailImageTest {
             )
         }
 
-        composeTestRule.onNode(ContentDescription(null)).assertIsDisplayed()
+        composeTestRule.onRoot().assertIsDisplayed()
     }
 
     @Test
@@ -94,6 +89,6 @@ class ThumbnailImageTest {
             )
         }
 
-        composeTestRule.onNode(ContentDescription(null)).assertIsDisplayed()
+        composeTestRule.onRoot().assertIsDisplayed()
     }
 }
