@@ -307,7 +307,7 @@ class DatabaseMigrationComprehensiveTest {
             val insertedId = db.downloadQueueDao().insert(entity)
             assertTrue("Insert should return a valid row ID", insertedId > 0)
 
-            val retrieved = db.downloadQueueDao().getById(insertedId)
+            val retrieved = db.downloadQueueDao().findById(insertedId)
             assertEquals(entity.url, retrieved?.url)
             assertEquals(entity.title, retrieved?.title)
             assertEquals(entity.mediaType, retrieved?.mediaType)
@@ -400,7 +400,7 @@ class DatabaseMigrationComprehensiveTest {
             val db = openWithMigrations(dbName)
 
             // Verify data was preserved
-            val queue = db.downloadQueueDao().getAll()
+            val queue = db.downloadQueueDao().observeQueue().first()
             assertEquals(2, queue.size)
             assertEquals("Video 1", queue[0].title)
             assertEquals("Video 2", queue[1].title)
