@@ -20,7 +20,7 @@ interface DownloadQueueDao {
     @Query("SELECT * FROM download_queue WHERE status = 'QUEUED' ORDER BY createdAtEpochMillis ASC, id ASC LIMIT 1")
     suspend fun findNextQueuedItem(): DownloadQueueEntity?
 
-    @Query("SELECT * FROM download_queue WHERE status IN ('QUEUED', 'FETCHING_SEGMENTS', 'PROCESSING')")
+    @Query("SELECT * FROM download_queue WHERE status IN ('QUEUED', 'FETCHING_SEGMENTS')")
     suspend fun findActiveItems(): List<DownloadQueueEntity>
 
     @Insert(onConflict = OnConflictStrategy.ABORT)

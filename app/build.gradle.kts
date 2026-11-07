@@ -241,6 +241,7 @@ dependencies {
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
     androidTestImplementation(platform("androidx.compose:compose-bom:2026.06.01"))
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    androidTestImplementation("io.mockk:mockk-android:1.13.11")
     // Used by the database migration test to create a database of an older schema version.
     androidTestImplementation("androidx.sqlite:sqlite-framework:2.6.2")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
