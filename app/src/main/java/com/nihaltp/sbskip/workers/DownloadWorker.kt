@@ -14,7 +14,6 @@ import com.nihaltp.sbskip.model.DownloadSource
 import com.nihaltp.sbskip.model.MediaFileMetadata
 import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.model.ProcessingContext
-import com.nihaltp.sbskip.model.SponsorBlockCategory
 import com.nihaltp.sbskip.model.SponsorBlockSegment
 import com.nihaltp.sbskip.model.YouTubeMetadata
 import com.nihaltp.sbskip.notifications.DownloadNotificationManager
@@ -114,16 +113,10 @@ class DownloadWorker
                 // Query & validate local file metadata
                 notificationManager.showActive(notificationId, taskTitle, 10, applicationContext.getString(R.string.status_fetching_info))
 
+                // Use custom categories from the queue item if available, otherwise fall back to global settings
                 val categories =
-                    if (item.url.isNotBlank() && item.url.contains("categories=")) {
-                        val startIndex = item.url.indexOf("categories=")
-                        val categoriesSubStr = item.url.substring(startIndex)
-                        val value = categoriesSubStr.substringBefore("&").substringAfter("=")
-                        value.split(",")
-                            .mapNotNull { name ->
-                                runCatching { SponsorBlockCategory.valueOf(name) }.getOrNull()
-                            }
-                            .toSet()
+                    if (item.customSponsorBlockCategories != null && item.customSponsorBlockCategories.isNotEmpty()) {
+                        item.customSponsorBlockCategories
                     } else {
                         settings.sponsorBlockSettings.categories
                     }

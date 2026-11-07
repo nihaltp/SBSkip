@@ -39,6 +39,7 @@ data class DownloadQueueItem(
     val bypassDurationCheck: Boolean = false,
     val noSuffix: Boolean = false,
     val downloadSource: DownloadSource = DownloadSource.LOCAL_FILE,
+    val customSponsorBlockCategories: Set<SponsorBlockCategory>? = null,
 ) {
     val displayDuration: String
         get() {
@@ -81,6 +82,8 @@ data class PendingDownload(
     // Non-null when we launched NewPipe and need to wait for the download to finish
     // before running auto-detect. Null means run auto-detect immediately.
     val estimatedReadyAtEpochMillis: Long? = null,
+    // Custom SponsorBlock categories for this download
+    val customSponsorBlockCategories: Set<SponsorBlockCategory>? = null,
 )
 
 @Serializable
