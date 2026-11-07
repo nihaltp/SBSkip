@@ -57,8 +57,10 @@ class MainViewModel
         @ApplicationContext private val context: Context,
     ) : ViewModel() {
         /** Determines the download source based on the user's selected downloader type. */
-        private suspend fun enqueueDownloadSource(): DownloadSource =
-            if (settingsRepository.settings.first().downloader == DownloaderType.YTDLP) {
+        private suspend fun enqueueDownloadSource(localFileUri: String = ""): DownloadSource =
+            if (localFileUri.isNotBlank()) {
+                DownloadSource.LOCAL_FILE
+            } else if (settingsRepository.settings.first().downloader == DownloaderType.YTDLP) {
                 DownloadSource.YTDLP
             } else {
                 DownloadSource.LOCAL_FILE
@@ -414,20 +416,26 @@ class MainViewModel
                     val video = plState.videos.getOrNull(plState.currentIndex) ?: return@launch
                     val normalizedUrl = Constants.buildYouTubeWatchUrl(video.videoId)
 
-                    startYtDlpDownload(
-                        url = normalizedUrl,
-                        videoId = video.videoId,
-                        playlistId = null,
-                        convertVideoToAudio = plState.convertVideoToAudio,
-                        deleteOriginalVideo = plState.deleteOriginalVideo,
-                        skipDuplicateCheck = true,
-                    )
+                    val success =
+                        startYtDlpDownload(
+                            url = normalizedUrl,
+                            videoId = video.videoId,
+                            playlistId = null,
+                            convertVideoToAudio = plState.convertVideoToAudio,
+                            deleteOriginalVideo = plState.deleteOriginalVideo,
+                            skipDuplicateCheck = true,
+                        )
 
-                    _uiState.update { st ->
-                        val ps = st.playlistDownloadState ?: return@update st
-                        val nextIndex = ps.currentIndex + 1
-                        val newPs = if (nextIndex < ps.videos.size) ps.copy(currentIndex = nextIndex) else null
-                        st.copy(playlistDownloadState = newPs)
+                    if (success) {
+                        _uiState.update { st ->
+                            val ps = st.playlistDownloadState ?: return@update st
+                            val nextIndex = ps.currentIndex + 1
+                            val newPs = if (nextIndex < ps.videos.size) ps.copy(currentIndex = nextIndex) else null
+                            st.copy(playlistDownloadState = newPs)
+                        }
+                    } else {
+                        // Failed to enqueue, show error but don't advance
+                        showToast("Failed to enqueue playlist video: ${video.title}")
                     }
                     return@launch
                 }
@@ -679,7 +687,7 @@ class MainViewModel
                     audioOutputDirUri = if (mediaType == MediaType.AUDIO) finalFolderUri else null,
                     videoOutputDirUri = if (mediaType == MediaType.VIDEO) finalFolderUri else null,
                     relativePath = relativePath,
-                    downloadSource = enqueueDownloadSource(),
+                    downloadSource = enqueueDownloadSource(fileUri),
                 )
 
             val toast =
@@ -911,7 +919,7 @@ class MainViewModel
                         deleteOriginalVideo = pending.deleteOriginalVideo,
                         audioOutputDirUri = if (pending.mediaType == MediaType.AUDIO) pending.customFolderUri else null,
                         videoOutputDirUri = if (pending.mediaType == MediaType.VIDEO) pending.customFolderUri else null,
-                        downloadSource = enqueueDownloadSource(),
+                        downloadSource = enqueueDownloadSource(pending.fileUri),
                         overwrite = true,
                     )
 
@@ -1215,7 +1223,7 @@ class MainViewModel
                     audioOutputDirUri = if (mediaType == MediaType.AUDIO) finalFolderUri else null,
                     videoOutputDirUri = if (mediaType == MediaType.VIDEO) finalFolderUri else null,
                     relativePath = relativePath,
-                    downloadSource = enqueueDownloadSource(),
+                    downloadSource = enqueueDownloadSource(fileUri),
                     bypassDurationCheck = force,
                     skipDuplicateCheck = skipDuplicateCheck,
                 )
@@ -1280,9 +1288,31 @@ class MainViewModel
                         }
                         var enqueued = 0
                         var skipped = 0
+                        var asked = 0
                         for (video in videos) {
                             val existing = runCatching { downloadedVideoRepository.findByVideoId(video.videoId) }.getOrNull()
                             if (existing != null) {
+                                // Apply alreadyDownloadedBehavior setting
+                                val behavior = settingsRepository.settings.first().alreadyDownloadedBehavior
+                                when (behavior) {
+                                    AlreadyDownloadedBehavior.SKIP -> {
+                                        skipped++
+                                        continue
+                                    }
+                                    AlreadyDownloadedBehavior.DOWNLOAD_AGAIN -> {
+                                        // Proceed with enqueue
+                                    }
+                                    AlreadyDownloadedBehavior.ASK -> {
+                                        // For playlists, default to skipping ASK items to avoid multiple dialogs
+                                        // Could be enhanced later to batch-ask
+                                        asked++
+                                        continue
+                                    }
+                                }
+                            }
+                            // Also check if this video is already queued or being processed
+                            val alreadyQueued = isVideoAlreadyQueued(queueRepository, video.videoId)
+                            if (alreadyQueued) {
                                 skipped++
                                 continue
                             }
@@ -1299,14 +1329,18 @@ class MainViewModel
                                 )
                             if (result.success) enqueued++ else skipped++
                         }
-                        _uiState.update {
-                            it.copy(
-                                urlInput = "",
-                                isFetchingMetadata = false,
-                                customSponsorBlockCategories = null,
-                            )
-                        }
-                        showToast("Enqueued $enqueued video(s); skipped $skipped")
+                        val toastMsg =
+                            if (asked > 0) {
+                                context.getString(
+                                    R.string.playlist_enqueue_summary_with_asked,
+                                    enqueued,
+                                    skipped,
+                                    asked,
+                                )
+                            } else {
+                                context.getString(R.string.playlist_enqueue_summary, enqueued, skipped)
+                            }
+                        showToast(toastMsg)
                     } catch (e: Exception) {
                         showToast("Failed to fetch playlist")
                         _uiState.update { it.copy(isFetchingMetadata = false) }
@@ -1315,12 +1349,13 @@ class MainViewModel
                 return
             }
 
-            if (useYtDlp && !videoId.isNullOrBlank() && playlistId.isNullOrBlank()) {
+            if (useYtDlp && !videoId.isNullOrBlank()) {
                 // yt-dlp path: direct enqueue, worker handles download + processing
+                // If there's a videoId, treat as single video regardless of playlistId
                 startYtDlpDownload(
                     url = url,
                     videoId = videoId!!,
-                    playlistId = playlistId,
+                    playlistId = null,
                     convertVideoToAudio = convertVideoToAudio,
                     deleteOriginalVideo = deleteOriginalVideo,
                     skipDuplicateCheck = skipDuplicateCheck,
@@ -1533,11 +1568,11 @@ class MainViewModel
             convertVideoToAudio: Boolean,
             deleteOriginalVideo: Boolean,
             skipDuplicateCheck: Boolean,
-        ) {
+        ): Boolean {
             // Playlists are not supported by the yt-dlp path yet.
             if (!playlistId.isNullOrBlank()) {
                 showToast("Playlist download with yt-dlp not yet supported")
-                return
+                return false
             }
 
             val normalizedUrl = Constants.buildYouTubeWatchUrl(videoId)
@@ -1554,16 +1589,17 @@ class MainViewModel
             if (!skipDuplicateCheck) {
                 // Claim the video ID first so concurrent submissions for the same video cannot
                 // both proceed. Hold the claim through the check-and-launch flow.
-                if (!claimDownload(videoId)) return
+                if (!claimDownload(videoId)) return false
                 try {
                     val decision =
                         handleAlreadyDownloaded(
                             videoId = videoId,
                             youtubeUrl = finalUrl,
                         )
-                    if (decision != DuplicateDecision.PROCEED) return
-                } finally {
+                    if (decision != DuplicateDecision.PROCEED) return false
+                } catch (e: Exception) {
                     releaseDownload(videoId)
+                    throw e
                 }
             }
 
@@ -1600,6 +1636,11 @@ class MainViewModel
                     skipDuplicateCheck = skipDuplicateCheck,
                 )
 
+            // Release the download claim after successful enqueue
+            if (!skipDuplicateCheck) {
+                releaseDownload(videoId)
+            }
+
             val successToast =
                 com.nihaltp.sbskip.model.ToastMessage(
                     message = context.getString(R.string.snackbar_media_enqueued),
@@ -1618,6 +1659,7 @@ class MainViewModel
                     state.copy(toastMessages = state.toastMessages + failureToast)
                 }
             }
+            return result.success
         }
 
         private suspend fun autoDetectAndCleanInternal(pendingDownload: PendingDownload) {
@@ -2161,6 +2203,15 @@ class MainViewModel
 
         fun dismissToast(id: String) {
             _uiState.update { it.copy(toastMessages = it.toastMessages.filter { t -> t.id != id }) }
+        }
+
+        private suspend fun isVideoAlreadyQueued(
+            queueRepository: QueueRepository,
+            videoId: String,
+        ): Boolean {
+            return queueRepository.observeQueue().first().any { item ->
+                item.url.contains("v=$videoId") || item.url.contains("v=$videoId&")
+            }
         }
 
         companion object {
