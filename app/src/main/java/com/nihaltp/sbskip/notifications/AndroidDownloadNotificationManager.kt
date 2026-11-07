@@ -33,10 +33,12 @@ class AndroidDownloadNotificationManager
         private var failureCount = 0
         private var queuedCount = 0
         private var channelEnabled = true
+        private var notificationIdPrefs = emptyMap<Int, Boolean>()
 
         init {
             observeQueue()
             observeChannelEnabled()
+            observeNotificationIdPrefs()
         }
 
         private fun observeQueue() {
@@ -56,6 +58,14 @@ class AndroidDownloadNotificationManager
             }
         }
 
+        private fun observeNotificationIdPrefs() {
+            scope.launch {
+                settingsRepository.settings.collect { settings ->
+                    notificationIdPrefs = settings?.notificationIdPrefs ?: emptyMap()
+                }
+            }
+        }
+
         override fun createForegroundInfo(
             id: Long,
             title: String,
@@ -70,7 +80,9 @@ class AndroidDownloadNotificationManager
             // Use DATA_SYNC foreground service type for uploads/downloads so apps
             // targeting SDK 31+ don't get InvalidForegroundServiceTypeException.
             val fgType = ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
-            return ForegroundInfo(id.toInt(), notification, fgType)
+            // Use ACTIVE_ID (2000) for foreground notification so it matches showActive
+            // and can be properly cancelled when the worker finishes.
+            return ForegroundInfo(ACTIVE_ID, notification, fgType)
         }
 
         override fun showActive(
@@ -95,6 +107,8 @@ class AndroidDownloadNotificationManager
             title: String,
         ) {
             completionCount++
+            // Cancel the active notification when worker completes
+            cancelActiveNotification()
             notify(
                 id = COMPLETION_ID,
                 notification =
@@ -111,6 +125,8 @@ class AndroidDownloadNotificationManager
             errorMessage: String,
         ) {
             failureCount++
+            // Cancel the active notification when worker fails
+            cancelActiveNotification()
             notify(
                 id = FAILURE_ID,
                 notification =
@@ -127,6 +143,8 @@ class AndroidDownloadNotificationManager
         ) {
             // Use failure notification for cancelled items as well
             failureCount++
+            // Cancel the active notification when worker is cancelled
+            cancelActiveNotification()
             notify(
                 id = FAILURE_ID,
                 notification =
@@ -135,6 +153,10 @@ class AndroidDownloadNotificationManager
                         message = context.getString(R.string.notification_queue_failed_message, failureCount),
                     ),
             )
+        }
+
+        private fun cancelActiveNotification() {
+            NotificationManagerCompat.from(context).cancel(ACTIVE_ID)
         }
 
         private fun buildActiveNotification(
@@ -183,6 +205,8 @@ class AndroidDownloadNotificationManager
         ) {
             // Check if channel is enabled before posting
             if (!channelEnabled) return
+            // Check if this specific notification ID is disabled
+            if (notificationIdPrefs[id] == false) return
             ensureChannel()
             NotificationManagerCompat.from(context).notify(id, notification)
         }
