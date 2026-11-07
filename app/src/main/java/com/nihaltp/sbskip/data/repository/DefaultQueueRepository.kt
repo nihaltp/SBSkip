@@ -74,9 +74,17 @@ class DefaultQueueRepository
             // bypassDurationCheck, noSuffix) are stored as explicit entity columns instead of
             // being appended to the URL, which previously produced malformed double-? URLs like
             // "...watch?v=VIDEO_ID?overwrite=true".
+            // Preserve custom SponsorBlock categories from the original URL so the worker can use them.
             val normalizedUrl =
                 if (videoId != null) {
-                    Constants.buildYouTubeWatchUrl(videoId)
+                    val baseUrl = Constants.buildYouTubeWatchUrl(videoId)
+                    // Extract and preserve categories parameter from original URL
+                    val categoriesParam = youtubeUrl.substringAfter("categories=").substringBefore("&")
+                    if (categoriesParam.isNotBlank() && categoriesParam != youtubeUrl) {
+                        "$baseUrl&categories=$categoriesParam"
+                    } else {
+                        baseUrl
+                    }
                 } else {
                     youtubeUrl
                 }
