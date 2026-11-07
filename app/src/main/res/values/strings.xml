@@ -363,6 +363,8 @@
     <string name="playlist_currently_downloading">Currently downloading</string>
     <string name="playlist_collapse">Collapse</string>
     <string name="playlist_expand">Expand</string>
+    <string name="playlist_enqueue_summary">Enqueued %1$d video(s); skipped %2$d</string>
+    <string name="playlist_enqueue_summary_with_asked">Enqueued %1$d video(s); skipped %2$d; %3$d already downloaded (set to ASK)</string>
 
     <!-- Onboarding -->
     <string name="onboarding_exit">Exit</string>
