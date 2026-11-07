@@ -81,6 +81,7 @@ import com.nihaltp.sbskip.ui.main.dialogs.ErrorDetailsDialog
 import com.nihaltp.sbskip.ui.main.dialogs.MediaConflictDialog
 import com.nihaltp.sbskip.ui.main.dialogs.MediaDetailsDialog
 import com.nihaltp.sbskip.ui.main.dialogs.PendingDownloadDetailsDialog
+import com.nihaltp.sbskip.ui.main.dialogs.PlaylistDuplicateDialog
 import com.nihaltp.sbskip.ui.main.dialogs.WatchlistPromptDialog
 import com.nihaltp.sbskip.util.AppLogger
 import com.nihaltp.sbskip.util.PermissionHelper
@@ -125,6 +126,8 @@ fun MainScreen(
     onPlaylistExpandedChanged: (Boolean) -> Unit,
     onProceedDuplicateDownload: () -> Unit,
     onSkipDuplicateDownload: () -> Unit,
+    onPlaylistDuplicateConfirm: (Set<String>) -> Unit,
+    onPlaylistDuplicateDismiss: () -> Unit,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val clipboardManager = LocalClipboardManager.current
@@ -811,6 +814,20 @@ fun MainScreen(
         onDownloadAgain = onProceedDuplicateDownload,
         onSkip = onSkipDuplicateDownload,
     )
+
+    if (uiState.showPlaylistDuplicateDialog && uiState.playlistDuplicateVideos.isNotEmpty()) {
+        PlaylistDuplicateDialog(
+            show = true,
+            duplicateVideos = uiState.playlistDuplicateVideos,
+            onConfirm = { selectedVideoIds ->
+                uiState.playlistDuplicateAction?.invoke(selectedVideoIds)
+                onPlaylistDuplicateConfirm(selectedVideoIds)
+            },
+            onDismiss = {
+                onPlaylistDuplicateDismiss()
+            },
+        )
+    }
 
     if (showCategoriesDialog) {
         val title = stringResource(id = R.string.categories_dialog_title_runtime)

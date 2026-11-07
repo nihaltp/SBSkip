@@ -385,10 +385,17 @@
     <!-- Duplicate Download Dialog -->
     <string name="dialog_duplicate_download_title">Already Downloaded</string>
     <string name="dialog_duplicate_download_message">This video is already in your downloaded videos. Download it again?</string>
-    <string name="dialog_duplicate_download_message_named">“%1$s” is already in your downloaded videos. Download it again?</string>
+    <string name="dialog_duplicate_download_message_named">"%1$s" is already in your downloaded videos. Download it again?</string>
     <string name="dialog_duplicate_download_again">Download Again</string>
     <string name="dialog_duplicate_download_skip">Skip</string>
     <string name="duplicate_download_skipped">Already downloaded, skipped.</string>
+
+    <!-- Playlist Duplicate Dialog -->
+    <string name="dialog_playlist_duplicate_title">Already Downloaded Videos in Playlist</string>
+    <string name="dialog_playlist_duplicate_message">%1$d video(s) in this playlist are already in your downloaded videos.</string>
+    <string name="dialog_playlist_duplicate_select">Select which videos to download again:</string>
+    <string name="dialog_playlist_duplicate_download_selected">Download Selected</string>
+    <string name="dialog_playlist_duplicate_skip_all">Skip All</string>
 
     <!-- Already Downloaded Behavior Setting -->
     <string name="settings_already_downloaded_title">Already Downloaded Videos</string>

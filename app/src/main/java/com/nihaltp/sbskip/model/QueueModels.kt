@@ -173,6 +173,10 @@ data class MainUiState(
     // Duplicate download dialog (shown when a video is already in the downloaded-videos database)
     val showDuplicateDownloadDialog: Boolean = false,
     val duplicateVideoInfo: DuplicateVideoInfo? = null,
+    // Playlist duplicate dialog (shown when playlist has already-downloaded videos and behavior is ASK)
+    val showPlaylistDuplicateDialog: Boolean = false,
+    val playlistDuplicateVideos: List<PlaylistVideo> = emptyList(),
+    val playlistDuplicateAction: ((Set<String>) -> Unit)? = null,
 )
 
 data class QueueActionResult(
