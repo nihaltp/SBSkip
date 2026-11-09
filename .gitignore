@@ -43,3 +43,5 @@ build/
 
 # fastlane
 fastlane/report.xml
+.bundle/
+vendor/bundle/
