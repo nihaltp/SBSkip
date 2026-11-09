@@ -19,7 +19,7 @@ class PendingDownloadCardTest {
     val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 
     @Test
-    fun `shows auto detect button when not detecting and no file detected`() {
+    fun shows_auto_detect_button_when_not_detecting_and_no_file_detected() {
         composeTestRule.setContent {
             PendingDownloadCard(
                 pendingDownloadTitle = "Test Video Title",
@@ -44,7 +44,7 @@ class PendingDownloadCardTest {
     }
 
     @Test
-    fun `shows pick file manually button when no file detected`() {
+    fun shows_pick_file_manually_button_when_no_file_detected() {
         composeTestRule.setContent {
             PendingDownloadCard(
                 pendingDownloadTitle = "Test Video Title",
@@ -69,7 +69,7 @@ class PendingDownloadCardTest {
     }
 
     @Test
-    fun `shows cancel button when no file detected`() {
+    fun shows_cancel_button_when_no_file_detected() {
         composeTestRule.setContent {
             PendingDownloadCard(
                 pendingDownloadTitle = "Test Video Title",
@@ -94,7 +94,7 @@ class PendingDownloadCardTest {
     }
 
     @Test
-    fun `shows detecting state when isDetecting is true`() {
+    fun shows_detecting_state_when_isDetecting_is_true() {
         composeTestRule.setContent {
             PendingDownloadCard(
                 pendingDownloadTitle = "Test Video Title",
@@ -119,7 +119,7 @@ class PendingDownloadCardTest {
     }
 
     @Test
-    fun `shows countdown when estimatedReadyAtEpochMillis is in future`() {
+    fun shows_countdown_when_estimatedReadyAtEpochMillis_is_in_future() {
         val futureTime = System.currentTimeMillis() + 60_000 // 1 minute in future
 
         composeTestRule.setContent {
@@ -145,7 +145,7 @@ class PendingDownloadCardTest {
     }
 
     @Test
-    fun `shows search now and cancel when counting down`() {
+    fun shows_search_now_and_cancel_when_counting_down() {
         val futureTime = System.currentTimeMillis() + 60_000
 
         composeTestRule.setContent {
@@ -174,7 +174,7 @@ class PendingDownloadCardTest {
     }
 
     @Test
-    fun `shows detected file section when file is detected`() {
+    fun shows_detected_file_section_when_file_is_detected() {
         val detectedFile =
             DetectedFile(
                 uri = "content://test/uri",
@@ -215,7 +215,7 @@ class PendingDownloadCardTest {
     }
 
     @Test
-    fun `shows pending download title in card`() {
+    fun shows_pending_download_title_in_card() {
         composeTestRule.setContent {
             PendingDownloadCard(
                 pendingDownloadTitle = "My Test Video Title",
@@ -237,7 +237,7 @@ class PendingDownloadCardTest {
     }
 
     @Test
-    fun `shows waiting for download title`() {
+    fun shows_waiting_for_download_title() {
         composeTestRule.setContent {
             PendingDownloadCard(
                 pendingDownloadTitle = "Test Video Title",

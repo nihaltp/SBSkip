@@ -50,7 +50,7 @@ class QueueItemCardTest {
     }
 
     @Test
-    fun `shows video title`() {
+    fun shows_video_title() {
         val item = createQueueItem(title = "My Test Video Title")
 
         composeTestRule.setContent {
@@ -67,7 +67,7 @@ class QueueItemCardTest {
     }
 
     @Test
-    fun `shows clean url`() {
+    fun shows_clean_url() {
         val item = createQueueItem()
 
         composeTestRule.setContent {
@@ -84,7 +84,7 @@ class QueueItemCardTest {
     }
 
     @Test
-    fun `shows duration`() {
+    fun shows_duration() {
         val item = createQueueItem()
 
         composeTestRule.setContent {
@@ -104,7 +104,7 @@ class QueueItemCardTest {
     }
 
     @Test
-    fun `shows retry button when status is FAILED`() {
+    fun shows_retry_button_when_status_is_FAILED() {
         val item = createQueueItem(status = DownloadQueueStatus.FAILED)
 
         composeTestRule.setContent {
@@ -124,7 +124,7 @@ class QueueItemCardTest {
     }
 
     @Test
-    fun `hides retry button when status is not FAILED`() {
+    fun hides_retry_button_when_status_is_not_FAILED() {
         val item = createQueueItem(status = DownloadQueueStatus.COMPLETED)
 
         composeTestRule.setContent {
@@ -150,7 +150,7 @@ class QueueItemCardTest {
     }
 
     @Test
-    fun `shows remove button`() {
+    fun shows_remove_button() {
         val item = createQueueItem()
 
         composeTestRule.setContent {
@@ -170,7 +170,7 @@ class QueueItemCardTest {
     }
 
     @Test
-    fun `shows error message when present`() {
+    fun shows_error_message_when_present() {
         val item =
             createQueueItem(
                 status = DownloadQueueStatus.FAILED,
@@ -191,7 +191,7 @@ class QueueItemCardTest {
     }
 
     @Test
-    fun `hides error message when null`() {
+    fun hides_error_message_when_null() {
         val item = createQueueItem(errorMessage = null)
 
         composeTestRule.setContent {
@@ -214,7 +214,7 @@ class QueueItemCardTest {
     }
 
     @Test
-    fun `shows progress indicator when status is FETCHING_SEGMENTS`() {
+    fun shows_progress_indicator_when_status_is_FETCHING_SEGMENTS() {
         val item = createQueueItem(status = DownloadQueueStatus.FETCHING_SEGMENTS)
 
         composeTestRule.setContent {
@@ -232,7 +232,7 @@ class QueueItemCardTest {
     }
 
     @Test
-    fun `shows progress indicator when status is PROCESSING`() {
+    fun shows_progress_indicator_when_status_is_PROCESSING() {
         val item = createQueueItem(status = DownloadQueueStatus.PROCESSING)
 
         composeTestRule.setContent {
@@ -249,7 +249,7 @@ class QueueItemCardTest {
     }
 
     @Test
-    fun `shows status chip for COMPLETED status`() {
+    fun shows_status_chip_for_COMPLETED_status() {
         val item = createQueueItem(status = DownloadQueueStatus.COMPLETED)
 
         composeTestRule.setContent {
@@ -267,7 +267,7 @@ class QueueItemCardTest {
     }
 
     @Test
-    fun `handles null thumbnail url gracefully`() {
+    fun handles_null_thumbnail_url_gracefully() {
         val item = createQueueItem(thumbnailUrl = null)
 
         composeTestRule.setContent {

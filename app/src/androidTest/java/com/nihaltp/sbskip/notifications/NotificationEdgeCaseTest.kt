@@ -20,7 +20,7 @@ class NotificationEdgeCaseTest {
     }
 
     @Test
-    fun `download notification channel exists with correct importance`() {
+    fun download_notification_channel_exists_with_correct_importance() {
         // Channel is created by the manager on first use
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val channel = manager.getNotificationChannel("download_status")
@@ -31,7 +31,7 @@ class NotificationEdgeCaseTest {
     }
 
     @Test
-    fun `import notification channel exists with low importance`() {
+    fun import_notification_channel_exists_with_low_importance() {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val channel = manager.getNotificationChannel("sbskip_import_queue")
 
@@ -41,7 +41,7 @@ class NotificationEdgeCaseTest {
     }
 
     @Test
-    fun `import notification shows correct count`() {
+    fun import_notification_shows_correct_count() {
         // Just verify channel exists - we can't easily test notification manager without full setup
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val channel = manager.getNotificationChannel("sbskip_import_queue")
@@ -49,7 +49,7 @@ class NotificationEdgeCaseTest {
     }
 
     @Test
-    fun `dismissing import notification when count is zero`() {
+    fun dismissing_import_notification_when_count_is_zero() {
         // Test that channel exists
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val channel = manager.getNotificationChannel("sbskip_import_queue")
@@ -57,14 +57,14 @@ class NotificationEdgeCaseTest {
     }
 
     @Test
-    fun `cancelAll dismisses both notifications`() {
+    fun cancel_all_dismisses_both_notifications() {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val channel = manager.getNotificationChannel("sbskip_import_queue")
         assertNotNull(channel)
     }
 
     @Test
-    fun `import notification has correct channel ID`() {
+    fun import_notification_has_correct_channel_id() {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val channel = manager.getNotificationChannel("sbskip_import_queue")
         assertNotNull(channel)
@@ -72,35 +72,35 @@ class NotificationEdgeCaseTest {
     }
 
     @Test
-    fun `notification uses correct small icon`() {
+    fun notification_uses_correct_small_icon() {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val channel = manager.getNotificationChannel("sbskip_import_queue")
         assertNotNull(channel)
     }
 
     @Test
-    fun `notification is ongoing`() {
+    fun notification_is_ongoing() {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val channel = manager.getNotificationChannel("sbskip_import_queue")
         assertNotNull(channel)
     }
 
     @Test
-    fun `notification is not auto-cancel`() {
+    fun notification_is_not_auto_cancel() {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val channel = manager.getNotificationChannel("sbskip_import_queue")
         assertNotNull(channel)
     }
 
     @Test
-    fun `multiple updates to import notification work correctly`() {
+    fun multiple_updates_to_import_notification_work_correctly() {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val channel = manager.getNotificationChannel("sbskip_import_queue")
         assertNotNull(channel)
     }
 
     @Test
-    fun `notifications survive rapid updates`() {
+    fun notifications_survive_rapid_updates() {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val channel = manager.getNotificationChannel("sbskip_import_queue")
         assertNotNull(channel)

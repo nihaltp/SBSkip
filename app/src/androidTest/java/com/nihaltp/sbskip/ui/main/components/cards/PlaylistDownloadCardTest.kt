@@ -48,7 +48,7 @@ class PlaylistDownloadCardTest {
     }
 
     @Test
-    fun `shows playlist progress with video count`() {
+    fun shows_playlist_progress_with_video_count() {
         val state = createPlaylistState()
 
         composeTestRule.setContent {
@@ -72,7 +72,7 @@ class PlaylistDownloadCardTest {
     }
 
     @Test
-    fun `shows current video title`() {
+    fun shows_current_video_title() {
         val state = createPlaylistState()
 
         composeTestRule.setContent {
@@ -93,7 +93,7 @@ class PlaylistDownloadCardTest {
     }
 
     @Test
-    fun `shows convert video to audio switch`() {
+    fun shows_convert_video_to_audio_switch() {
         val state = createPlaylistState()
 
         composeTestRule.setContent {
@@ -117,7 +117,7 @@ class PlaylistDownloadCardTest {
     }
 
     @Test
-    fun `shows delete original video switch when convert video to audio is true`() {
+    fun shows_delete_original_video_switch_when_convert_video_to_audio_is_true() {
         val state = createPlaylistState(convertVideoToAudio = true)
 
         composeTestRule.setContent {
@@ -141,7 +141,7 @@ class PlaylistDownloadCardTest {
     }
 
     @Test
-    fun `hides delete original video switch when convert video to audio is false`() {
+    fun hides_delete_original_video_switch_when_convert_video_to_audio_is_false() {
         val state = createPlaylistState(convertVideoToAudio = false)
 
         composeTestRule.setContent {
@@ -171,7 +171,7 @@ class PlaylistDownloadCardTest {
     }
 
     @Test
-    fun `shows download button`() {
+    fun shows_download_button() {
         val state = createPlaylistState()
 
         composeTestRule.setContent {
@@ -192,7 +192,7 @@ class PlaylistDownloadCardTest {
     }
 
     @Test
-    fun `shows skip video button`() {
+    fun shows_skip_video_button() {
         val state = createPlaylistState()
 
         composeTestRule.setContent {
@@ -213,7 +213,7 @@ class PlaylistDownloadCardTest {
     }
 
     @Test
-    fun `shows cancel playlist download button`() {
+    fun shows_cancel_playlist_download_button() {
         val state = createPlaylistState()
 
         composeTestRule.setContent {
@@ -234,7 +234,7 @@ class PlaylistDownloadCardTest {
     }
 
     @Test
-    fun `shows playlist loading text when no current video`() {
+    fun shows_playlist_loading_text_when_no_current_video() {
         val state =
             PlaylistDownloadState(
                 playlistId = "test_playlist",
@@ -263,7 +263,7 @@ class PlaylistDownloadCardTest {
     }
 
     @Test
-    fun `shows close button when no current video`() {
+    fun shows_close_button_when_no_current_video() {
         val state =
             PlaylistDownloadState(
                 playlistId = "test_playlist",

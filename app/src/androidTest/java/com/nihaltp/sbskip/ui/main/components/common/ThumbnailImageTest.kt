@@ -18,7 +18,7 @@ class ThumbnailImageTest {
     val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 
     @Test
-    fun `shows fallback icon when model is null`() {
+    fun shows_fallback_icon_when_model_is_null() {
         composeTestRule.setContent {
             ThumbnailImage(model = null)
         }
@@ -27,7 +27,7 @@ class ThumbnailImageTest {
     }
 
     @Test
-    fun `shows fallback icon when model is empty string`() {
+    fun shows_fallback_icon_when_model_is_empty_string() {
         composeTestRule.setContent {
             ThumbnailImage(model = "")
         }
@@ -36,7 +36,7 @@ class ThumbnailImageTest {
     }
 
     @Test
-    fun `attempts to load image when model is valid url`() {
+    fun attempts_to_load_image_when_model_is_valid_url() {
         composeTestRule.setContent {
             ThumbnailImage(model = "https://img.youtube.com/vi/test/mqdefault.jpg")
         }
@@ -45,7 +45,7 @@ class ThumbnailImageTest {
     }
 
     @Test
-    fun `uses custom fallback icon when provided`() {
+    fun uses_custom_fallback_icon_when_provided() {
         composeTestRule.setContent {
             ThumbnailImage(
                 model = null,
@@ -57,7 +57,7 @@ class ThumbnailImageTest {
     }
 
     @Test
-    fun `uses custom fallback tint when provided`() {
+    fun uses_custom_fallback_tint_when_provided() {
         composeTestRule.setContent {
             ThumbnailImage(
                 model = null,
@@ -69,7 +69,7 @@ class ThumbnailImageTest {
     }
 
     @Test
-    fun `uses custom fallback size when provided`() {
+    fun uses_custom_fallback_size_when_provided() {
         composeTestRule.setContent {
             ThumbnailImage(
                 model = null,
@@ -81,7 +81,7 @@ class ThumbnailImageTest {
     }
 
     @Test
-    fun `uses custom content scale when provided`() {
+    fun uses_custom_content_scale_when_provided() {
         composeTestRule.setContent {
             ThumbnailImage(
                 model = "https://example.com/image.jpg",
