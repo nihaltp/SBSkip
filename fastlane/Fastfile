@@ -230,6 +230,25 @@ def prepare_release_commit(version_name:, version_code:)
   [tag_name, changelog_txt_path, project_root]
 end
 
+# Generates the GitHub release message from a template.
+# The template only contains download instructions — no commit-related data.
+# Returns the path to the generated release message file.
+def release_message_path(version_name:)
+  project_root = File.expand_path("..", __dir__)
+  template_path = File.join(project_root, "fastlane", "release_message_template.md")
+  unless File.exist?(template_path)
+    raise "Could not find release message template at #{template_path}"
+  end
+
+  content = File.read(template_path).gsub("{version}", version_name)
+
+  release_message_path = File.join(Dir.tmpdir, "sbskip-release-message-#{version_name}.md")
+  File.write(release_message_path, content)
+  puts "Created release message at #{release_message_path}"
+
+  release_message_path
+end
+
 default_platform(:android)
 
 platform :android do
@@ -369,7 +388,8 @@ platform :android do
 
       # Run gh release create
       puts "Creating GitHub Release #{tag_name} (Attempt #{attempt}/#{max_retries})..."
-      sh("gh release create #{tag_name} #{apk_files_str} --title \"#{tag_name}\" -F \"#{changelog_txt_path}\"")
+      message_path = release_message_path(version_name: version_name)
+      sh("gh release create #{tag_name} #{apk_files_str} --title \"#{tag_name}\" -F \"#{message_path}\"")
       puts "GitHub Release #{tag_name} successfully created!"
     rescue => e
       if attempt < max_retries
