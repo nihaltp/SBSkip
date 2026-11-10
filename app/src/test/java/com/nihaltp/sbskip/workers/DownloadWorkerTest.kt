@@ -207,6 +207,7 @@ class DownloadWorkerTest {
             coVerify { ytDlpRuntime.ensure() }
             verify { ytDlpCommandBuilder.build(any()) }
             coVerify { ytDlpProcessRunner.run(any(), any(), any()) }
+            coVerify { queueRepository.markDownloading(item.id) }
             coVerify { queueRepository.markProcessing(item.id) }
             coVerify { queueRepository.markCompleted(item.id, any(), any()) }
         }

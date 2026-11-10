@@ -657,4 +657,21 @@ class DefaultQueueRepositoryTest {
 
             coVerify(exactly = 1) { workScheduler.schedule(5L) }
         }
+
+    // ── markDownloading ──────────────────────────────────────────────────────
+
+    @Test
+    fun `markDownloading sets status to DOWNLOADING via dao`() =
+        runTest(testDispatcher) {
+            coEvery { dao.markDownloading(any(), any()) } just Runs
+
+            repository.markDownloading(5L)
+
+            coVerify(exactly = 1) {
+                dao.markDownloading(
+                    id = 5L,
+                    updatedAtEpochMillis = any(),
+                )
+            }
+        }
 }
