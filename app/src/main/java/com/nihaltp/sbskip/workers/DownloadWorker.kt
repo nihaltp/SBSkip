@@ -33,6 +33,8 @@ import com.nihaltp.sbskip.workers.helpers.ProcessingPlanBuilder
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.io.File
 import java.io.IOException
 
@@ -381,8 +383,10 @@ class DownloadWorker
             val environment = ytDlpRuntime.environment(paths, workDir)
 
             val result =
-                ytDlpProcessRunner.run(command, environment) { progress ->
-                    onProgress(progress.percent ?: 0f)
+                downloadMutex.withLock {
+                    ytDlpProcessRunner.run(command, environment) { progress ->
+                        onProgress(progress.percent ?: 0f)
+                    }
                 }
 
             if (result.exitCode != 0) {
@@ -469,5 +473,14 @@ class DownloadWorker
             const val KEY_OUTPUT_PATH = "output_path"
             const val KEY_MESSAGE = "message"
             private const val MAX_NETWORK_RETRY_ATTEMPTS = 3
+
+            /**
+             * Serializes yt-dlp downloads so only one Python VM runs at a time.
+             * Without this, WorkManager launches all queue-item downloads concurrently,
+             * each spawning its own yt-dlp (Python) process. On low-RAM devices the
+             * combined memory pressure triggers the Low Memory Killer (SIGKILL, exit=137),
+             * failing downloads and making the UI go white.
+             */
+            private val downloadMutex = Mutex()
         }
     }
