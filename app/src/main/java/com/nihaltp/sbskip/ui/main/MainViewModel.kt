@@ -1370,6 +1370,7 @@ class MainViewModel
 
                         // No dialog needed, enqueue all videos
                         enqueuePlaylistVideos(videosToEnqueue, convertVideoToAudio, deleteOriginalVideo)
+                        _uiState.update { it.copy(isFetchingMetadata = false) }
                     } catch (e: Exception) {
                         showToast("Failed to fetch playlist")
                         _uiState.update { it.copy(isFetchingMetadata = false) }
