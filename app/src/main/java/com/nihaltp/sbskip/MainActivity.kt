@@ -62,7 +62,7 @@ class MainActivity : AppCompatActivity() {
                 dynamicColor = dynamicColor,
             ) {
                 Surface(color = MaterialTheme.colorScheme.background) {
-                    App(shareEvent = shareEvent)
+                    App(shareEvent = shareEvent, onboardingCompleted = initialSettings.onboardingCompleted)
                 }
             }
         }
@@ -76,8 +76,14 @@ class MainActivity : AppCompatActivity() {
 }
 
 @Composable
-private fun App(shareEvent: ShareIntentEvent?) {
-    AppNavGraph(shareEvent = shareEvent)
+private fun App(
+    shareEvent: ShareIntentEvent?,
+    onboardingCompleted: Boolean,
+) {
+    AppNavGraph(
+        shareEvent = shareEvent,
+        onboardingCompleted = onboardingCompleted,
+    )
 }
 
 private fun Intent.toShareIntentEvent(): ShareIntentEvent? {
