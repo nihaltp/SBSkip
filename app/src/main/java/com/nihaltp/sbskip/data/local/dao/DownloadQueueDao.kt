@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface DownloadQueueDao {
-    @Query("SELECT * FROM download_queue ORDER BY createdAtEpochMillis DESC, id DESC")
+    @Query("SELECT * FROM download_queue ORDER BY createdAtEpochMillis ASC, id ASC")
     fun observeQueue(): Flow<List<DownloadQueueEntity>>
 
     @Query("SELECT * FROM download_queue WHERE id = :id")
