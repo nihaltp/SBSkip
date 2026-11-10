@@ -292,4 +292,117 @@ class DownloadWorkerTest {
             verify(exactly = 0) { ytDlpCommandBuilder.build(any()) }
             coVerify(exactly = 0) { ytDlpProcessRunner.run(any(), any(), any()) }
         }
+
+    @Test
+    fun `yt-dlp path skips sponsorblock api fetch`() =
+        runTest {
+            val item = ytDlpQueueItem()
+            coEvery { queueRepository.findItemById(any()) } returns item
+
+            val paths = mockk<YtDlpPaths>(relaxed = true)
+            every { paths.ffmpegLauncher } returns File("/system/lib/ffmpeg")
+            every { paths.pythonLauncher } returns File("/system/lib/python")
+            coEvery { ytDlpRuntime.ensure(any()) } returns paths
+            coEvery { ytDlpRuntime.environment(any(), any()) } returns emptyMap()
+            every { ytDlpCommandBuilder.build(any()) } returns listOf("yt-dlp", "--no-playlist", item.url)
+            coEvery { ytDlpProcessRunner.run(any(), any(), any()) }
+                .returns(
+                    YtDlpRunResult(
+                        exitCode = 0,
+                        stdout = "",
+                        stderrTail = "",
+                        lastProgress = null,
+                    ),
+                )
+            val workDir = File(System.getProperty("java.io.tmpdir"), "ytdlp-work")
+            workDir.mkdirs()
+            File(workDir, "out.mp4").createNewFile()
+
+            worker.doWork()
+
+            // SponsorBlock API should NOT be called for yt-dlp
+            coVerify(exactly = 0) { metadataFetcher.fetchSponsorSegments(any(), any()) }
+        }
+
+    @Test
+    fun `yt-dlp path skips ffmpeg processing`() =
+        runTest {
+            val item = ytDlpQueueItem()
+            coEvery { queueRepository.findItemById(any()) } returns item
+
+            val paths = mockk<YtDlpPaths>(relaxed = true)
+            every { paths.ffmpegLauncher } returns File("/system/lib/ffmpeg")
+            every { paths.pythonLauncher } returns File("/system/lib/python")
+            coEvery { ytDlpRuntime.ensure(any()) } returns paths
+            coEvery { ytDlpRuntime.environment(any(), any()) } returns emptyMap()
+            every { ytDlpCommandBuilder.build(any()) } returns listOf("yt-dlp", "--no-playlist", item.url)
+            coEvery { ytDlpProcessRunner.run(any(), any(), any()) }
+                .returns(
+                    YtDlpRunResult(
+                        exitCode = 0,
+                        stdout = "",
+                        stderrTail = "",
+                        lastProgress = null,
+                    ),
+                )
+            val workDir = File(System.getProperty("java.io.tmpdir"), "ytdlp-work")
+            workDir.mkdirs()
+            File(workDir, "out.mp4").createNewFile()
+
+            worker.doWork()
+
+            // FFmpeg processing should NOT be called for yt-dlp
+            coVerify(exactly = 0) { mediaProcessingManager.process(any(), any(), any(), any(), any()) }
+        }
+
+    @Test
+    fun `yt-dlp path skips media tagger`() =
+        runTest {
+            val item = ytDlpQueueItem()
+            coEvery { queueRepository.findItemById(any()) } returns item
+
+            val paths = mockk<YtDlpPaths>(relaxed = true)
+            every { paths.ffmpegLauncher } returns File("/system/lib/ffmpeg")
+            every { paths.pythonLauncher } returns File("/system/lib/python")
+            coEvery { ytDlpRuntime.ensure(any()) } returns paths
+            coEvery { ytDlpRuntime.environment(any(), any()) } returns emptyMap()
+            every { ytDlpCommandBuilder.build(any()) } returns listOf("yt-dlp", "--no-playlist", item.url)
+            coEvery { ytDlpProcessRunner.run(any(), any(), any()) }
+                .returns(
+                    YtDlpRunResult(
+                        exitCode = 0,
+                        stdout = "",
+                        stderrTail = "",
+                        lastProgress = null,
+                    ),
+                )
+            val workDir = File(System.getProperty("java.io.tmpdir"), "ytdlp-work")
+            workDir.mkdirs()
+            File(workDir, "out.mp4").createNewFile()
+
+            worker.doWork()
+
+            // MediaTagger should NOT be called for yt-dlp
+            coVerify(exactly = 0) { mediaTagger.applyMetadata(any(), any()) }
+        }
+
+    @Test
+    fun `non-yt-dlp path calls sponsorblock api ffmpeg and tagger`() =
+        runTest {
+            val item =
+                ytDlpQueueItem(
+                    downloadSource = DownloadSource.LOCAL_FILE,
+                    localFileUri = "content://media/local.mp4",
+                )
+            coEvery { queueRepository.findItemById(any()) } returns item
+            coEvery { durationValidator.validate(any(), any(), any()) }
+                .returns(MediaFileMetadata(title = "Test", extension = "mp4", durationSeconds = 100L))
+
+            worker.doWork()
+
+            // Non-yt-dlp SHOULD call SponsorBlock API, FFmpeg, and MediaTagger
+            coVerify(atLeast = 1) { metadataFetcher.fetchSponsorSegments(any(), any()) }
+            coVerify(atLeast = 1) { mediaProcessingManager.process(any(), any(), any(), any(), any()) }
+            coVerify(atLeast = 1) { mediaTagger.applyMetadata(any(), any()) }
+        }
 }
