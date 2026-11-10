@@ -27,6 +27,7 @@ fun AppNavGraph(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
     shareEvent: ShareIntentEvent? = null,
+    onboardingCompleted: Boolean = false,
 ) {
     val viewModel: MainViewModel = hiltViewModel()
 
@@ -38,7 +39,7 @@ fun AppNavGraph(
 
     NavHost(
         navController = navController,
-        startDestination = Destination.Onboarding.route,
+        startDestination = if (onboardingCompleted) Destination.Home.route else Destination.Onboarding.route,
         modifier = modifier,
     ) {
         composable(Destination.Onboarding.route) {
