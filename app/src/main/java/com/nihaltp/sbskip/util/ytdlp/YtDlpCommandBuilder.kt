@@ -1,5 +1,6 @@
 package com.nihaltp.sbskip.util.ytdlp
 
+import com.nihaltp.sbskip.BuildConfig
 import com.nihaltp.sbskip.model.MediaType
 import java.io.File
 
@@ -10,9 +11,7 @@ class YtDlpCommandException(message: String) : Exception(message)
  * Pure, side-effect-free assembly of the yt-dlp argument list (plan §5).
  *
  * Contains no Android imports or process handling so it is unit-testable without a device.
- * SponsorBlock removal, tagging, and cover art stay in the app's ffmpeg-kit pipeline: this
- * builder never emits anything that would let yt-dlp post-process media content, and refuses
- * requests that ask for such behaviour.
+ * yt-dlp handles SponsorBlock removal and metadata embedding natively for YouTube downloads.
  */
 object YtDlpCommandBuilder {
     /**
@@ -40,12 +39,32 @@ object YtDlpCommandBuilder {
         /** Per-download work dir; yt-dlp writes its output inside it. */
         val workDir: File,
         /** Maximum video height: "720", "1080", or "BEST" (best available). */
-        val maxQuality: String = "1080",
+        val maxQuality: String = "BEST",
         /** Absolute path of the ffmpeg CLI launcher that yt-dlp execs for merging. */
         val ffmpegLocation: File? = null,
+        /** SponsorBlock categories to remove via yt-dlp native `--sponsorblock-remove`. */
+        val sponsorBlockCategories: Set<String>? = null,
+        /** Extract audio instead of video (--extract-audio). */
+        val convertToAudio: Boolean = false,
+        /** YouTube video ID for SBSKIP_YOUTUBE_VIDEO_ID metadata tag. */
+        val youtubeVideoId: String? = null,
+        /** YouTube watch URL for SBSKIP_YOUTUBE_VIDEO_URL metadata tag. */
+        val youtubeVideoUrl: String? = null,
+        /** YouTube title for SBSKIP_YOUTUBE_TITLE metadata tag. */
+        val youtubeTitle: String? = null,
+        /** Author name for SBSKIP_AUTHOR_NAME metadata tag. */
+        val authorName: String? = null,
+        /** Author URL for SBSKIP_AUTHOR_URL metadata tag. */
+        val authorUrl: String? = null,
+        /** Thumbnail URL for SBSKIP_THUMBNAIL_URL metadata tag and `--embed-thumbnail`. */
+        val thumbnailUrl: String? = null,
+        /** SponsorBlock segments string for SBSKIP_SEGMENTS metadata tag. */
+        val sbskipSegments: String? = null,
+        /** Removed category names for SBSKIP_REMOVED_CATEGORIES metadata tag. */
+        val removedCategories: Set<String>? = null,
     )
 
-    open fun build(request: Request): List<String> {
+    fun build(request: Request): List<String> {
         val url = cleanUrl(request.url)
         if (url.isBlank()) {
             throw YtDlpCommandException(
@@ -82,6 +101,65 @@ object YtDlpCommandBuilder {
         // default web client (which increasingly requires proof-of-origin tokens).
         args.add("--extractor-args")
         args.add("youtube:player_client=android")
+
+        // SponsorBlock removal via yt-dlp native support.
+        request.sponsorBlockCategories?.takeIf { it.isNotEmpty() }?.let { categories ->
+            val ytDlpCategories =
+                categories.mapNotNull { toYtDlpSponsorBlockCategory(it) }
+            if (ytDlpCategories.isNotEmpty()) {
+                // If all 9 yt-dlp-supported categories are present, use the shorthand "all".
+                val allCategories =
+                    setOf("sponsor", "selfpromo", "interaction", "intro", "outro", "preview", "hook", "filler", "music_offtopic")
+                if (ytDlpCategories.toSet() == allCategories) {
+                    args.add("--sponsorblock-remove")
+                    args.add("all")
+                } else {
+                    args.add("--sponsorblock-remove")
+                    args.add(ytDlpCategories.joinToString(","))
+                }
+            }
+        }
+
+        // Metadata embedding via yt-dlp native support.
+        args.add("--add-metadata")
+        request.thumbnailUrl?.takeIf { it.isNotEmpty() }?.let {
+            args.add("--embed-thumbnail")
+        }
+
+        // Custom SBSKIP_* metadata tags.
+        val metadataTags = mutableListOf<Pair<String, String>>()
+        request.youtubeVideoId?.takeIf { it.isNotEmpty() }?.let {
+            metadataTags.add("SBSKIP_YOUTUBE_VIDEO_ID" to it)
+        }
+        request.youtubeVideoUrl?.takeIf { it.isNotEmpty() }?.let {
+            metadataTags.add("SBSKIP_YOUTUBE_VIDEO_URL" to it)
+        }
+        request.youtubeTitle?.takeIf { it.isNotEmpty() }?.let {
+            metadataTags.add("SBSKIP_YOUTUBE_TITLE" to it)
+        }
+        request.authorName?.takeIf { it.isNotEmpty() }?.let {
+            metadataTags.add("SBSKIP_AUTHOR_NAME" to it)
+        }
+        request.authorUrl?.takeIf { it.isNotEmpty() }?.let {
+            metadataTags.add("SBSKIP_AUTHOR_URL" to it)
+        }
+        request.thumbnailUrl?.takeIf { it.isNotEmpty() }?.let {
+            metadataTags.add("SBSKIP_THUMBNAIL_URL" to it)
+        }
+        request.sbskipSegments?.takeIf { it.isNotEmpty() }?.let {
+            metadataTags.add("SBSKIP_SEGMENTS" to it)
+        }
+        metadataTags.add("SBSKIP_VERSION" to BuildConfig.VERSION_NAME)
+        metadataTags.add("SBSKIP_PROCESSED" to "true")
+        metadataTags.add("SBSKIP_PROCESSED_AT" to System.currentTimeMillis().toString())
+        request.removedCategories?.takeIf { it.isNotEmpty() }?.let {
+            metadataTags.add("SBSKIP_REMOVED_CATEGORIES" to it.joinToString(","))
+        }
+        metadataTags.forEach { (key, value) ->
+            args.add("--metadata")
+            args.add("$key=$value")
+        }
+
         when (request.mediaType) {
             MediaType.VIDEO -> {
                 args.add("-f")
@@ -93,10 +171,14 @@ object YtDlpCommandBuilder {
             MediaType.AUDIO -> {
                 args.add("-f")
                 args.add(AUDIO_FORMAT_SPEC)
+                if (request.convertToAudio) {
+                    args.add("--extract-audio")
+                    args.add("--audio-format")
+                    args.add("m4a")
+                }
             }
         }
         args.add(url)
-        assertNoPostProcessingArgs(args)
         return args
     }
 
@@ -137,14 +219,24 @@ object YtDlpCommandBuilder {
         }
     }
 
-    private fun assertNoPostProcessingArgs(args: List<String>) {
-        val joined = args.joinToString(" ").lowercase()
-        if (SPONSORBLOCK_MARKER in joined) {
-            throw YtDlpCommandException(
-                "yt-dlp must not remove SponsorBlock segments: that stays in the ffmpeg-kit pipeline",
-            )
+    /**
+     * Maps SB Skip [SponsorBlockCategory] enum names to yt-dlp `--sponsorblock-remove` category names.
+     *
+     * SB Skip uses enum names like `SELF_PROMOTION`, `INTERACTION_REMINDER`, etc. yt-dlp uses different
+     * names (e.g. `selfpromo`, `interaction`). Unsupported categories (e.g. `hook`) return null.
+     */
+    internal fun toYtDlpSponsorBlockCategory(category: String): String? {
+        return when (category.lowercase()) {
+            "sponsor" -> "sponsor"
+            "self_promotion" -> "selfpromo"
+            "interaction_reminder" -> "interaction"
+            "intro" -> "intro"
+            "outro" -> "outro"
+            "preview_recap" -> "preview"
+            "hook" -> "hook"
+            "filler_tangent" -> "filler"
+            "music_offtopic" -> "music_offtopic"
+            else -> null
         }
     }
-
-    private const val SPONSORBLOCK_MARKER = "sponsorblock"
 }
