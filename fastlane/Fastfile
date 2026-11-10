@@ -321,6 +321,59 @@ platform :android do
     )
   end
 
+  desc "Generate changelog, add screenshots, build release APKs, and push branch + tag"
+  lane :github_release do
+    version_name = get_version_name_from_gradle
+    version_code = get_version_code_from_gradle
+
+    project_root = File.expand_path("..", __dir__)
+
+    # 1. Generate changelog file, commit version bump + metadata (all locale screenshots
+    #    are included via the fastlane/metadata/android git add), and create local git tag
+    tag_name, changelog_txt_path, project_root = prepare_release_commit(
+      version_name: version_name,
+      version_code: version_code
+    )
+
+    # 2. Explicitly stage screenshot files from every locale
+    metadata_dir = File.join(project_root, "fastlane", "metadata", "android")
+    Dir.glob(File.join(metadata_dir, "*", "images", "phoneScreenshots", "*.png")).each do |screenshot|
+      sh("git add #{screenshot}") rescue nil
+    end
+
+    # Commit any screenshots that weren't already included in the commit above
+    staged = `git diff --cached --name-only`.strip
+    unless staged.empty?
+      sh("git commit -m \"chore: add release screenshots\"")
+    end
+
+    # 3. Build release APKs locally (APKs are NOT committed to git)
+    puts "Building release APKs..."
+    build_release
+
+    # 4. Push branch and tag to origin with retry logic
+    current_branch = `git rev-parse --abbrev-ref HEAD`.strip
+    puts "Pushing branch #{current_branch} and tag #{tag_name} to origin..."
+
+    push_attempt = 0
+    begin
+      push_attempt += 1
+      sh("git push origin #{current_branch}")
+      sh("git push origin #{tag_name} --force")
+    rescue => e
+      if push_attempt < 3
+        wait = push_attempt * 10
+        puts "Git push failed. Retrying in #{wait}s (Attempt #{push_attempt + 1}/3)..."
+        sleep(wait)
+        retry
+      else
+        raise e
+      end
+    end
+
+    puts "Release prep complete: tag #{tag_name} pushed. GitHub Actions creates the release and uploads APKs."
+  end
+
   desc "Run tests"
   lane :test do
     gradle(task: "test")
