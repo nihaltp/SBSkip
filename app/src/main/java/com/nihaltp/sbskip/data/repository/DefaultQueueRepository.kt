@@ -167,6 +167,11 @@ class DefaultQueueRepository
             )
         }
 
+        override suspend fun markDownloading(itemId: Long) {
+            AppLogger.queue("downloading id=$itemId")
+            dao.markDownloading(id = itemId, updatedAtEpochMillis = System.currentTimeMillis())
+        }
+
         override suspend fun markProcessing(itemId: Long) {
             AppLogger.queue("processing id=$itemId")
             dao.markStatus(

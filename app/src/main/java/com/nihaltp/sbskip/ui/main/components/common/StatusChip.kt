@@ -21,6 +21,7 @@ fun StatusChip(
                 when (status) {
                     DownloadQueueStatus.QUEUED -> stringResource(id = R.string.status_queued)
                     DownloadQueueStatus.FETCHING_SEGMENTS -> stringResource(id = R.string.status_fetching_api)
+                    DownloadQueueStatus.DOWNLOADING -> stringResource(id = R.string.status_downloading)
                     DownloadQueueStatus.PROCESSING -> stringResource(id = R.string.status_cleaning)
                     DownloadQueueStatus.COMPLETED -> stringResource(id = R.string.status_completed)
                     DownloadQueueStatus.FAILED -> stringResource(id = R.string.status_failed)

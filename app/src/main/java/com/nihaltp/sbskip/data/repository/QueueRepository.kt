@@ -41,6 +41,8 @@ interface QueueRepository {
 
     suspend fun markFetchingSegments(itemId: Long)
 
+    suspend fun markDownloading(itemId: Long)
+
     suspend fun markProcessing(itemId: Long)
 
     suspend fun markCompleted(
