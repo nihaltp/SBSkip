@@ -196,6 +196,7 @@ class DownloadWorker
                 var inputFileUri = item.localFileUri
                 var downloadedExtension: String? = null
                 if (isYtDlp) {
+                    queueRepository.markDownloading(queueItemId)
                     notificationManager.showActive(
                         notificationId,
                         taskTitle,
