@@ -150,7 +150,10 @@ fun QueueItemCard(
                 }
             }
 
-            if (item.status == DownloadQueueStatus.FETCHING_SEGMENTS || item.status == DownloadQueueStatus.PROCESSING) {
+            if (item.status == DownloadQueueStatus.FETCHING_SEGMENTS
+                || item.status == DownloadQueueStatus.PROCESSING
+                || item.status == DownloadQueueStatus.DOWNLOADING
+            ) {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             }
         }
