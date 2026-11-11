@@ -196,7 +196,6 @@ class DownloadWorker
                 var inputFileUri = item.localFileUri
                 var downloadedExtension: String? = null
                 if (isYtDlp) {
-                    queueRepository.markDownloading(queueItemId)
                     notificationManager.showActive(
                         notificationId,
                         taskTitle,
@@ -436,6 +435,7 @@ class DownloadWorker
 
             val result =
                 downloadMutex.withLock {
+                    queueRepository.markDownloading(item.id)
                     ytDlpProcessRunner.run(command, environment) { progress ->
                         onProgress(progress.percent ?: 0f)
                     }
