@@ -18,7 +18,7 @@ class FFmpegMediaProcessorTest {
 
     @Before
     fun setUp() {
-        processor = FFmpegMediaProcessor()
+        processor = FFmpegMediaProcessor(FFmpegLock())
         tempDir = tempFolder.newFolder("ffmpeg_test")
 
         // Override command executor to capture commands and mock success

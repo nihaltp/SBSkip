@@ -4,7 +4,6 @@ import com.arthenica.ffmpegkit.FFmpegKit
 import com.arthenica.ffmpegkit.ReturnCode
 import com.nihaltp.sbskip.util.AppLogger
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -23,7 +22,9 @@ interface FFmpegExecutionResult {
 
 class FFmpegMediaProcessor
     @Inject
-    constructor() : MediaProcessor {
+    constructor(
+        private val ffmpegLock: FFmpegLock,
+    ) : MediaProcessor {
         internal var commandExecutor: (String) -> FFmpegExecutionResult = { command ->
             val session = FFmpegKit.execute(command)
             val rc = session.getReturnCode()
@@ -35,21 +36,13 @@ class FFmpegMediaProcessor
             }
         }
 
-        /**
-         * Serializes FFmpeg processing so only one FFmpeg session runs at a time.
-         * FFmpeg runs in-process and allocates large frame buffers; concurrent sessions
-         * compete for the same app heap and can trigger OOM / Low Memory Killer,
-         * freezing the UI (white screen) and killing sibling yt-dlp downloads (exit=137).
-         */
-        private val ffmpegMutex = Mutex()
-
         override suspend fun processMedia(
             inputFile: File,
             outputFile: File,
             keepRanges: List<Pair<Double, Double>>,
             convertVideoToAudio: Boolean,
             progressListener: (Int) -> Unit,
-        ) = ffmpegMutex.withLock {
+        ) = ffmpegLock.mutex.withLock {
             withContext(Dispatchers.IO) {
                 if (!inputFile.exists()) {
                     throw IOException("Input file does not exist: ${inputFile.absolutePath}")
