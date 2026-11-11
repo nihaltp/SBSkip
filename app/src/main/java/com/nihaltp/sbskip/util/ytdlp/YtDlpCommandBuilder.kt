@@ -171,12 +171,15 @@ object YtDlpCommandBuilder {
             MediaType.AUDIO -> {
                 args.add("-f")
                 args.add(AUDIO_FORMAT_SPEC)
-                if (request.convertToAudio) {
-                    args.add("--extract-audio")
-                    args.add("--audio-format")
-                    args.add("m4a")
-                }
             }
+        }
+
+        // Extract audio for converted items regardless of media type, so a VIDEO item with
+        // convertVideoToAudio=true also gets --extract-audio instead of saving video as audio.
+        if (request.convertToAudio) {
+            args.add("--extract-audio")
+            args.add("--audio-format")
+            args.add("m4a")
         }
         args.add(url)
         return args
