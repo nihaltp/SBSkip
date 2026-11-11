@@ -30,6 +30,10 @@ class WorkManagerDownloadScheduler
             // This makes scheduling idempotent per queue-item ID (fixes restart reprocessing).
             // Each download runs independently, so failure of one doesn't cancel others.
             // Sequential execution is best-effort via WorkManager's default concurrency limits.
+            //
+            // Cancel any existing work first so that a retry replaces stale/running work
+            // instead of being silently ignored by KEEP while the old worker is still alive.
+            workManager.cancelUniqueWork(workName)
             workManager.enqueueUniqueWork(workName, ExistingWorkPolicy.KEEP, workRequest)
         }
 
