@@ -216,7 +216,7 @@ class DownloadWorker
                             thumbnailUrl = finalThumbnailUrl,
                             sbskipSegments = sbSkipSegments,
                             removedCategories = categories.map { it.name }.toSet(),
-                            convertToAudio = item.convertVideoToAudio && item.mediaType == MediaType.VIDEO,
+                            convertToAudio = item.convertVideoToAudio,
                             onProgress = { percent ->
                                 val mappedProgress = (20 + percent.toInt() * 10 / 100).coerceIn(20, 30)
                                 notificationManager.showActive(
