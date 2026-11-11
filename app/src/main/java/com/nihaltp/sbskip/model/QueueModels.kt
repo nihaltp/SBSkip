@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 enum class DownloadQueueStatus {
     QUEUED,
     FETCHING_SEGMENTS,
+    DOWNLOADING,
     PROCESSING,
     COMPLETED,
     FAILED,

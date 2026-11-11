@@ -33,6 +33,8 @@ import com.nihaltp.sbskip.workers.helpers.ProcessingPlanBuilder
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.io.File
 import java.io.IOException
 
@@ -172,12 +174,18 @@ class DownloadWorker
                     taskTitle = item.title.ifBlank { oembedTitle ?: localMetadata.title }
                     queueRepository.updateMetadata(queueItemId, taskTitle, thumbUrl, fileDuration)
 
-                    // Fetch SponsorBlock skip segments
-                    val fetchedSegments = metadataFetcher.fetchSponsorSegments(videoId, categories)
-                    segments = fetchedSegments
-                    AppLogger.worker("Fetched ${fetchedSegments.size} SponsorBlock segments for videoID=$videoId")
+                    // Fetch SponsorBlock skip segments (skip for yt-dlp: native removal handles it)
+                    if (!isYtDlp) {
+                        val fetchedSegments = metadataFetcher.fetchSponsorSegments(videoId, categories)
+                        segments = fetchedSegments
+                        AppLogger.worker("Fetched ${fetchedSegments.size} SponsorBlock segments for videoID=$videoId")
 
-                    sbSkipSegments = fetchedSegments.joinToString(";") { "${it.startSeconds}-${it.endSeconds}" }
+                        sbSkipSegments = fetchedSegments.joinToString(";") { "${it.startSeconds}-${it.endSeconds}" }
+                    } else {
+                        segments = emptyList()
+                        sbSkipSegments = ""
+                        AppLogger.worker("Skipping SponsorBlock API fetch for yt-dlp: native removal enabled")
+                    }
                 } else {
                     taskTitle = item.title.ifBlank { localMetadata.title }
                     queueRepository.updateMetadata(queueItemId, taskTitle, null, fileDuration)
@@ -188,6 +196,7 @@ class DownloadWorker
                 var inputFileUri = item.localFileUri
                 var downloadedExtension: String? = null
                 if (isYtDlp) {
+                    queueRepository.markDownloading(queueItemId)
                     notificationManager.showActive(
                         notificationId,
                         taskTitle,
@@ -195,15 +204,29 @@ class DownloadWorker
                         applicationContext.getString(R.string.status_downloading),
                     )
                     downloadedFile =
-                        downloadViaYtDlp(item, settings) { percent ->
-                            val mappedProgress = (20 + percent.toInt() * 10 / 100).coerceIn(20, 30)
-                            notificationManager.showActive(
-                                id = notificationId,
-                                title = taskTitle,
-                                progress = mappedProgress,
-                                message = applicationContext.getString(R.string.status_downloading),
-                            )
-                        }
+                        downloadViaYtDlp(
+                            item = item,
+                            settings = settings,
+                            sponsorBlockCategories = categories.map { it.name }.toSet(),
+                            youtubeVideoId = videoId,
+                            youtubeVideoUrl = Constants.buildYouTubeWatchUrl(videoId ?: ""),
+                            youtubeTitle = oembedTitle,
+                            authorName = oembedAuthorName,
+                            authorUrl = oembedAuthorUrl,
+                            thumbnailUrl = finalThumbnailUrl,
+                            sbskipSegments = sbSkipSegments,
+                            removedCategories = categories.map { it.name }.toSet(),
+                            convertToAudio = item.convertVideoToAudio && item.mediaType == MediaType.VIDEO,
+                            onProgress = { percent ->
+                                val mappedProgress = (20 + percent.toInt() * 10 / 100).coerceIn(20, 30)
+                                notificationManager.showActive(
+                                    id = notificationId,
+                                    title = taskTitle,
+                                    progress = mappedProgress,
+                                    message = applicationContext.getString(R.string.status_downloading),
+                                )
+                            },
+                        )
                     inputFileUri = downloadedFile!!.absolutePath
                     downloadedExtension = downloadedFile.extension.ifBlank { null }
                     AppLogger.worker("yt-dlp download complete: ${downloadedFile.absolutePath}")
@@ -254,30 +277,38 @@ class DownloadWorker
                         musicConfidence = ytMetadataRef?.musicConfidence ?: 0f,
                     )
 
-                // Process media with FFmpeg
+                // Process media with FFmpeg (skip for yt-dlp: native sponsorblock removal handles trimming)
                 tempOutputFile =
-                    mediaProcessingManager.process(
-                        queueItemId = queueItemId,
-                        localFileUri = inputFileUri,
-                        localExtension = localMetadata.extension,
-                        plan = plan,
-                    ) { percent ->
-                        // Progress mapped between 25% and 90%
-                        val mappedProgress = 25 + (percent * 65 / 100)
-                        notificationManager.showActive(
-                            id = notificationId,
-                            title = taskTitle,
-                            progress = mappedProgress,
-                            message = applicationContext.getString(R.string.notification_trimming_segments, percent),
-                        )
+                    if (isYtDlp) {
+                        downloadedFile!!
+                    } else {
+                        mediaProcessingManager.process(
+                            queueItemId = queueItemId,
+                            localFileUri = inputFileUri,
+                            localExtension = localMetadata.extension,
+                            plan = plan,
+                        ) { percent ->
+                            // Progress mapped between 25% and 90%
+                            val mappedProgress = 25 + (percent * 65 / 100)
+                            notificationManager.showActive(
+                                id = notificationId,
+                                title = taskTitle,
+                                progress = mappedProgress,
+                                message = applicationContext.getString(R.string.notification_trimming_segments, percent),
+                            )
+                        }
                     }
 
-                // Apply metadata tags & thumbnail
+                // Apply metadata tags & thumbnail (skip for yt-dlp: yt-dlp handles metadata natively)
                 tempOutputFile =
-                    mediaTagger.applyMetadata(
-                        inputFile = tempOutputFile,
-                        processingContext = context,
-                    )
+                    if (isYtDlp) {
+                        tempOutputFile
+                    } else {
+                        mediaTagger.applyMetadata(
+                            inputFile = tempOutputFile,
+                            processingContext = context,
+                        )
+                    }
 
                 // 3. Save / overwrite media file
                 notificationManager.showActive(
@@ -362,6 +393,16 @@ class DownloadWorker
             item: com.nihaltp.sbskip.model.DownloadQueueItem,
             settings: com.nihaltp.sbskip.model.AppSettings,
             onProgress: (Float) -> Unit,
+            sponsorBlockCategories: Set<String>,
+            youtubeVideoId: String?,
+            youtubeVideoUrl: String?,
+            youtubeTitle: String?,
+            authorName: String?,
+            authorUrl: String?,
+            thumbnailUrl: String?,
+            sbskipSegments: String,
+            removedCategories: Set<String>,
+            convertToAudio: Boolean,
         ): File {
             val paths = ytDlpRuntime.ensure()
             val workDir = ytDlpRuntime.workDir(applicationContext.cacheDir, item.id)
@@ -374,6 +415,16 @@ class DownloadWorker
                     workDir = workDir,
                     maxQuality = settings.nativeQuality,
                     ffmpegLocation = paths.ffmpegLauncher,
+                    sponsorBlockCategories = sponsorBlockCategories,
+                    convertToAudio = convertToAudio,
+                    youtubeVideoId = youtubeVideoId,
+                    youtubeVideoUrl = youtubeVideoUrl,
+                    youtubeTitle = youtubeTitle,
+                    authorName = authorName,
+                    authorUrl = authorUrl,
+                    thumbnailUrl = thumbnailUrl,
+                    sbskipSegments = sbskipSegments,
+                    removedCategories = removedCategories,
                 )
             val command =
                 listOf(paths.pythonLauncher.absolutePath, paths.zipapp.absolutePath) +
@@ -381,8 +432,10 @@ class DownloadWorker
             val environment = ytDlpRuntime.environment(paths, workDir)
 
             val result =
-                ytDlpProcessRunner.run(command, environment) { progress ->
-                    onProgress(progress.percent ?: 0f)
+                downloadMutex.withLock {
+                    ytDlpProcessRunner.run(command, environment) { progress ->
+                        onProgress(progress.percent ?: 0f)
+                    }
                 }
 
             if (result.exitCode != 0) {
@@ -469,5 +522,14 @@ class DownloadWorker
             const val KEY_OUTPUT_PATH = "output_path"
             const val KEY_MESSAGE = "message"
             private const val MAX_NETWORK_RETRY_ATTEMPTS = 3
+
+            /**
+             * Serializes yt-dlp downloads so only one Python VM runs at a time.
+             * Without this, WorkManager launches all queue-item downloads concurrently,
+             * each spawning its own yt-dlp (Python) process. On low-RAM devices the
+             * combined memory pressure triggers the Low Memory Killer (SIGKILL, exit=137),
+             * failing downloads and making the UI go white.
+             */
+            private val downloadMutex = Mutex()
         }
     }
