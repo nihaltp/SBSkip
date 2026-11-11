@@ -217,6 +217,7 @@ class DownloadWorker
                             sbskipSegments = sbSkipSegments,
                             removedCategories = categories.map { it.name }.toSet(),
                             convertToAudio = item.convertVideoToAudio,
+                            musicMetadata = ytMetadataRef?.musicMetadata,
                             onProgress = { percent ->
                                 val mappedProgress = (20 + percent.toInt() * 10 / 100).coerceIn(20, 30)
                                 notificationManager.showActive(
@@ -403,6 +404,7 @@ class DownloadWorker
             sbskipSegments: String,
             removedCategories: Set<String>,
             convertToAudio: Boolean,
+            musicMetadata: com.nihaltp.sbskip.model.MusicMetadata?,
         ): File {
             val paths = ytDlpRuntime.ensure()
             val workDir = ytDlpRuntime.workDir(applicationContext.cacheDir, item.id)
@@ -425,6 +427,7 @@ class DownloadWorker
                     thumbnailUrl = thumbnailUrl,
                     sbskipSegments = sbskipSegments,
                     removedCategories = removedCategories,
+                    musicMetadata = musicMetadata,
                 )
             val command =
                 listOf(paths.pythonLauncher.absolutePath, paths.zipapp.absolutePath) +
