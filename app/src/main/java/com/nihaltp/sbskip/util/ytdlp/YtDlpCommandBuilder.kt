@@ -2,6 +2,7 @@ package com.nihaltp.sbskip.util.ytdlp
 
 import com.nihaltp.sbskip.BuildConfig
 import com.nihaltp.sbskip.model.MediaType
+import com.nihaltp.sbskip.model.MusicMetadata
 import java.io.File
 
 /** Thrown when a yt-dlp command cannot be assembled from the request. */
@@ -62,6 +63,8 @@ object YtDlpCommandBuilder {
         val sbskipSegments: String? = null,
         /** Removed category names for SBSKIP_REMOVED_CATEGORIES metadata tag. */
         val removedCategories: Set<String>? = null,
+        /** Music-derived metadata (artist, album, year, genre) from YouTube oEmbed. */
+        val musicMetadata: MusicMetadata? = null,
     )
 
     fun build(request: Request): List<String> {
@@ -154,6 +157,20 @@ object YtDlpCommandBuilder {
         metadataTags.add("SBSKIP_PROCESSED_AT" to System.currentTimeMillis().toString())
         request.removedCategories?.takeIf { it.isNotEmpty() }?.let {
             metadataTags.add("SBSKIP_REMOVED_CATEGORIES" to it.joinToString(","))
+        }
+        request.musicMetadata?.let { music ->
+            music.artists?.takeIf { it.isNotEmpty() }?.let {
+                metadataTags.add("artist" to it.joinToString(", "))
+            }
+            music.album?.takeIf { it.isNotBlank() }?.let {
+                metadataTags.add("album" to it)
+            }
+            music.year?.let {
+                metadataTags.add("date" to it.toString())
+            }
+            music.genre?.takeIf { it.isNotBlank() }?.let {
+                metadataTags.add("genre" to it)
+            }
         }
         metadataTags.forEach { (key, value) ->
             args.add("--metadata")
