@@ -567,7 +567,7 @@ fun SettingsScreen(
                             title = stringResource(id = R.string.label_github),
                             value = stringResource(id = R.string.app_github),
                             onClick = {
-                                val url = "https://" + context.getString(R.string.app_github)
+                                val url = "https://" + context.resources.getString(R.string.app_github)
                                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                                 context.startActivity(intent)
                             },
@@ -585,7 +585,7 @@ fun SettingsScreen(
                             title = stringResource(id = R.string.label_issues),
                             value = stringResource(id = R.string.app_issues),
                             onClick = {
-                                val url = "https://" + context.getString(R.string.app_issues)
+                                val url = "https://" + context.resources.getString(R.string.app_issues)
                                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                                 context.startActivity(intent)
                             },

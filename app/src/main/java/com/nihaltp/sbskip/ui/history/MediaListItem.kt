@@ -97,7 +97,7 @@ fun MediaListItem(
                 }
                 Text(
                     modifier = Modifier.padding(top = 3.dp),
-                    text = fileSize?.let { formatFileSize(it) } ?: context.getString(R.string.unavailable),
+                    text = fileSize?.let { formatFileSize(it) } ?: context.resources.getString(R.string.unavailable),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,

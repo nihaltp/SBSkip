@@ -145,7 +145,7 @@ fun MainScreen(
         }
     val requestFilesPermissionWithRationale = {
         AppLogger.metadata("Permissions: Showing files permission rationale Toast and launching picker request...")
-        Toast.makeText(context, context.getString(R.string.permission_files_rationale), Toast.LENGTH_LONG).show()
+        Toast.makeText(context, context.resources.getString(R.string.permission_files_rationale), Toast.LENGTH_LONG).show()
         filesPermissionLauncher.launch(PermissionHelper.getRequiredFilesPermissions())
     }
     val coroutineScope = rememberCoroutineScope()

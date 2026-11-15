@@ -129,7 +129,7 @@ fun ErrorDetailsDialog(
                             clipboardManager.setText(AnnotatedString(reportBody))
                             Toast.makeText(
                                 context,
-                                context.getString(R.string.error_copied_toast),
+                                context.resources.getString(R.string.error_copied_toast),
                                 Toast.LENGTH_SHORT,
                             ).show()
                         },
