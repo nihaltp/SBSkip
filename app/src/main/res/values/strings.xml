@@ -79,6 +79,8 @@
     <string name="settings_yt_dlp_quality_best">Best Available</string>
     <string name="settings_yt_dlp_auto_update_title">Auto-update yt-dlp</string>
     <string name="settings_yt_dlp_auto_update_desc">Automatically update the bundled yt-dlp when a new version is available</string>
+    <string name="settings_yt_dlp_include_sponsorblock_segments_title">Include SponsorBlock segments in metadata</string>
+    <string name="settings_yt_dlp_include_sponsorblock_segments_desc">Fetch SponsorBlock skip segments and store them in the file metadata (requires network). When off, only the file duration is corrected via ffprobe.</string>
 
     <string name="settings_section_downloads">Downloads</string>
     <string name="settings_video_folder">Video folder</string>

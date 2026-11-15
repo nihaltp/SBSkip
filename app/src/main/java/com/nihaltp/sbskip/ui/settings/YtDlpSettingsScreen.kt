@@ -76,6 +76,9 @@ fun YtDlpSettingsScreen(
 
     var nativeQuality by remember { mutableStateOf(settings.nativeQuality) }
     var nativeAutoUpdate by remember { mutableStateOf(settings.nativeAutoUpdate) }
+    var ytDlpIncludeSponsorBlockSegments by remember {
+        mutableStateOf(settings.ytDlpIncludeSponsorBlockSegments)
+    }
 
     Scaffold(
         topBar = {
@@ -197,6 +200,56 @@ fun YtDlpSettingsScreen(
                                 onCheckedChange = { checked ->
                                     nativeAutoUpdate = checked
                                     viewModel.updateYtDlpAutoUpdate(checked)
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Text(
+                            text = stringResource(id = R.string.settings_yt_dlp_include_sponsorblock_segments_title),
+                            fontWeight = FontWeight.SemiBold,
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        HorizontalDivider()
+                        Text(
+                            text = stringResource(id = R.string.settings_yt_dlp_include_sponsorblock_segments_desc),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Row(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 12.dp)
+                                    .clickable {
+                                        ytDlpIncludeSponsorBlockSegments = !ytDlpIncludeSponsorBlockSegments
+                                        viewModel.updateYtDlpIncludeSponsorBlockSegments(ytDlpIncludeSponsorBlockSegments)
+                                    },
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = stringResource(id = R.string.settings_yt_dlp_include_sponsorblock_segments_title),
+                                style = MaterialTheme.typography.bodyLarge,
+                            )
+                            Switch(
+                                checked = ytDlpIncludeSponsorBlockSegments,
+                                onCheckedChange = { checked ->
+                                    ytDlpIncludeSponsorBlockSegments = checked
+                                    viewModel.updateYtDlpIncludeSponsorBlockSegments(checked)
                                 },
                             )
                         }
