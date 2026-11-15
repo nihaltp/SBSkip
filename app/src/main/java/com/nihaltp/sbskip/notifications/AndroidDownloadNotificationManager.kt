@@ -4,6 +4,7 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
+import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.os.Build
 import androidx.core.app.NotificationCompat
@@ -208,6 +209,15 @@ class AndroidDownloadNotificationManager
             // Check if this specific notification ID is disabled
             if (notificationIdPrefs[id] == false) return
             ensureChannel()
+            // POST_NOTIFICATIONS is required on API 33+; skip if the user hasn't granted it.
+            if (
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                context.checkSelfPermission(
+                    android.Manifest.permission.POST_NOTIFICATIONS,
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                return
+            }
             NotificationManagerCompat.from(context).notify(id, notification)
         }
 
