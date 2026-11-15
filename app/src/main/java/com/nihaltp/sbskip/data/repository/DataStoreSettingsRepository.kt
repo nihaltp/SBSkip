@@ -68,6 +68,7 @@ class DataStoreSettingsRepository
             val NATIVE_DOWNLOADER_SHA = stringPreferencesKey("native_downloader_sha")
             val NATIVE_QUALITY = stringPreferencesKey("native_quality")
             val NATIVE_AUTO_UPDATE = booleanPreferencesKey("native_auto_update")
+            val YTDLP_INCLUDE_SPONSORBLOCK_SEGMENTS = booleanPreferencesKey("yt_dlp_include_sponsorblock_segments")
             val ALREADY_DOWNLOADED_BEHAVIOR = stringPreferencesKey("already_downloaded_behavior")
             val IMPORT_QUEUE = stringPreferencesKey("import_queue")
             val NOTIFICATION_CHANNEL_PREFS = stringPreferencesKey("notification_channel_prefs")
@@ -90,6 +91,8 @@ class DataStoreSettingsRepository
                 val nativeDownloaderSha = preferences[PreferencesKeys.NATIVE_DOWNLOADER_SHA] ?: ""
                 val nativeQuality = preferences[PreferencesKeys.NATIVE_QUALITY] ?: "1080"
                 val nativeAutoUpdate = preferences[PreferencesKeys.NATIVE_AUTO_UPDATE] ?: false
+                val ytDlpIncludeSponsorBlockSegments =
+                    preferences[PreferencesKeys.YTDLP_INCLUDE_SPONSORBLOCK_SEGMENTS] ?: false
 
                 val categories =
                     preferences[PreferencesKeys.SB_CATEGORIES]?.mapNotNull { name ->
@@ -145,6 +148,7 @@ class DataStoreSettingsRepository
                     nativeDownloaderSha = nativeDownloaderSha,
                     nativeQuality = nativeQuality,
                     nativeAutoUpdate = nativeAutoUpdate,
+                    ytDlpIncludeSponsorBlockSegments = ytDlpIncludeSponsorBlockSegments,
                     alreadyDownloadedBehavior =
                         runCatching {
                             AlreadyDownloadedBehavior.valueOf(
@@ -230,6 +234,8 @@ class DataStoreSettingsRepository
                         nativeDownloaderSha = preferences[PreferencesKeys.NATIVE_DOWNLOADER_SHA] ?: "",
                         nativeQuality = preferences[PreferencesKeys.NATIVE_QUALITY] ?: "1080",
                         nativeAutoUpdate = preferences[PreferencesKeys.NATIVE_AUTO_UPDATE] ?: false,
+                        ytDlpIncludeSponsorBlockSegments =
+                            preferences[PreferencesKeys.YTDLP_INCLUDE_SPONSORBLOCK_SEGMENTS] ?: false,
                         alreadyDownloadedBehavior =
                             runCatching {
                                 AlreadyDownloadedBehavior.valueOf(
@@ -288,6 +294,8 @@ class DataStoreSettingsRepository
                 preferences[PreferencesKeys.NATIVE_DOWNLOADER_SHA] = updated.nativeDownloaderSha
                 preferences[PreferencesKeys.NATIVE_QUALITY] = updated.nativeQuality
                 preferences[PreferencesKeys.NATIVE_AUTO_UPDATE] = updated.nativeAutoUpdate
+                preferences[PreferencesKeys.YTDLP_INCLUDE_SPONSORBLOCK_SEGMENTS] =
+                    updated.ytDlpIncludeSponsorBlockSegments
                 preferences[PreferencesKeys.ALREADY_DOWNLOADED_BEHAVIOR] = updated.alreadyDownloadedBehavior.name
                 preferences[PreferencesKeys.IMPORT_QUEUE] = json.encodeToString(updated.importQueue)
                 preferences[PreferencesKeys.NOTIFICATION_CHANNEL_PREFS] = json.encodeToString(updated.notificationChannelPrefs)
