@@ -124,7 +124,7 @@ fun MediaDetailsDialog(
                 TextButton(
                     onClick = {
                         clipboardManager.setText(AnnotatedString(item.title))
-                        Toast.makeText(context, context.getString(R.string.title_copied_toast), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.resources.getString(R.string.title_copied_toast), Toast.LENGTH_SHORT).show()
                     },
                 ) {
                     Text(stringResource(id = R.string.copy_title))
@@ -132,7 +132,7 @@ fun MediaDetailsDialog(
                 TextButton(
                     onClick = {
                         clipboardManager.setText(AnnotatedString(item.cleanUrl))
-                        Toast.makeText(context, context.getString(R.string.url_copied_toast), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.resources.getString(R.string.url_copied_toast), Toast.LENGTH_SHORT).show()
                     },
                 ) {
                     Text(stringResource(id = R.string.copy_url))

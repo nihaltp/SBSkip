@@ -125,7 +125,7 @@ fun PendingDownloadCard(
                                                     if (success) {
                                                         Toast.makeText(
                                                             context,
-                                                            context.getString(R.string.thumbnail_copied_toast),
+                                                            context.resources.getString(R.string.thumbnail_copied_toast),
                                                             Toast.LENGTH_SHORT,
                                                         ).show()
                                                     } else {
