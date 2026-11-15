@@ -13,7 +13,6 @@ import java.io.FileOutputStream
 import java.io.InputStream
 import java.nio.file.FileAlreadyExistsException
 import java.nio.file.Files
-import java.nio.file.Path
 import java.security.MessageDigest
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -275,10 +274,10 @@ private fun unzipRootfs(
                         zipFile.getInputStream(entry).use { it.readBytes().decodeToString() }
                     entryDestination.parentFile?.mkdirs()
                     try {
-                        Files.createSymbolicLink(entryDestination.toPath(), Path.of(linkTarget))
+                        Files.createSymbolicLink(entryDestination.toPath(), File(linkTarget).toPath())
                     } catch (e: FileAlreadyExistsException) {
                         entryDestination.delete()
-                        Files.createSymbolicLink(entryDestination.toPath(), Path.of(linkTarget))
+                        Files.createSymbolicLink(entryDestination.toPath(), File(linkTarget).toPath())
                     }
                 }
                 else -> {
