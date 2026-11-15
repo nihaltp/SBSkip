@@ -9,6 +9,7 @@ import com.nihaltp.sbskip.model.ProcessingContext
 import com.nihaltp.sbskip.processing.FFmpegLock
 import com.nihaltp.sbskip.util.AppLogger
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.sync.withLock
 import java.io.File
 import javax.inject.Inject
 
