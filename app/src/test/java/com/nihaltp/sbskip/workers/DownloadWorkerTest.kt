@@ -34,6 +34,7 @@ import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertTrue
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -319,7 +320,11 @@ class DownloadWorkerTest {
             workDir.mkdirs()
             File(workDir, "out.mp4").createNewFile()
 
-            worker.doWork()
+            // yt-dlp should have run and download completed
+            val result = worker.doWork()
+            assertTrue(result is androidx.work.ListenableWorker.Result.Success)
+            coVerify { ytDlpProcessRunner.run(any(), any(), any()) }
+            coVerify { queueRepository.markCompleted(item.id, any(), any()) }
 
             // SponsorBlock API should NOT be called for yt-dlp
             coVerify(exactly = 0) { metadataFetcher.fetchSponsorSegments(any(), any()) }
@@ -350,7 +355,11 @@ class DownloadWorkerTest {
             workDir.mkdirs()
             File(workDir, "out.mp4").createNewFile()
 
-            worker.doWork()
+            // yt-dlp should have run and download completed
+            val result = worker.doWork()
+            assertTrue(result is androidx.work.ListenableWorker.Result.Success)
+            coVerify { ytDlpProcessRunner.run(any(), any(), any()) }
+            coVerify { queueRepository.markCompleted(item.id, any(), any()) }
 
             // FFmpeg processing should NOT be called for yt-dlp
             coVerify(exactly = 0) { mediaProcessingManager.process(any(), any(), any(), any(), any()) }
@@ -381,7 +390,11 @@ class DownloadWorkerTest {
             workDir.mkdirs()
             File(workDir, "out.mp4").createNewFile()
 
-            worker.doWork()
+            // yt-dlp should have run and download completed
+            val result = worker.doWork()
+            assertTrue(result is androidx.work.ListenableWorker.Result.Success)
+            coVerify { ytDlpProcessRunner.run(any(), any(), any()) }
+            coVerify { queueRepository.markCompleted(item.id, any(), any()) }
 
             // MediaTagger should NOT be called for yt-dlp
             coVerify(exactly = 0) { mediaTagger.applyMetadata(any(), any()) }
