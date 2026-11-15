@@ -1,8 +1,8 @@
 package com.nihaltp.sbskip.processing
 
+import kotlinx.coroutines.sync.Mutex
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlinx.coroutines.sync.Mutex
 
 /**
  * Process-wide lock that serializes all FFmpeg sessions.
@@ -16,6 +16,8 @@ import kotlinx.coroutines.sync.Mutex
  * of either class exist.
  */
 @Singleton
-class FFmpegLock @Inject constructor() {
-    val mutex = Mutex()
-}
+class FFmpegLock
+    @Inject
+    constructor() {
+        val mutex = Mutex()
+    }
