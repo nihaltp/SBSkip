@@ -12,6 +12,7 @@ import com.nihaltp.sbskip.model.ProcessingContext
 import com.nihaltp.sbskip.model.ProcessingPlan
 import com.nihaltp.sbskip.model.SponsorBlockCategory
 import com.nihaltp.sbskip.model.SponsorBlockSegment
+import com.nihaltp.sbskip.processing.FFmpegLock
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
@@ -37,7 +38,7 @@ class MediaTaggerTest {
     fun setup() {
         context = mockk(relaxed = true)
         coverArtManager = mockk(relaxed = true)
-        mediaTagger = MediaTagger(context, coverArtManager)
+        mediaTagger = MediaTagger(context, coverArtManager, FFmpegLock())
         capturedCommands.clear()
     }
 

@@ -128,16 +128,16 @@ fun DownloadedHistoryScreen(
                 snackbarHostState.showSnackbar(
                     message =
                         if (item.status == FolderImportStatus.COMPLETED) {
-                            context.getString(
+                            context.resources.getString(
                                 R.string.snackbar_folder_imported,
-                                item.folderName ?: context.getString(R.string.unknown_folder),
+                                item.folderName ?: context.resources.getString(R.string.unknown_folder),
                                 item.importedCount,
                             )
                         } else {
-                            context.getString(
+                            context.resources.getString(
                                 R.string.snackbar_folder_import_failed,
-                                item.folderName ?: context.getString(R.string.unknown_folder),
-                                item.errorMessage ?: context.getString(R.string.unknown_error),
+                                item.folderName ?: context.resources.getString(R.string.unknown_folder),
+                                item.errorMessage ?: context.resources.getString(R.string.unknown_error),
                             )
                         },
                 )
@@ -278,19 +278,19 @@ fun DownloadedHistoryScreen(
                     val message =
                         when {
                             outcome.imported > 0 ->
-                                context.getString(
+                                context.resources.getString(
                                     R.string.import_result_summary,
                                     outcome.imported,
                                     outcome.skipped,
                                 )
                             outcome.skipped > 0 ->
-                                context.getString(R.string.import_result_nothing_new, outcome.skipped)
+                                context.resources.getString(R.string.import_result_nothing_new, outcome.skipped)
                             else -> null
                         }
                     message?.let { snackbarHostState.showSnackbar(it) }
                 }
                 is ImportResult.Failure -> {
-                    ExportImportUtil.showToast(context, context.getString(R.string.import_failed, result.error))
+                    ExportImportUtil.showToast(context, context.resources.getString(R.string.import_failed, result.error))
                 }
             }
             textToImport = null
@@ -305,7 +305,7 @@ fun DownloadedHistoryScreen(
                 pendingExportContent?.let { content ->
                     coroutineScope.launch {
                         if (!ExportImportUtil.writeTextToUri(context, fileUri, content)) {
-                            ExportImportUtil.showToast(context, context.getString(R.string.export_file_failed))
+                            ExportImportUtil.showToast(context, context.resources.getString(R.string.export_file_failed))
                         }
                     }
                 }
@@ -321,7 +321,7 @@ fun DownloadedHistoryScreen(
                 pendingExportContent?.let { content ->
                     coroutineScope.launch {
                         if (!ExportImportUtil.writeTextToUri(context, fileUri, content)) {
-                            ExportImportUtil.showToast(context, context.getString(R.string.export_file_failed))
+                            ExportImportUtil.showToast(context, context.resources.getString(R.string.export_file_failed))
                         }
                     }
                 }
@@ -585,7 +585,7 @@ fun DownloadedHistoryScreen(
                                         Text(
                                             text =
                                                 queueItem.folderName
-                                                    ?: context.getString(R.string.unknown_folder),
+                                                    ?: context.resources.getString(R.string.unknown_folder),
                                             style = MaterialTheme.typography.bodyMedium,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis,
@@ -776,9 +776,9 @@ fun DownloadedHistoryScreen(
                         ExportImportUtil.showToast(
                             context,
                             if (success) {
-                                context.getString(R.string.export_copied_to_clipboard, queueItems.size)
+                                context.resources.getString(R.string.export_copied_to_clipboard, queueItems.size)
                             } else {
-                                context.getString(R.string.export_clipboard_failed)
+                                context.resources.getString(R.string.export_clipboard_failed)
                             },
                         )
                     }

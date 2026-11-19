@@ -12,6 +12,7 @@ import com.nihaltp.sbskip.model.DownloadSource
 import com.nihaltp.sbskip.model.MediaFileMetadata
 import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.model.ProcessingPlan
+import com.nihaltp.sbskip.model.SponsorBlockCategory
 import com.nihaltp.sbskip.model.SponsorBlockSegment
 import com.nihaltp.sbskip.model.YouTubeMetadata
 import com.nihaltp.sbskip.notifications.DownloadNotificationManager
@@ -35,6 +36,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.After
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -207,6 +209,7 @@ class DownloadWorkerTest {
             coVerify { ytDlpRuntime.ensure() }
             verify { ytDlpCommandBuilder.build(any()) }
             coVerify { ytDlpProcessRunner.run(any(), any(), any()) }
+            coVerify { queueRepository.markDownloading(item.id) }
             coVerify { queueRepository.markProcessing(item.id) }
             coVerify { queueRepository.markCompleted(item.id, any(), any()) }
         }
@@ -291,5 +294,137 @@ class DownloadWorkerTest {
             coVerify(exactly = 0) { ytDlpRuntime.ensure() }
             verify(exactly = 0) { ytDlpCommandBuilder.build(any()) }
             coVerify(exactly = 0) { ytDlpProcessRunner.run(any(), any(), any()) }
+        }
+
+    @Test
+    fun `yt-dlp path fetches sponsorblock segments for metadata and duration`() =
+        runTest {
+            val item = ytDlpQueueItem()
+            coEvery { queueRepository.findItemById(any()) } returns item
+
+            val paths = mockk<YtDlpPaths>(relaxed = true)
+            every { paths.ffmpegLauncher } returns File("/system/lib/ffmpeg")
+            every { paths.pythonLauncher } returns File("/system/lib/python")
+            coEvery { ytDlpRuntime.ensure(any()) } returns paths
+            coEvery { ytDlpRuntime.environment(any(), any()) } returns emptyMap()
+            every { ytDlpCommandBuilder.build(any()) } returns listOf("yt-dlp", "--no-playlist", item.url)
+            coEvery { ytDlpProcessRunner.run(any(), any(), any()) }
+                .returns(
+                    YtDlpRunResult(
+                        exitCode = 0,
+                        stdout = "",
+                        stderrTail = "",
+                        lastProgress = null,
+                    ),
+                )
+            val workDir = File(System.getProperty("java.io.tmpdir"), "ytdlp-work")
+            workDir.mkdirs()
+            File(workDir, "out.mp4").createNewFile()
+
+            // Mock SponsorBlock segments
+            coEvery { metadataFetcher.fetchSponsorSegments(any(), any()) } returns
+                listOf(
+                    SponsorBlockSegment(category = SponsorBlockCategory.SPONSOR, startSeconds = 10.0, endSeconds = 20.0),
+                    SponsorBlockSegment(category = SponsorBlockCategory.SELF_PROMOTION, startSeconds = 100.0, endSeconds = 110.0),
+                )
+
+            // yt-dlp should have run and download completed
+            val result = worker.doWork()
+            assertTrue(result is androidx.work.ListenableWorker.Result.Success)
+            coVerify { ytDlpProcessRunner.run(any(), any(), any()) }
+            coVerify { queueRepository.markCompleted(item.id, any(), any()) }
+
+            // SponsorBlock API SHOULD be called for yt-dlp (for metadata and duration calculation)
+            coVerify(exactly = 1) { metadataFetcher.fetchSponsorSegments(any(), any()) }
+        }
+
+    @Test
+    fun `yt-dlp path skips ffmpeg processing`() =
+        runTest {
+            val item = ytDlpQueueItem()
+            coEvery { queueRepository.findItemById(any()) } returns item
+
+            val paths = mockk<YtDlpPaths>(relaxed = true)
+            every { paths.ffmpegLauncher } returns File("/system/lib/ffmpeg")
+            every { paths.pythonLauncher } returns File("/system/lib/python")
+            coEvery { ytDlpRuntime.ensure(any()) } returns paths
+            coEvery { ytDlpRuntime.environment(any(), any()) } returns emptyMap()
+            every { ytDlpCommandBuilder.build(any()) } returns listOf("yt-dlp", "--no-playlist", item.url)
+            coEvery { ytDlpProcessRunner.run(any(), any(), any()) }
+                .returns(
+                    YtDlpRunResult(
+                        exitCode = 0,
+                        stdout = "",
+                        stderrTail = "",
+                        lastProgress = null,
+                    ),
+                )
+            val workDir = File(System.getProperty("java.io.tmpdir"), "ytdlp-work")
+            workDir.mkdirs()
+            File(workDir, "out.mp4").createNewFile()
+
+            // yt-dlp should have run and download completed
+            val result = worker.doWork()
+            assertTrue(result is androidx.work.ListenableWorker.Result.Success)
+            coVerify { ytDlpProcessRunner.run(any(), any(), any()) }
+            coVerify { queueRepository.markCompleted(item.id, any(), any()) }
+
+            // FFmpeg processing should NOT be called for yt-dlp
+            coVerify(exactly = 0) { mediaProcessingManager.process(any(), any(), any(), any(), any()) }
+        }
+
+    @Test
+    fun `yt-dlp path skips media tagger`() =
+        runTest {
+            val item = ytDlpQueueItem()
+            coEvery { queueRepository.findItemById(any()) } returns item
+
+            val paths = mockk<YtDlpPaths>(relaxed = true)
+            every { paths.ffmpegLauncher } returns File("/system/lib/ffmpeg")
+            every { paths.pythonLauncher } returns File("/system/lib/python")
+            coEvery { ytDlpRuntime.ensure(any()) } returns paths
+            coEvery { ytDlpRuntime.environment(any(), any()) } returns emptyMap()
+            every { ytDlpCommandBuilder.build(any()) } returns listOf("yt-dlp", "--no-playlist", item.url)
+            coEvery { ytDlpProcessRunner.run(any(), any(), any()) }
+                .returns(
+                    YtDlpRunResult(
+                        exitCode = 0,
+                        stdout = "",
+                        stderrTail = "",
+                        lastProgress = null,
+                    ),
+                )
+            val workDir = File(System.getProperty("java.io.tmpdir"), "ytdlp-work")
+            workDir.mkdirs()
+            File(workDir, "out.mp4").createNewFile()
+
+            // yt-dlp should have run and download completed
+            val result = worker.doWork()
+            assertTrue(result is androidx.work.ListenableWorker.Result.Success)
+            coVerify { ytDlpProcessRunner.run(any(), any(), any()) }
+            coVerify { queueRepository.markCompleted(item.id, any(), any()) }
+
+            // MediaTagger should NOT be called for yt-dlp
+            coVerify(exactly = 0) { mediaTagger.applyMetadata(any(), any()) }
+        }
+
+    @Test
+    fun `non-yt-dlp path calls sponsorblock api ffmpeg and tagger`() =
+        runTest {
+            val item =
+                ytDlpQueueItem(
+                    downloadSource = DownloadSource.LOCAL_FILE,
+                    localFileUri = "content://media/local.mp4",
+                )
+            coEvery { queueRepository.findItemById(any()) } returns item
+            coEvery { durationValidator.validate(any(), any(), any()) }
+                .returns(MediaFileMetadata(title = "Test", extension = "mp4", durationSeconds = 100L))
+
+            worker.doWork()
+
+            // Non-yt-dlp SHOULD call SponsorBlock API, FFmpeg, and MediaTagger
+            coVerify(atLeast = 1) { metadataFetcher.fetchSponsorSegments(any(), any()) }
+            coVerify(atLeast = 1) { mediaProcessingManager.process(any(), any(), any(), any(), any()) }
+            coVerify(atLeast = 1) { mediaTagger.applyMetadata(any(), any()) }
         }
 }

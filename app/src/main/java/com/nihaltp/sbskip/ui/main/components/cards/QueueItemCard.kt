@@ -90,7 +90,7 @@ fun QueueItemCard(
                                                         if (success) {
                                                             Toast.makeText(
                                                                 context,
-                                                                context.getString(R.string.thumbnail_copied_toast),
+                                                                context.resources.getString(R.string.thumbnail_copied_toast),
                                                                 Toast.LENGTH_SHORT,
                                                             ).show()
                                                         } else {
@@ -150,7 +150,10 @@ fun QueueItemCard(
                 }
             }
 
-            if (item.status == DownloadQueueStatus.FETCHING_SEGMENTS || item.status == DownloadQueueStatus.PROCESSING) {
+            if (item.status == DownloadQueueStatus.FETCHING_SEGMENTS ||
+                item.status == DownloadQueueStatus.PROCESSING ||
+                item.status == DownloadQueueStatus.DOWNLOADING
+            ) {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             }
         }

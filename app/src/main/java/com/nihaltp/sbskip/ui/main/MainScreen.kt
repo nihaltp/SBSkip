@@ -145,7 +145,7 @@ fun MainScreen(
         }
     val requestFilesPermissionWithRationale = {
         AppLogger.metadata("Permissions: Showing files permission rationale Toast and launching picker request...")
-        Toast.makeText(context, context.getString(R.string.permission_files_rationale), Toast.LENGTH_LONG).show()
+        Toast.makeText(context, context.resources.getString(R.string.permission_files_rationale), Toast.LENGTH_LONG).show()
         filesPermissionLauncher.launch(PermissionHelper.getRequiredFilesPermissions())
     }
     val coroutineScope = rememberCoroutineScope()
@@ -719,16 +719,23 @@ fun MainScreen(
                 }
             }
 
-            val activeItems = uiState.queueItems.filter { it.status != com.nihaltp.sbskip.model.DownloadQueueStatus.COMPLETED }
+            val activeItems =
+                uiState.queueItems.filter {
+                    it.status != com.nihaltp.sbskip.model.DownloadQueueStatus.COMPLETED &&
+                        it.status != com.nihaltp.sbskip.model.DownloadQueueStatus.FAILED
+                }
+            val failedItems = uiState.queueItems.filter { it.status == com.nihaltp.sbskip.model.DownloadQueueStatus.FAILED }
             val completedItems = uiState.queueItems.filter { it.status == com.nihaltp.sbskip.model.DownloadQueueStatus.COMPLETED }
 
-            if (activeItems.isNotEmpty() || completedItems.isEmpty()) {
+            val allEmpty = activeItems.isEmpty() && failedItems.isEmpty() && completedItems.isEmpty()
+
+            if (activeItems.isNotEmpty() || allEmpty) {
                 item {
                     SectionHeader(title = stringResource(id = R.string.media_queue_title))
                 }
             }
 
-            if (activeItems.isEmpty() && completedItems.isEmpty()) {
+            if (allEmpty) {
                 item {
                     EmptyStateCard(
                         title = stringResource(id = R.string.no_jobs_title),
@@ -785,6 +792,26 @@ fun MainScreen(
                             )
                         }
                     }
+                }
+            }
+
+            if (failedItems.isNotEmpty()) {
+                item {
+                    SectionHeader(title = stringResource(id = R.string.failed_media_title))
+                }
+                items(failedItems, key = { it.id }) { queueItem ->
+                    QueueItemCard(
+                        item = queueItem,
+                        onRetry = { id -> onRetryQueueItem(id, false) },
+                        onRemove = { itemId ->
+                            val item = uiState.queueItems.find { it.id == itemId }
+                            item?.let {
+                                onRemoveQueueItem(it)
+                            }
+                        },
+                        onErrorClick = { errorDialogItem = it },
+                        onCardClick = { detailsDialogItem = it },
+                    )
                 }
             }
 

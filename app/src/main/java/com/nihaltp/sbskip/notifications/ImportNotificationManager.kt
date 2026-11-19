@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -99,7 +100,23 @@ class ImportNotificationManager
                     total = totalFiles,
                     progress = (totalFiles - remainingFiles).coerceAtLeast(0),
                 )
-            notificationManager.notify(NOTIFICATION_FILE_QUEUE, notification)
+            notifySafely(NOTIFICATION_FILE_QUEUE, notification)
+        }
+
+        private fun notifySafely(
+            id: Int,
+            notification: Notification,
+        ) {
+            // POST_NOTIFICATIONS is required on API 33+; skip if the user hasn't granted it.
+            if (
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                context.checkSelfPermission(
+                    android.Manifest.permission.POST_NOTIFICATIONS,
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                return
+            }
+            notificationManager.notify(id, notification)
         }
 
         /**
@@ -129,7 +146,7 @@ class ImportNotificationManager
                     total = 0,
                     progress = 0,
                 )
-            notificationManager.notify(NOTIFICATION_FOLDER_QUEUE, notification)
+            notifySafely(NOTIFICATION_FOLDER_QUEUE, notification)
         }
 
         /**

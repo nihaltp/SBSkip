@@ -578,4 +578,100 @@ class DefaultQueueRepositoryTest {
 
             assertTrue("Expected success for sbskip:// scheme", result.success)
         }
+
+    // ── retry: moves FAILED item back to QUEUED (failed queue section) ────────
+
+    @Test
+    fun `retry moves FAILED item to QUEUED and clears errorMessage`() =
+        runTest(testDispatcher) {
+            val existingEntity =
+                DownloadQueueEntity(
+                    id = 5L,
+                    url = "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                    title = "Test Video",
+                    localFileUri = "content://media/5",
+                    mediaType = "VIDEO",
+                    thumbnailUrl = null,
+                    durationSeconds = 180L,
+                    status = DownloadQueueStatus.FAILED,
+                    createdAtEpochMillis = 1000L,
+                    updatedAtEpochMillis = 1000L,
+                    errorMessage = "yt-dlp download failed: exit=137 stderr=",
+                    outputDurationSeconds = null,
+                    convertVideoToAudio = false,
+                    deleteOriginalVideo = true,
+                    audioOutputDirUri = null,
+                    videoOutputDirUri = null,
+                    relativePath = null,
+                    overwrite = false,
+                    bypassDurationCheck = false,
+                    noSuffix = false,
+                )
+            coEvery { dao.findById(5L) } returns existingEntity
+            coEvery { dao.updateStatusAndBypassDurationCheck(any(), any(), any(), any(), any()) } just Runs
+
+            val result = repository.retry(5L, bypassDurationCheck = false)
+
+            assertTrue("Expected success", result.success)
+            coVerify(exactly = 1) {
+                dao.updateStatusAndBypassDurationCheck(
+                    id = 5L,
+                    status = com.nihaltp.sbskip.model.DownloadQueueStatus.QUEUED,
+                    bypassDurationCheck = false,
+                    errorMessage = null,
+                    updatedAtEpochMillis = any(),
+                )
+            }
+        }
+
+    @Test
+    fun `retry on FAILED item schedules work via workScheduler`() =
+        runTest(testDispatcher) {
+            val existingEntity =
+                DownloadQueueEntity(
+                    id = 5L,
+                    url = "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                    title = "Test Video",
+                    localFileUri = "content://media/5",
+                    mediaType = "VIDEO",
+                    thumbnailUrl = null,
+                    durationSeconds = 180L,
+                    status = DownloadQueueStatus.FAILED,
+                    createdAtEpochMillis = 1000L,
+                    updatedAtEpochMillis = 1000L,
+                    errorMessage = "Download failed",
+                    outputDurationSeconds = null,
+                    convertVideoToAudio = false,
+                    deleteOriginalVideo = true,
+                    audioOutputDirUri = null,
+                    videoOutputDirUri = null,
+                    relativePath = null,
+                    overwrite = false,
+                    bypassDurationCheck = false,
+                    noSuffix = false,
+                )
+            coEvery { dao.findById(5L) } returns existingEntity
+            coEvery { dao.updateStatusAndBypassDurationCheck(any(), any(), any(), any(), any()) } just Runs
+
+            repository.retry(5L, bypassDurationCheck = false)
+
+            coVerify(exactly = 1) { workScheduler.schedule(5L) }
+        }
+
+    // ── markDownloading ──────────────────────────────────────────────────────
+
+    @Test
+    fun `markDownloading sets status to DOWNLOADING via dao`() =
+        runTest(testDispatcher) {
+            coEvery { dao.markDownloading(any(), any()) } just Runs
+
+            repository.markDownloading(5L)
+
+            coVerify(exactly = 1) {
+                dao.markDownloading(
+                    id = 5L,
+                    updatedAtEpochMillis = any(),
+                )
+            }
+        }
 }

@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface DownloadQueueDao {
-    @Query("SELECT * FROM download_queue ORDER BY createdAtEpochMillis DESC, id DESC")
+    @Query("SELECT * FROM download_queue ORDER BY createdAtEpochMillis ASC, id ASC")
     fun observeQueue(): Flow<List<DownloadQueueEntity>>
 
     @Query("SELECT * FROM download_queue WHERE id = :id")
@@ -20,7 +20,7 @@ interface DownloadQueueDao {
     @Query("SELECT * FROM download_queue WHERE status = 'QUEUED' ORDER BY createdAtEpochMillis ASC, id ASC LIMIT 1")
     suspend fun findNextQueuedItem(): DownloadQueueEntity?
 
-    @Query("SELECT * FROM download_queue WHERE status IN ('QUEUED', 'FETCHING_SEGMENTS')")
+    @Query("SELECT * FROM download_queue WHERE status IN ('QUEUED', 'FETCHING_SEGMENTS', 'DOWNLOADING')")
     suspend fun findActiveItems(): List<DownloadQueueEntity>
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
@@ -124,6 +124,19 @@ interface DownloadQueueDao {
     suspend fun markStatus(
         id: Long,
         status: DownloadQueueStatus,
+        updatedAtEpochMillis: Long,
+    )
+
+    @Query(
+        """
+        UPDATE download_queue
+        SET status = 'DOWNLOADING',
+            updatedAtEpochMillis = :updatedAtEpochMillis
+        WHERE id = :id
+        """,
+    )
+    suspend fun markDownloading(
+        id: Long,
         updatedAtEpochMillis: Long,
     )
 

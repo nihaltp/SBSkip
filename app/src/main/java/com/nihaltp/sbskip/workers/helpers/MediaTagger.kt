@@ -6,8 +6,10 @@ import com.arthenica.ffmpegkit.FFmpegKit
 import com.arthenica.ffmpegkit.ReturnCode
 import com.nihaltp.sbskip.BuildConfig
 import com.nihaltp.sbskip.model.ProcessingContext
+import com.nihaltp.sbskip.processing.FFmpegLock
 import com.nihaltp.sbskip.util.AppLogger
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.sync.withLock
 import java.io.File
 import javax.inject.Inject
 
@@ -16,6 +18,7 @@ open class MediaTagger
     constructor(
         @ApplicationContext private val context: Context,
         private val coverArtManager: CoverArtManager,
+        private val ffmpegLock: FFmpegLock,
     ) {
         open suspend fun applyMetadata(
             inputFile: File,
@@ -155,7 +158,9 @@ open class MediaTagger
 
             val session =
                 try {
-                    FFmpegKit.execute(command)
+                    ffmpegLock.mutex.withLock {
+                        FFmpegKit.execute(command)
+                    }
                 } finally {
                     thumbFile?.let { if (it.exists()) it.delete() }
                 }

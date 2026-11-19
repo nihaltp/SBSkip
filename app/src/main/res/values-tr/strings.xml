@@ -74,8 +74,10 @@
     <string name="settings_yt_dlp_quality_720p">720p</string>
     <string name="settings_yt_dlp_quality_1080p">1080p</string>
     <string name="settings_yt_dlp_quality_best">En İyi Kullanılabilir</string>
-    <string name="settings_yt_dlp_auto_update_title">yt-dlp&#8217;yi Otomatik G&#252;ncelle</string>
-    <string name="settings_yt_dlp_auto_update_desc">Yeni bir s&#252;r&#252;m mevcut olduğunda paketlenmi&#351; yt-dlp&#8217;yi otomatik olarak g&#252;ncelle</string>
+    <string name="settings_yt_dlp_auto_update_title">yt-dlp’yi Otomatik Güncelle</string>
+    <string name="settings_yt_dlp_auto_update_desc">Yeni bir sürüm mevcut olduğunda paketlenmiş yt-dlp’yi otomatik olarak güncelle</string>
+    <string name="settings_yt_dlp_include_sponsorblock_segments_title">SponsorBlock bölümlerini meta veriye dahil et</string>
+    <string name="settings_yt_dlp_include_sponsorblock_segments_desc">İndirilen dosyaya SponsorBlock atlama bölümlerini getir ve meta veride sakla (ağ gerektirir). Kapalı olduğunda, sadece dosya süresi ffprobe üzerinden düzeltilecektir.</string>
 
     <string name="settings_section_downloads">İndirilenler</string>
     <string name="settings_video_folder">Video klasörü</string>
@@ -107,8 +109,8 @@
     <string name="sponsorblock_categories_desc">Medyadan kırpılması gereken kategorileri etkinleştirin veya devre dışı bırakın.</string>
     <string name="toggle">Geçiş</string>
     <string name="start_download">İndirmeyi başlat</string>
-
     <string name="retry_download">İndirmeyi yeniden dene</string>
+
     <string name="category_sponsor">Sponsor</string>
     <string name="category_self_promotion">Ücretsiz / Kendi Tanıtımı</string>
     <string name="category_interaction_reminder">Etkileşim Hatırlatıcısı</string>
@@ -152,13 +154,15 @@
     <string name="confirm_this_file_prompt">Temizlemek istediğiniz dosya bu mu?</string>
     <string name="clean_this_file_button">Bu Dosyayı Temizle</string>
     <string name="detecting_recent_download">Son indirme algılanıyor...</string>
+    <string name="waiting_for_newpipe_download">İndirmenin tamamlanması bekleniyor… (%1$s kaldı)</string>
     <string name="search_now_button">Şimdi ara</string>
-    <string name="found_matching_file">✓ Eşleşen dosya bulundu (%%1$d güven)</string>
+    <string name="found_matching_file">✓ Eşleşen dosya bulundu (%1$d%% güven)</string>
     <string name="no_pending_download">Algılanacak bekleyen indirme yok.</string>
     <string name="no_matching_download_found">Eşleşen dosya bulunamadı. Manuel olarak bir dosya seçebilirsiniz.</string>
     <string name="newpipe_not_installed">NewPipe yüklü değil.</string>
     <string name="newpipe_launch_failed">NewPipe başlatılamıyor.</string>
     <string name="media_queue_title">Medya Temizleme Sırası</string>
+    <string name="failed_media_title">Başarısız İndirmeler</string>
     <string name="processed_media_title">İşlenen Medya</string>
     <string name="no_jobs_title">Henüz temizleme işi yok</string>
     <string name="no_jobs_body">SponsorBlock bölümlerini temizlemeye başlamak için yerel bir video/ses dosyası içe aktarın ve karşılık gelen YouTube bağlantısını yapıştırın.</string>
@@ -168,6 +172,8 @@
     <string name="error_details_intro">Temizleme ardışık düzeni bir hatayla karşılaştı:</string>
     <string name="error_report_explanation">Bu hatayı GitHub sorun sayfasına bildirebilirsiniz. Yığın izleme ve dosya ayrıntılarını içeren biçimlendirilmiş bir rapor sizin için önceden doldurulacaktır.</string>
     <string name="report_to_github">GitHub\'a Bildir</string>
+    <string name="copy_error_message">Hata Mesajını Kopyala</string>
+    <string name="error_copied_toast">Hata mesajı panoya kopyalandı</string>
     <string name="dismiss">Kapat</string>
 
     <!-- Media Details Dialog -->
@@ -224,6 +230,37 @@
     <string name="settings_sb_status_url_title">SponsorBlock Durum Sayfası URL\'si</string>
     <string name="settings_sb_status_url_field_label">Sunucu Durum Sayfası URL\'si</string>
 
+    <!-- Downloaded Videos History -->
+    <string name="downloaded_history_title">İndirmeler</string>
+    <string name="downloaded_history_scroll_to_newest">En yeniye kaydır</string>
+    <string name="downloaded_history_empty_title">Henüz indirilmiş video yok</string>
+    <string name="downloaded_history_empty_body">İndirilen ve içe aktarılan videolar burada görünür.</string>
+    <string name="downloaded_history_clear_title">İndirilen Videoları Temizle</string>
+    <string name="downloaded_history_clear_message">Bu işlem, kaydedilen tüm indirilmiş video kayıtlarını siler. Bu işlem geri alınamaz.</string>
+    <string name="show_more_actions">Diğer işlemleri göster</string>
+    <string name="export_backup">Yedeği dışa aktar</string>
+    <string name="import_backup">Yedeği içe aktar</string>
+    <string name="open_file">Dosyayı aç</string>
+    <string name="multiselect_mode">Çoklu seçim modu</string>
+    <string name="multiselect_item_count">%1$d seçildi</string>
+    <string name="unavailable">Kullanılamıyor</string>
+
+    <string name="settings_downloaded_videos_title">İndirilen Videolar Geçmişi</string>
+    <string name="settings_downloaded_videos_view_title">İndirilen Videoları Görüntüle</string>
+    <string name="settings_downloaded_videos_view_desc">Kaydedilen indirilmiş videoların listesini görüntüleyin.</string>
+    <string name="settings_downloaded_videos_clear_title">İndirilen Videoları Temizle</string>
+    <string name="settings_downloaded_videos_clear_desc">Kaydedilen tüm indirilmiş video kayıtlarını kaldırın.</string>
+    <string name="settings_downloaded_videos_clear_confirm_message">Bu işlem, kaydedilen tüm indirilmiş video kayıtlarını siler. Bu işlem geri alınamaz.</string>
+
+    <!-- Import from Folder -->
+    <string name="import_from_folder_scanning">Klasör taranıyor…</string>
+    <string name="import_queue_section">İçe Aktarma Sırası</string>
+    <string name="imported_count_format">%1$d öğe içe aktarıldı</string>
+    <string name="snackbar_folder_imported">“%1$s” içe aktarıldı (%2$d video)</string>
+    <string name="snackbar_folder_import_failed">“%1$s” içe aktarılamadı (%2$s)</string>
+    <string name="unknown_folder">Bilinmeyen klasör</string>
+    <string name="unknown_error">Bilinmeyen hata</string>
+
     <!-- Translation Section -->
     <string name="settings_section_translation">Çeviri</string>
     <string name="settings_request_translation">Dil İsteğinde Bulun</string>
@@ -238,7 +275,7 @@
 
     <!-- Duration Mismatch Dialog -->
     <string name="dialog_duration_mismatch_title">Süre Uyuşmazlığı</string>
-    <string name="dialog_duration_mismatch_message">İçe aktarılan yerel dosya süresi (%1$s), YouTube video süresiyle (%2$s) eşleşmiyor.\n\n1 saniyelik bir fark bile büyüktür. Yine de devam etmek istiyor musunuz?</string>
+    <string name="dialog_duration_mismatch_message">İçe aktarılan yerel dosya süresi (%1$s), YouTube video süresiyle (%2$s) eşleşmiyor.&#10;&#10;1 saniyelik bir fark bile büyüktür. Yine de devam etmek istiyor musunuz?</string>
     <string name="dialog_duration_mismatch_proceed">Yine de Devam Et</string>
     <string name="dialog_verifying_duration">Süre doğrulanıyor…</string>
 
@@ -274,7 +311,7 @@
 
     <!-- Conflict Dialog -->
     <string name="dialog_conflict_title">Dosya Zaten Var</string>
-    <string name="dialog_conflict_message">Hedef klasörde \"%1$s\" adında bir dosya zaten var. Değiştirmek mi yoksa yeni bir dosya olarak kaydetmek mi istiyorsunuz?</string>
+    <string name="dialog_conflict_message">Hedef klasörde "%1$s" adında bir dosya zaten var. Değiştirmek mi yoksa yeni bir dosya olarak kaydetmek mi istiyorsunuz?</string>
     <string name="dialog_conflict_replace">Değiştir</string>
     <string name="dialog_conflict_rename">Yeni Dosya Kaydet</string>
 
@@ -305,6 +342,170 @@
     <!-- Download Options Dialog -->
     <string name="dialog_download_options_title">İndirme Seçenekleri</string>
     <string name="dialog_download_options_proceed">Devam Et</string>
-    <string name="waiting_for_newpipe_download">İndirmenin tamamlanması bekleniyor… (%1$s kaldı)</string>
     <string name="options_button">Seçenekler</string>
+    <string name="show_less">Daha az göster</string>
+    <string name="show_all_videos">Tüm videoları göster (%1$d)</string>
+
+    <!-- Playlist Download -->
+    <string name="playlist_loading">Oynatma listesi yükleniyor veya tamamlandı</string>
+    <string name="playlist_close">Kapat</string>
+    <string name="playlist_download">İndir</string>
+    <string name="playlist_skip_video">Videoyu atla</string>
+    <string name="playlist_cancel_download">Oynatma Listesi İndirmesini İptal Et</string>
+    <string name="playlist_downloading">İndiriliyor…</string>
+    <string name="playlist_currently_downloading">Şu anda indiriliyor</string>
+    <string name="playlist_collapse">Daralt</string>
+    <string name="playlist_expand">Genişlet</string>
+    <string name="playlist_enqueue_summary">%1$d video sıraya eklendi; %2$d video atlandı</string>
+    <string name="playlist_enqueue_summary_with_asked">%1$d video sıraya eklendi; %2$d video atlandı; %3$d video zaten indirilmiş (HER SEFERİNDE SOR olarak ayarlı)</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_exit">Çıkış</string>
+    <string name="onboarding_allow">İzin ver</string>
+    <string name="onboarding_skip">Atla</string>
+    <string name="onboarding_continue">Devam et</string>
+    <string name="onboarding_step_files_title">Dosya ve Medya Erişimi</string>
+    <string name="onboarding_step_files_desc">SBSkip\'in indirdiğiniz medya dosyalarını bulup seçebilmesi için izne ihtiyacı var. Bu izni daha sonra Ayarlar\'dan değiştirebilirsiniz.</string>
+    <string name="onboarding_step_files_denied">İzin kalıcı olarak reddedildi. Bu izni daha sonra Ayarlar &gt; İzinler bölümünden etkinleştirebilirsiniz.</string>
+    <string name="onboarding_step_notifications_title">Bildirimler</string>
+    <string name="onboarding_step_notifications_desc">Sessiz indirme ve ilerleme bildirimlerini gösterir. Uygulamayı kullanmak için gerekli değildir. Bu seçeneği istediğiniz zaman Ayarlar\'dan etkinleştirebilir veya devre dışı bırakabilirsiniz.</string>
+    <string name="onboarding_step_notifications_denied">Bildirim izni kalıcı olarak reddedildi. Bu izni daha sonra Ayarlar &gt; Bildirimler bölümünden etkinleştirebilirsiniz.</string>
+    <string name="onboarding_step_watchlist_title">İzleme Listesi Klasörleri</string>
+    <string name="onboarding_step_watchlist_desc">SBSkip\'in indirilen dosyaları bulmak için taraması gereken klasörleri ekleyin. Bu, medyanızın otomatik olarak algılanmasına yardımcı olur. Klasörleri istediğiniz zaman Ayarlar\'dan ekleyebilir, kaldırabilir veya değiştirebilirsiniz.</string>
+    <string name="onboarding_step_watchlist_add">Klasör Ekle</string>
+    <string name="onboarding_step_watchlist_added">Klasör eklendi</string>
+
+    <!-- Duplicate Download Dialog -->
+    <string name="dialog_duplicate_download_title">Zaten İndirilmiş</string>
+    <string name="dialog_duplicate_download_message">Bu video zaten indirdiğiniz videolar arasında. Yeniden indirilsin mi?</string>
+    <string name="dialog_duplicate_download_message_named">“%1$s” zaten indirdiğiniz videolar arasında. Yeniden indirilsin mi?</string>
+    <string name="dialog_duplicate_download_again">Yeniden İndir</string>
+    <string name="dialog_duplicate_download_skip">Atla</string>
+    <string name="duplicate_download_skipped">Zaten indirilmiş, atlandı.</string>
+
+    <!-- Playlist Duplicate Dialog -->
+    <string name="dialog_playlist_duplicate_title">Oynatma Listesinde Zaten İndirilmiş Videolar Var</string>
+    <string name="dialog_playlist_duplicate_message">Bu oynatma listesindeki %1$d video zaten indirdiğiniz videolar arasında.</string>
+    <string name="dialog_playlist_duplicate_select">Yeniden indirmek istediğiniz videoları seçin:</string>
+    <string name="dialog_playlist_duplicate_download_selected">Seçilenleri İndir</string>
+    <string name="dialog_playlist_duplicate_skip_all">Tümünü Atla</string>
+
+    <!-- Main Screen Buttons -->
+    <string name="download_playlist_button">Oynatma Listesini İndir</string>
+
+    <!-- Already Downloaded Behavior Setting -->
+    <string name="settings_already_downloaded_title">Zaten İndirilmiş Videolar</string>
+    <string name="settings_already_downloaded_desc">Daha önce indirdiğiniz bir video yeniden istendiğinde ne yapılacağını belirleyin.</string>
+    <string name="already_downloaded_behavior_ask">Her seferinde sor</string>
+    <string name="already_downloaded_behavior_download_again">Yeniden indir</string>
+    <string name="already_downloaded_behavior_skip">Atla</string>
+
+    <!-- Import Queue Notifications -->
+    <string name="notification_channel_import_name">İçe aktarma ilerlemesi</string>
+    <string name="notification_channel_import_description">Klasörler içe aktarılırken sessiz ilerleme güncellemeleri gösterir.</string>
+    <string name="notification_import_files_title">Dosyalar içe aktarılıyor</string>
+    <plurals name="notification_import_files_remaining">
+        <item quantity="one">%1$d dosya kaldı</item>
+        <item quantity="other">%1$d dosya kaldı</item></plurals>
+    <string name="notification_import_folders_title">Klasörler içe aktarılıyor</string>
+    <plurals name="notification_import_folders_remaining">
+        <item quantity="one">%1$d klasör kaldı</item>
+        <item quantity="other">%1$d klasör kaldı</item></plurals>
+    <string name="notification_import_cancel">Taramayı iptal et</string>
+
+    <!-- Export/Import Queue -->
+    <string name="more_actions">Diğer işlemler</string>
+    <string name="export_queue">Kuyruğu Dışa Aktar</string>
+    <string name="import_queue">Listeyi İçe Aktar</string>
+
+    <string name="export_dialog_title">Kuyruğu Dışa Aktar</string>
+    <string name="export_dialog_message">Kuyruktaki %1$d öğe dışa aktarılsın mı?</string>
+    <string name="export_format_label">Biçim</string>
+    <string name="export_destination_label">Hedef</string>
+    <string name="export_button">Dışa Aktar</string>
+
+    <string name="export_format_video_ids">Yalnızca video kimlikleri</string>
+    <string name="export_format_video_ids_desc">Her satırda 11 karakterlik bir YouTube kimliği</string>
+    <string name="export_format_full_urls">Tam YouTube URL\'leri</string>
+    <string name="export_format_full_urls_desc">Her satırda tam bir video izleme URL\'si</string>
+    <string name="export_format_full_json">Tam JSON yedeği</string>
+    <string name="export_format_full_json_desc">Başlık, kategoriler ve meta verileri içerir</string>
+
+    <string name="export_dest_file">Dosyaya kaydet</string>
+    <string name="export_dest_file_desc">Dosya seçiciyi kullanarak konum seçin</string>
+    <string name="export_dest_clipboard">Panoya kopyala</string>
+    <string name="export_dest_clipboard_desc">Herhangi bir metin alanına yapıştırın</string>
+
+    <string name="export_copied_to_clipboard">%1$d öğe panoya aktarıldı</string>
+    <string name="export_clipboard_failed">Panoya kopyalanamadı</string>
+    <string name="export_saved_to_file">%1$s, İndirilenler klasörüne kaydedildi</string>
+    <string name="export_file_failed">Dosya kaydedilemedi</string>
+    <string name="export_empty_queue">Kuyruk boş; dışa aktarılacak öğe yok</string>
+
+    <string name="import_dialog_title">Listeyi İçe Aktar</string>
+    <string name="import_dialog_message">Panodan, dosyadan veya klasörden video kimliklerini ya da URL\'leri içe aktarın</string>
+    <string name="import_result_summary">%1$d video içe aktarıldı, %2$d video zaten geçmişte kayıtlı</string>
+    <string name="import_result_nothing_new">Yeni içe aktarılacak öğe yok; %1$d video zaten geçmişte kayıtlı</string>
+    <string name="import_errors_title">Bazı videolar içe aktarılamadı</string>
+    <string name="import_errors_message">Bu videolar atlandı ve içe aktarma işleminin geri kalanı devam etti:</string>
+    <string name="import_errors_more">ve %1$d tane daha</string>
+    <string name="import_source_label">Kaynak</string>
+    <string name="import_button">İçe Aktar</string>
+
+    <string name="import_source_file">Dosyadan içe aktar</string>
+    <string name="import_source_file_desc">Bir metin veya JSON dosyası seçin</string>
+    <string name="import_source_clipboard">Panodan içe aktar</string>
+    <string name="import_source_clipboard_desc">Video kimliklerini veya URL\'leri yapıştırın</string>
+    <string name="import_source_folder">Klasörden içe aktar</string>
+    <string name="import_source_folder_desc">İndirilen videoları bulmak için bir klasörü tara</string>
+
+    <string name="import_clipboard_empty">Pano boş veya geçerli video kimliği içermiyor</string>
+    <string name="import_failed">İçe aktarma başarısız: %1$s</string>
+    <string name="import_all_duplicates">%1$d video kimliğinin tümü zaten kuyrukta</string>
+    <string name="import_partial_success">%1$d yeni öğe içe aktarıldı, %2$d yinelenen öğe atlandı</string>
+    <string name="import_success">%1$d öğe başarıyla içe aktarıldı</string>
+    <string name="import_failed_generic">Öğeler içe aktarılamadı</string>
+
+    <string name="settings_export_queue">Kuyruğu Dışa Aktar</string>
+    <string name="settings_export_queue_desc">Kuyruk öğelerini video kimlikleri, URL\'ler veya JSON olarak kaydedin</string>
+    <string name="settings_import_queue">Kuyruğu İçe Aktar</string>
+    <string name="settings_import_queue_desc">Video kimliklerini veya URL\'leri dosyadan ya da panodan yükleyin</string>
+
+    <!-- Downloaded video search -->
+    <string name="downloaded_history_search">İndirilen videolarda ara</string>
+    <string name="downloaded_history_search_hint">İndirmelerde ara</string>
+    <string name="downloaded_history_search_clear">Arama sorgusunu temizle</string>
+    <string name="downloaded_history_search_close">Aramayı kapat</string>
+    <string name="downloaded_history_search_no_results_title">Eşleşen video bulunamadı</string>
+    <string name="downloaded_history_search_no_results_body">“%1$s” için sonuç bulunamadı. Başka bir arama deneyin.</string>
+
+    <string name="downloaded_history_file_missing">Dosya bu cihazda bulunamadı</string>
+
+    <!-- Notification Settings -->
+    <string name="settings_notification_channels_title">Bildirim Kanalları</string>
+    <string name="settings_notification_channels_desc">Bildirim kanallarını ayrı ayrı yönetin.</string>
+    <string name="settings_manage_notifications">Bildirimleri yönet</string>
+    <string name="settings_fix_notifications">Bildirim iznini düzelt</string>
+    <string name="settings_manage_in_system">Sistem ayarlarından yönet</string>
+    <string name="notification_channel_enabled">Etkin</string>
+    <string name="notification_channel_disabled">Devre dışı</string>
+    <string name="notification_id_description_prefix">%1$s: %2$s</string>
+
+    <!-- Notification ID Descriptions -->
+    <string name="notification_import_files_desc">Bir klasörden medya dosyaları içe aktarılırken ilerlemeyi gösterir.</string>
+    <string name="notification_import_folders_desc">İçe aktarma kuyruğundaki klasör sayısını gösterir.</string>
+    <string name="notification_active_download_title">Devam Eden İndirme</string>
+    <string name="notification_active_download_desc">Şu anda indirilen videonun ilerlemesini gösterir.</string>
+    <string name="notification_completed_title">İndirme Tamamlandı</string>
+    <string name="notification_completed_desc">Bir indirme başarıyla tamamlandığında gösterilir.</string>
+    <string name="notification_failed_title">İndirme Başarısız</string>
+    <string name="notification_failed_desc">Bir indirme başarısız olduğunda gösterilir.</string>
+
+    <!-- Import Queue Notifications -->
+
+    <!-- Folder import queue status -->
+    <string name="downloaded_history_import_status_pending">Beklemede</string>
+    <string name="downloaded_history_import_status_scanning">Taranıyor</string>
+    <string name="downloaded_history_import_status_completed">Tamamlandı</string>
+    <string name="downloaded_history_import_status_failed">Başarısız</string>
 </resources>

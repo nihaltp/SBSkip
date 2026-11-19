@@ -56,9 +56,9 @@ fun RawLogsScreen(
                 actions = {
                     IconButton(onClick = {
                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        val clip = ClipData.newPlainText(context.getString(R.string.logs_title), rawLogsText)
+                        val clip = ClipData.newPlainText(context.resources.getString(R.string.logs_title), rawLogsText)
                         clipboard.setPrimaryClip(clip)
-                        Toast.makeText(context, context.getString(R.string.logs_copied_toast), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.resources.getString(R.string.logs_copied_toast), Toast.LENGTH_SHORT).show()
                     }) {
                         Icon(Icons.Default.ContentCopy, contentDescription = stringResource(R.string.copy))
                     }
@@ -66,11 +66,11 @@ fun RawLogsScreen(
                         val intent =
                             Intent(Intent.ACTION_SEND).apply {
                                 type = "text/plain"
-                                putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.logs_title))
+                                putExtra(Intent.EXTRA_SUBJECT, context.resources.getString(R.string.logs_title))
                                 putExtra(Intent.EXTRA_TEXT, rawLogsText)
                             }
                         val chooser =
-                            Intent.createChooser(intent, context.getString(R.string.logs_title)).apply {
+                            Intent.createChooser(intent, context.resources.getString(R.string.logs_title)).apply {
                                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             }
                         context.startActivity(chooser)
@@ -80,7 +80,7 @@ fun RawLogsScreen(
                     IconButton(onClick = {
                         viewModel.clearLogs()
                         logRefreshKey++
-                        Toast.makeText(context, context.getString(R.string.logs_cleared_toast), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.resources.getString(R.string.logs_cleared_toast), Toast.LENGTH_SHORT).show()
                     }) {
                         Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.clear))
                     }

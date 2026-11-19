@@ -79,6 +79,8 @@
     <string name="settings_yt_dlp_quality_best">Best Available</string>
     <string name="settings_yt_dlp_auto_update_title">Auto-update yt-dlp</string>
     <string name="settings_yt_dlp_auto_update_desc">Automatically update the bundled yt-dlp when a new version is available</string>
+    <string name="settings_yt_dlp_include_sponsorblock_segments_title">Include SponsorBlock segments in metadata</string>
+    <string name="settings_yt_dlp_include_sponsorblock_segments_desc">Fetch SponsorBlock skip segments and store them in the file metadata (requires network). When off, only the file duration is corrected via ffprobe.</string>
 
     <string name="settings_section_downloads">Downloads</string>
     <string name="settings_video_folder">Video folder</string>
@@ -169,6 +171,7 @@
     <string name="newpipe_not_installed">NewPipe is not installed.</string>
     <string name="newpipe_launch_failed">Unable to launch NewPipe.</string>
     <string name="media_queue_title">Media Cleaning Queue</string>
+    <string name="failed_media_title">Failed Downloads</string>
     <string name="processed_media_title">Processed Media</string>
     <string name="no_jobs_title">No cleaning jobs yet</string>
     <string name="no_jobs_body">Import a local video/audio file and paste its corresponding YouTube link to start cleaning SponsorBlock segments.</string>

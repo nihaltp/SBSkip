@@ -2,6 +2,7 @@ package com.nihaltp.sbskip.notifications
 
 import android.app.NotificationManager
 import android.content.Context
+import android.os.Build
 import android.service.notification.StatusBarNotification
 import androidx.core.app.NotificationManagerCompat
 import androidx.test.core.app.ApplicationProvider
@@ -17,6 +18,8 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows
+import org.robolectric.shadows.ShadowApplication
 
 /**
  * Unit tests for the silent import queue notifications.
@@ -32,6 +35,14 @@ class ImportNotificationManagerTest {
     fun setup() {
         val appContext = ApplicationProvider.getApplicationContext<Context>()
         context = appContext
+
+        // Grant POST_NOTIFICATIONS permission for API 33+ (Robolectric runs on SDK 34)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val application = appContext.applicationContext as android.app.Application
+            val shadowApp = Shadows.shadowOf(application) as ShadowApplication
+            shadowApp.grantPermissions(android.Manifest.permission.POST_NOTIFICATIONS)
+        }
+
         every { settingsRepository.settings } returns flowOf(AppSettings())
         manager = ImportNotificationManager(context, settingsRepository)
         notificationManager = appContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
