@@ -158,10 +158,24 @@ class YtDlpCommandBuilderTest {
     }
 
     @Test
-    fun `never enables yt-dlp side post-processing`() {
-        val args = YtDlpCommandBuilder.build(request(mediaType = MediaType.AUDIO))
-        val joined = args.joinToString(" ").lowercase()
-        assertFalse("sponsorblock (any case) must never reach yt-dlp", joined.contains("sponsorblock"))
+    fun `always adds sponsorblock-mark all, adds remove only with categories`() {
+        // Without categories: only --sponsorblock-mark all
+        val argsNoCategories = YtDlpCommandBuilder.build(request(mediaType = MediaType.AUDIO))
+        assertTrue(argsNoCategories.contains("--sponsorblock-mark"))
+        val markIdx = argsNoCategories.indexOf("--sponsorblock-mark")
+        assertEquals("all", argsNoCategories[markIdx + 1])
+        assertFalse(argsNoCategories.contains("--sponsorblock-remove"))
+
+        // With categories: both mark and remove
+        val req = request(sponsorBlockCategories = setOf("sponsor", "intro"))
+        val argsWithCategories = YtDlpCommandBuilder.build(req)
+        assertTrue(argsWithCategories.contains("--sponsorblock-mark"))
+        assertTrue(argsWithCategories.contains("--sponsorblock-remove"))
+        val removeIdx = argsWithCategories.indexOf("--sponsorblock-remove")
+        assertEquals("sponsor,intro", argsWithCategories[removeIdx + 1])
+
+        // Other post-processing still not enabled
+        val joined = argsNoCategories.joinToString(" ").lowercase()
         assertFalse(joined.contains("--write-metadata"))
         assertFalse(joined.contains("--write-thumbnail"))
         assertFalse(joined.contains("--embed-thumbnail"))

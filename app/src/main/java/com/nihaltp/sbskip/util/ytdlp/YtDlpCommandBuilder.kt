@@ -105,6 +105,12 @@ object YtDlpCommandBuilder {
         args.add("--extractor-args")
         args.add("youtube:player_client=android")
 
+        // SponsorBlock: mark ALL segments as chapters first.
+        // Remove takes precedence, so removed segments are cut out;
+        // non-removed segments remain as navigable chapters.
+        args.add("--sponsorblock-mark")
+        args.add("all")
+
         // SponsorBlock removal via yt-dlp native support.
         request.sponsorBlockCategories?.takeIf { it.isNotEmpty() }?.let { categories ->
             val ytDlpCategories =
