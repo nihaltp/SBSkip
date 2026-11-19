@@ -47,8 +47,6 @@ data class AppSettings(
     val nativeDownloaderSha: String = "",
     val nativeQuality: String = "1080",
     val nativeAutoUpdate: Boolean = false,
-    /** Whether yt-dlp downloads should fetch SponsorBlock skip segments and store them in metadata. */
-    val ytDlpIncludeSponsorBlockSegments: Boolean = false,
     val alreadyDownloadedBehavior: AlreadyDownloadedBehavior = AlreadyDownloadedBehavior.ASK,
     // The folder import queue, so that the imports survive a restart of the app.
     val importQueue: List<PersistedFolderImport> = emptyList(),
