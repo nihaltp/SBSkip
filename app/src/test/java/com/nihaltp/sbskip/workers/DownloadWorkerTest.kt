@@ -12,6 +12,7 @@ import com.nihaltp.sbskip.model.DownloadSource
 import com.nihaltp.sbskip.model.MediaFileMetadata
 import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.model.ProcessingPlan
+import com.nihaltp.sbskip.model.SponsorBlockCategory
 import com.nihaltp.sbskip.model.SponsorBlockSegment
 import com.nihaltp.sbskip.model.YouTubeMetadata
 import com.nihaltp.sbskip.notifications.DownloadNotificationManager
@@ -296,7 +297,7 @@ class DownloadWorkerTest {
         }
 
     @Test
-    fun `yt-dlp path skips sponsorblock api fetch`() =
+    fun `yt-dlp path fetches sponsorblock segments for metadata and duration`() =
         runTest {
             val item = ytDlpQueueItem()
             coEvery { queueRepository.findItemById(any()) } returns item
@@ -320,14 +321,21 @@ class DownloadWorkerTest {
             workDir.mkdirs()
             File(workDir, "out.mp4").createNewFile()
 
+            // Mock SponsorBlock segments
+            coEvery { metadataFetcher.fetchSponsorSegments(any(), any()) } returns
+                listOf(
+                    SponsorBlockSegment(category = SponsorBlockCategory.SPONSOR, startSeconds = 10.0, endSeconds = 20.0),
+                    SponsorBlockSegment(category = SponsorBlockCategory.SELF_PROMOTION, startSeconds = 100.0, endSeconds = 110.0),
+                )
+
             // yt-dlp should have run and download completed
             val result = worker.doWork()
             assertTrue(result is androidx.work.ListenableWorker.Result.Success)
             coVerify { ytDlpProcessRunner.run(any(), any(), any()) }
             coVerify { queueRepository.markCompleted(item.id, any(), any()) }
 
-            // SponsorBlock API should NOT be called for yt-dlp
-            coVerify(exactly = 0) { metadataFetcher.fetchSponsorSegments(any(), any()) }
+            // SponsorBlock API SHOULD be called for yt-dlp (for metadata and duration calculation)
+            coVerify(exactly = 1) { metadataFetcher.fetchSponsorSegments(any(), any()) }
         }
 
     @Test

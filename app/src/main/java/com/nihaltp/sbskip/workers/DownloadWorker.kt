@@ -174,19 +174,13 @@ class DownloadWorker
                     taskTitle = item.title.ifBlank { oembedTitle ?: localMetadata.title }
                     queueRepository.updateMetadata(queueItemId, taskTitle, thumbUrl, fileDuration)
 
-                    // Fetch SponsorBlock skip segments. yt-dlp removes them natively; optionally
-                    // fetch them too so they can be stored in metadata and used for duration.
-                    if (!isYtDlp || settings.ytDlpIncludeSponsorBlockSegments) {
-                        val fetchedSegments = metadataFetcher.fetchSponsorSegments(videoId, categories)
-                        segments = fetchedSegments
-                        AppLogger.worker("Fetched ${fetchedSegments.size} SponsorBlock segments for videoID=$videoId")
+                    // Fetch SponsorBlock skip segments. yt-dlp removes them natively;
+                    // fetch them so they can be stored in metadata and used for duration.
+                    val fetchedSegments = metadataFetcher.fetchSponsorSegments(videoId, categories)
+                    segments = fetchedSegments
+                    AppLogger.worker("Fetched ${fetchedSegments.size} SponsorBlock segments for videoID=$videoId")
 
-                        sbSkipSegments = fetchedSegments.joinToString(";") { "${it.startSeconds}-${it.endSeconds}" }
-                    } else {
-                        segments = emptyList()
-                        sbSkipSegments = ""
-                        AppLogger.worker("Skipping SponsorBlock API fetch for yt-dlp: native removal handles trimming")
-                    }
+                    sbSkipSegments = fetchedSegments.joinToString(";") { "${it.startSeconds}-${it.endSeconds}" }
                 } else {
                     taskTitle = item.title.ifBlank { localMetadata.title }
                     queueRepository.updateMetadata(queueItemId, taskTitle, null, fileDuration)
@@ -232,11 +226,8 @@ class DownloadWorker
                     downloadedExtension = downloadedFile.extension.ifBlank { null }
                     AppLogger.worker("yt-dlp download complete: ${downloadedFile.absolutePath}")
 
-                    // Probe the downloaded file for duration. When not storing SponsorBlock
-                    // segments in metadata, always probe to get the actual trimmed duration
-                    // after yt-dlp's native removal. Otherwise only probe if YouTube API
-                    // didn't provide one.
-                    if (!settings.ytDlpIncludeSponsorBlockSegments || fileDuration <= 0L) {
+                    // Probe as fallback if YouTube API didn't provide duration
+                    if (fileDuration <= 0L) {
                         val probedDuration = probeFileDuration(downloadedFile.absolutePath)
                         if (probedDuration > 0L) {
                             fileDuration = probedDuration

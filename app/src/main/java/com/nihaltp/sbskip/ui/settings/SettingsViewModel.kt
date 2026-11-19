@@ -237,10 +237,4 @@ class SettingsViewModel
                 settingsRepository.update { it.copy(nativeAutoUpdate = enabled) }
             }
         }
-
-        fun updateYtDlpIncludeSponsorBlockSegments(enabled: Boolean) {
-            viewModelScope.launch {
-                settingsRepository.update { it.copy(ytDlpIncludeSponsorBlockSegments = enabled) }
-            }
-        }
     }
