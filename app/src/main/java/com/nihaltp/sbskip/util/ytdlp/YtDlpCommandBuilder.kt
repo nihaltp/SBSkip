@@ -243,7 +243,8 @@ object YtDlpCommandBuilder {
      * Maps SB Skip [SponsorBlockCategory] enum names to yt-dlp `--sponsorblock-remove` category names.
      *
      * SB Skip uses enum names like `SELF_PROMOTION`, `INTERACTION_REMINDER`, etc. yt-dlp uses different
-     * names (e.g. `selfpromo`, `interaction`). Unsupported categories (e.g. `hook`) return null.
+     * names (e.g. `selfpromo`, `interaction`). Categories not supported by yt-dlp's `--sponsorblock-remove`
+     * (e.g. `poi_highlight`, `chapter`) return null.
      */
     internal fun toYtDlpSponsorBlockCategory(category: String): String? {
         return when (category.lowercase()) {
