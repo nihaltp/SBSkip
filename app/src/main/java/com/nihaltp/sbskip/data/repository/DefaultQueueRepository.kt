@@ -1,6 +1,7 @@
 package com.nihaltp.sbskip.data.repository
 
 import android.content.Context
+import androidx.work.WorkManager
 import com.nihaltp.sbskip.R
 import com.nihaltp.sbskip.data.local.dao.DownloadQueueDao
 import com.nihaltp.sbskip.model.DownloadQueueEntity
@@ -28,6 +29,7 @@ class DefaultQueueRepository
         private val dao: DownloadQueueDao,
         private val downloadedVideoRepository: DownloadedVideoRepository,
         private val workScheduler: DownloadWorkScheduler,
+        private val workManager: WorkManager,
         @ApplicationContext private val context: Context,
     ) : QueueRepository {
         override fun observeQueue(): Flow<List<DownloadQueueItem>> =
@@ -141,9 +143,29 @@ class DefaultQueueRepository
         override suspend fun resumeStuckItems() {
             val activeItems = dao.findActiveItems()
             if (activeItems.isNotEmpty()) {
-                AppLogger.queue("Found ${activeItems.size} active/stuck items, resuming via WorkManager...")
-                activeItems.forEach {
-                    workScheduler.schedule(it.id)
+                // Get all live work infos for our work prefix
+                val liveWorkInfos =
+                    workManager
+                        .getWorkInfosForUniqueWorkLiveData("CleanMedia_Queue_%")
+                        .value
+                        ?.filter { it.state.isFinished == false }
+                        ?: emptyList()
+
+                val liveWorkIds =
+                    liveWorkInfos.mapNotNull { info ->
+                        info.tags.firstOrNull { it.startsWith("CleanMedia_Queue_") }
+                            ?.removePrefix("CleanMedia_Queue_")
+                            ?.toLongOrNull()
+                    }.toSet()
+
+                activeItems.forEach { item ->
+                    if (item.id !in liveWorkIds) {
+                        AppLogger.queue("Resuming stuck item id=${item.id} (status=${item.status})")
+                        workScheduler.schedule(item.id)
+                    } else {
+                        val workerState = liveWorkInfos.find { it.tags.contains("CleanMedia_Queue_${item.id}") }?.state
+                        AppLogger.queue("Skipping item id=${item.id} - live worker exists (state=$workerState)")
+                    }
                 }
             }
         }

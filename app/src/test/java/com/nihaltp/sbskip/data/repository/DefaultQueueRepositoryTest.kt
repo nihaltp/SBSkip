@@ -1,6 +1,7 @@
 package com.nihaltp.sbskip.data.repository
 
 import android.content.Context
+import androidx.work.WorkManager
 import com.nihaltp.sbskip.data.local.dao.DownloadQueueDao
 import com.nihaltp.sbskip.model.DownloadQueueEntity
 import com.nihaltp.sbskip.model.DownloadQueueStatus
@@ -48,6 +49,7 @@ class DefaultQueueRepositoryTest {
     private lateinit var context: Context
     private lateinit var dao: DownloadQueueDao
     private lateinit var workScheduler: DownloadWorkScheduler
+    private lateinit var workManager: WorkManager
     private lateinit var downloadedVideoRepository: DownloadedVideoRepository
     private lateinit var repository: DefaultQueueRepository
 
@@ -59,12 +61,13 @@ class DefaultQueueRepositoryTest {
         every { context.getString(any<Int>()) } returns ""
         dao = mockk(relaxed = true)
         workScheduler = mockk(relaxed = true)
+        workManager = mockk(relaxed = true)
         downloadedVideoRepository = mockk(relaxed = true)
 
         coEvery { dao.observeQueue() } returns flowOf(emptyList())
         coEvery { downloadedVideoRepository.findByVideoId(any()) } returns null
 
-        repository = DefaultQueueRepository(dao, downloadedVideoRepository, workScheduler, context)
+        repository = DefaultQueueRepository(dao, downloadedVideoRepository, workScheduler, workManager, context)
     }
 
     @After
