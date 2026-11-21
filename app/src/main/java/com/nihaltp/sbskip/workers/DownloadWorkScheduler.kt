@@ -1,7 +1,7 @@
 package com.nihaltp.sbskip.workers
 
 interface DownloadWorkScheduler {
-    fun schedule(queueItemId: Long)
+    suspend fun schedule(queueItemId: Long)
 
     fun scheduleSponsorBlockStatusCheck()
 }
