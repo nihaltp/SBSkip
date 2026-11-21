@@ -2,6 +2,7 @@ package com.nihaltp.sbskip.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.work.WorkManager
 import com.nihaltp.sbskip.data.local.dao.DownloadQueueDao
 import com.nihaltp.sbskip.data.local.dao.DownloadedVideoDao
 import com.nihaltp.sbskip.data.local.database.SBSkipDatabase
@@ -102,5 +103,11 @@ abstract class AppModule {
         @Provides
         @Singleton
         fun provideYtDlpProcessRunner(): YtDlpProcessRunner = YtDlpProcessRunner()
+
+        @Provides
+        @Singleton
+        fun provideWorkManager(
+            @ApplicationContext context: Context,
+        ): WorkManager = WorkManager.getInstance(context)
     }
 }
