@@ -16,8 +16,10 @@ import com.nihaltp.sbskip.util.AppLogger
 import com.nihaltp.sbskip.util.Constants
 import com.nihaltp.sbskip.util.parser.YouTubeUrlParser
 import com.nihaltp.sbskip.workers.DownloadWorkScheduler
+import com.nihaltp.sbskip.workers.downloadWorkName
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -141,31 +143,16 @@ class DefaultQueueRepository
         }
 
         override suspend fun resumeStuckItems() {
-            val activeItems = dao.findActiveItems()
-            if (activeItems.isNotEmpty()) {
-                // Get all live work infos for our work prefix
-                val liveWorkInfos =
-                    workManager
-                        .getWorkInfosForUniqueWorkLiveData("CleanMedia_Queue_%")
-                        .value
-                        ?.filter { it.state.isFinished == false }
-                        ?: emptyList()
-
-                val liveWorkIds =
-                    liveWorkInfos.mapNotNull { info ->
-                        info.tags.firstOrNull { it.startsWith("CleanMedia_Queue_") }
-                            ?.removePrefix("CleanMedia_Queue_")
-                            ?.toLongOrNull()
-                    }.toSet()
-
-                activeItems.forEach { item ->
-                    if (item.id !in liveWorkIds) {
-                        AppLogger.queue("Resuming stuck item id=${item.id} (status=${item.status})")
-                        workScheduler.schedule(item.id)
-                    } else {
-                        val workerState = liveWorkInfos.find { it.tags.contains("CleanMedia_Queue_${item.id}") }?.state
-                        AppLogger.queue("Skipping item id=${item.id} - live worker exists (state=$workerState)")
-                    }
+            dao.findActiveItems().forEach { item ->
+                val liveWork =
+                    workManager.getWorkInfosForUniqueWorkFlow(downloadWorkName(item.id))
+                        .first()
+                        .firstOrNull { !it.state.isFinished }
+                if (liveWork == null) {
+                    AppLogger.queue("Resuming stuck item id=${item.id} (status=${item.status})")
+                    workScheduler.scheduleRecovery(item.id)
+                } else {
+                    AppLogger.queue("Skipping item id=${item.id} - live worker exists (state=${liveWork.state})")
                 }
             }
         }

@@ -20,14 +20,7 @@ class YtDlpCommandBuilderTest {
         ffmpegLocation: File? = ffmpeg,
         sponsorBlockCategories: Set<String>? = null,
         convertToAudio: Boolean = false,
-        youtubeVideoId: String? = null,
-        youtubeVideoUrl: String? = null,
-        youtubeTitle: String? = null,
-        authorName: String? = null,
-        authorUrl: String? = null,
         thumbnailUrl: String? = null,
-        sbskipSegments: String? = null,
-        removedCategories: Set<String>? = null,
     ): YtDlpCommandBuilder.Request =
         YtDlpCommandBuilder.Request(
             mediaType = mediaType,
@@ -37,14 +30,7 @@ class YtDlpCommandBuilderTest {
             ffmpegLocation = ffmpegLocation,
             sponsorBlockCategories = sponsorBlockCategories,
             convertToAudio = convertToAudio,
-            youtubeVideoId = youtubeVideoId,
-            youtubeVideoUrl = youtubeVideoUrl,
-            youtubeTitle = youtubeTitle,
-            authorName = authorName,
-            authorUrl = authorUrl,
             thumbnailUrl = thumbnailUrl,
-            sbskipSegments = sbskipSegments,
-            removedCategories = removedCategories,
         )
 
     @Test
@@ -282,6 +268,8 @@ class YtDlpCommandBuilderTest {
         val args = YtDlpCommandBuilder.build(req)
         assertTrue(args.contains("--add-metadata"))
         assertTrue(args.contains("--embed-thumbnail"))
+        assertFalse(args.contains("--metadata"))
+        assertFalse(args.contains("--metadata-from-title"))
     }
 
     @Test
@@ -290,32 +278,6 @@ class YtDlpCommandBuilderTest {
         val args = YtDlpCommandBuilder.build(req)
         assertTrue(args.contains("--add-metadata"))
         assertFalse(args.contains("--embed-thumbnail"))
-    }
-
-    @Test
-    fun `sbskip metadata tags are included`() {
-        val req =
-            request(
-                youtubeVideoId = "abcdefghijk",
-                youtubeVideoUrl = "https://www.youtube.com/watch?v=abcdefghijk",
-                youtubeTitle = "Test Video",
-                authorName = "Test Author",
-                authorUrl = "https://example.com/author",
-                thumbnailUrl = "https://img.youtube.com/vi/abcdefghijk/mqdefault.jpg",
-                sbskipSegments = "0-30;120-150",
-                removedCategories = setOf("sponsor", "intro"),
-            )
-        val args = YtDlpCommandBuilder.build(req)
-        val joined = args.joinToString(" ")
-        assertTrue(joined.contains("SBSKIP_YOUTUBE_VIDEO_ID=abcdefghijk"))
-        assertTrue(joined.contains("SBSKIP_YOUTUBE_VIDEO_URL=https://www.youtube.com/watch?v=abcdefghijk"))
-        assertTrue(joined.contains("SBSKIP_YOUTUBE_TITLE=Test Video"))
-        assertTrue(joined.contains("SBSKIP_AUTHOR_NAME=Test Author"))
-        assertTrue(joined.contains("SBSKIP_AUTHOR_URL=https://example.com/author"))
-        assertTrue(joined.contains("SBSKIP_THUMBNAIL_URL=https://img.youtube.com/vi/abcdefghijk/mqdefault.jpg"))
-        assertTrue(joined.contains("SBSKIP_SEGMENTS=0-30;120-150"))
-        assertTrue(joined.contains("SBSKIP_REMOVED_CATEGORIES=sponsor,intro"))
-        assertTrue(joined.contains("SBSKIP_PROCESSED=true"))
     }
 
     @Test

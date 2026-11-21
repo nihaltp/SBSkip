@@ -1,9 +1,12 @@
 package com.nihaltp.sbskip.util.ytdlp
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 import kotlin.math.abs
 
@@ -124,30 +127,30 @@ open class YtDlpProcessRunner(
             )
         }
 
-    /** Waits for the process; destroying it when the calling coroutine is cancelled. */
+    /** Waits for shutdown before letting cancellation release the caller's download mutex. */
     private suspend fun awaitExit(process: Process): Int =
-        suspendCancellableCoroutine { continuation ->
-            continuation.invokeOnCancellation {
-                process.destroy()
-                thread(isDaemon = true, name = "ytdlp-forcekill") {
-                    try {
-                        Thread.sleep(FORCE_KILL_LINGER_MILLIS)
-                    } catch (_: InterruptedException) {
-                    }
-                    process.destroyForcibly()
-                }
-            }
-            thread(name = "ytdlp-wait") {
-                val exitCode =
-                    try {
-                        process.waitFor()
-                    } catch (_: InterruptedException) {
-                        -1
-                    }
-                if (continuation.isActive) {
+        try {
+            suspendCancellableCoroutine { continuation ->
+                thread(name = "ytdlp-wait") {
+                    val exitCode =
+                        try {
+                            process.waitFor()
+                        } catch (_: InterruptedException) {
+                            -1
+                        }
                     continuation.resumeWith(Result.success(exitCode))
                 }
             }
+        } catch (cancelled: CancellationException) {
+            withContext(NonCancellable) {
+                process.destroy()
+                if (!process.waitFor(FORCE_KILL_LINGER_MILLIS, TimeUnit.MILLISECONDS)) {
+                    process.destroyForcibly()
+                    // Sending the kill signal does not mean the process has exited yet.
+                    process.waitFor()
+                }
+            }
+            throw cancelled
         }
 
     private inner class ThrottleState {

@@ -5,15 +5,17 @@ import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.ByteArrayInputStream
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 
 class YtDlpProcessRunnerProgressTest {
@@ -130,7 +132,7 @@ class YtDlpProcessRunnerProgressTest {
     }
 
     @Test
-    fun `cancelling the coroutine destroys the process`() {
+    fun `cancellation waits for exit after force kill`() {
         val gate = CountDownLatch(1)
         val process =
             mockProcess(
@@ -142,6 +144,12 @@ class YtDlpProcessRunnerProgressTest {
             -1
         }
         val processStarted = CompletableDeferred<Unit>()
+        val forceKillRequested = CompletableDeferred<Unit>()
+        every { process.waitFor(YtDlpProcessRunner.FORCE_KILL_LINGER_MILLIS, TimeUnit.MILLISECONDS) } returns false
+        every { process.destroyForcibly() } answers {
+            forceKillRequested.complete(Unit)
+            process
+        }
 
         runBlocking {
             val job =
@@ -155,10 +163,19 @@ class YtDlpProcessRunnerProgressTest {
                             },
                     ).run(command = listOf("libpython.so", "yt-dlp"), environment = emptyMap(), onProgress = { })
                 }
-            processStarted.await()
-            job.cancelAndJoin()
-            verify { process.destroy() }
-            gate.countDown()
+            try {
+                withTimeout(5_000) {
+                    processStarted.await()
+                    job.cancel()
+                    forceKillRequested.await()
+                    assertFalse(job.isCompleted)
+                    verify { process.destroy() }
+                }
+            } finally {
+                gate.countDown()
+            }
+            job.join()
+            assertTrue(job.isCancelled)
         }
     }
 

@@ -374,7 +374,7 @@ class DownloadWorkerTest {
         }
 
     @Test
-    fun `yt-dlp path skips media tagger`() =
+    fun `yt-dlp path tags the downloaded file before saving`() =
         runTest {
             val item = ytDlpQueueItem()
             coEvery { queueRepository.findItemById(any()) } returns item
@@ -396,7 +396,9 @@ class DownloadWorkerTest {
                 )
             val workDir = File(System.getProperty("java.io.tmpdir"), "ytdlp-work")
             workDir.mkdirs()
-            File(workDir, "out.mp4").createNewFile()
+            val downloadedFile = File(workDir, "out.mp4").apply { createNewFile() }
+            val taggedFile = File(workDir, "out_tagged.mp4")
+            coEvery { mediaTagger.applyMetadata(downloadedFile, any()) } returns taggedFile
 
             // yt-dlp should have run and download completed
             val result = worker.doWork()
@@ -404,8 +406,13 @@ class DownloadWorkerTest {
             coVerify { ytDlpProcessRunner.run(any(), any(), any()) }
             coVerify { queueRepository.markCompleted(item.id, any(), any()) }
 
-            // MediaTagger should NOT be called for yt-dlp
-            coVerify(exactly = 0) { mediaTagger.applyMetadata(any(), any()) }
+            coVerify(exactly = 1) {
+                mediaTagger.applyMetadata(
+                    downloadedFile,
+                    match { it.videoId == "dQw4w9WgXcQ" },
+                )
+            }
+            coVerify { outputSaver.save(taggedFile, any()) }
         }
 
     @Test
