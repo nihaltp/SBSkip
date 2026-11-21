@@ -1,8 +1,6 @@
 package com.nihaltp.sbskip.util.ytdlp
 
-import com.nihaltp.sbskip.BuildConfig
 import com.nihaltp.sbskip.model.MediaType
-import com.nihaltp.sbskip.model.MusicMetadata
 import java.io.File
 
 /** Thrown when a yt-dlp command cannot be assembled from the request. */
@@ -12,7 +10,7 @@ class YtDlpCommandException(message: String) : Exception(message)
  * Pure, side-effect-free assembly of the yt-dlp argument list (plan §5).
  *
  * Contains no Android imports or process handling so it is unit-testable without a device.
- * yt-dlp handles SponsorBlock removal and metadata embedding natively for YouTube downloads.
+ * yt-dlp handles SponsorBlock removal and standard metadata embedding for YouTube downloads. MediaTagger writes the SBSkip tags.
  */
 object YtDlpCommandBuilder {
     /**
@@ -47,24 +45,8 @@ object YtDlpCommandBuilder {
         val sponsorBlockCategories: Set<String>? = null,
         /** Extract audio instead of video (--extract-audio). */
         val convertToAudio: Boolean = false,
-        /** YouTube video ID for SBSKIP_YOUTUBE_VIDEO_ID metadata tag. */
-        val youtubeVideoId: String? = null,
-        /** YouTube watch URL for SBSKIP_YOUTUBE_VIDEO_URL metadata tag. */
-        val youtubeVideoUrl: String? = null,
-        /** YouTube title for SBSKIP_YOUTUBE_TITLE metadata tag. */
-        val youtubeTitle: String? = null,
-        /** Author name for SBSKIP_AUTHOR_NAME metadata tag. */
-        val authorName: String? = null,
-        /** Author URL for SBSKIP_AUTHOR_URL metadata tag. */
-        val authorUrl: String? = null,
-        /** Thumbnail URL for SBSKIP_THUMBNAIL_URL metadata tag and `--embed-thumbnail`. */
+        /** Thumbnail URL; if available, ask yt-dlp to embed the thumbnail. */
         val thumbnailUrl: String? = null,
-        /** SponsorBlock segments string for SBSKIP_SEGMENTS metadata tag. */
-        val sbskipSegments: String? = null,
-        /** Removed category names for SBSKIP_REMOVED_CATEGORIES metadata tag. */
-        val removedCategories: Set<String>? = null,
-        /** Music-derived metadata (artist, album, year, genre) from YouTube oEmbed. */
-        val musicMetadata: MusicMetadata? = null,
     )
 
     fun build(request: Request): List<String> {
@@ -133,54 +115,6 @@ object YtDlpCommandBuilder {
         args.add("--add-metadata")
         request.thumbnailUrl?.takeIf { it.isNotEmpty() }?.let {
             args.add("--embed-thumbnail")
-        }
-
-        // Custom SBSKIP_* metadata tags.
-        val metadataTags = mutableListOf<Pair<String, String>>()
-        // Critical SBSKIP tags that MUST be present in output for identification
-        metadataTags.add("SBSKIP_YOUTUBE_VIDEO_ID" to (request.youtubeVideoId?.takeIf { it.isNotEmpty() } ?: "unknown"))
-        metadataTags.add("SBSKIP_PROCESSED" to "true")
-
-        request.youtubeVideoUrl?.takeIf { it.isNotEmpty() }?.let {
-            metadataTags.add("SBSKIP_YOUTUBE_VIDEO_URL" to it)
-        }
-        request.youtubeTitle?.takeIf { it.isNotEmpty() }?.let {
-            metadataTags.add("SBSKIP_YOUTUBE_TITLE" to it)
-        }
-        request.authorName?.takeIf { it.isNotEmpty() }?.let {
-            metadataTags.add("SBSKIP_AUTHOR_NAME" to it)
-        }
-        request.authorUrl?.takeIf { it.isNotEmpty() }?.let {
-            metadataTags.add("SBSKIP_AUTHOR_URL" to it)
-        }
-        request.thumbnailUrl?.takeIf { it.isNotEmpty() }?.let {
-            metadataTags.add("SBSKIP_THUMBNAIL_URL" to it)
-        }
-        request.sbskipSegments?.takeIf { it.isNotEmpty() }?.let {
-            metadataTags.add("SBSKIP_SEGMENTS" to it)
-        }
-        metadataTags.add("SBSKIP_VERSION" to BuildConfig.VERSION_NAME)
-        metadataTags.add("SBSKIP_PROCESSED_AT" to System.currentTimeMillis().toString())
-        request.removedCategories?.takeIf { it.isNotEmpty() }?.let {
-            metadataTags.add("SBSKIP_REMOVED_CATEGORIES" to it.joinToString(","))
-        }
-        request.musicMetadata?.let { music ->
-            music.artists?.takeIf { it.isNotEmpty() }?.let {
-                metadataTags.add("artist" to it.joinToString(", "))
-            }
-            music.album?.takeIf { it.isNotBlank() }?.let {
-                metadataTags.add("album" to it)
-            }
-            music.year?.let {
-                metadataTags.add("date" to it.toString())
-            }
-            music.genre?.takeIf { it.isNotBlank() }?.let {
-                metadataTags.add("genre" to it)
-            }
-        }
-        metadataTags.forEach { (key, value) ->
-            args.add("--metadata")
-            args.add("$key=$value")
         }
 
         when (request.mediaType) {

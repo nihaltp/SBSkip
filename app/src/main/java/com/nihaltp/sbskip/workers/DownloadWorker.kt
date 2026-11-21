@@ -202,16 +202,8 @@ class DownloadWorker
                             item = item,
                             settings = settings,
                             sponsorBlockCategories = categories.map { it.name }.toSet(),
-                            youtubeVideoId = videoId,
-                            youtubeVideoUrl = Constants.buildYouTubeWatchUrl(videoId ?: ""),
-                            youtubeTitle = oembedTitle,
-                            authorName = oembedAuthorName,
-                            authorUrl = oembedAuthorUrl,
                             thumbnailUrl = finalThumbnailUrl,
-                            sbskipSegments = sbSkipSegments,
-                            removedCategories = categories.map { it.name }.toSet(),
                             convertToAudio = item.convertVideoToAudio,
-                            musicMetadata = ytMetadataRef?.musicMetadata,
                             onProgress = { percent ->
                                 val mappedProgress = (20 + percent.toInt() * 10 / 100).coerceIn(20, 30)
                                 notificationManager.showActive(
@@ -295,17 +287,12 @@ class DownloadWorker
                         }
                     }
 
-                // Apply metadata tags & thumbnail (skip for yt-dlp: yt-dlp handles metadata natively;
-                // SponsorBlock segments may be included via SBSKIP_SEGMENTS tag per settings)
+                // Write SBSkip tags before saving either a download or an import.
                 tempOutputFile =
-                    if (isYtDlp) {
-                        tempOutputFile
-                    } else {
-                        mediaTagger.applyMetadata(
-                            inputFile = tempOutputFile,
-                            processingContext = context,
-                        )
-                    }
+                    mediaTagger.applyMetadata(
+                        inputFile = tempOutputFile,
+                        processingContext = context,
+                    )
 
                 // 3. Save / overwrite media file
                 notificationManager.showActive(
@@ -391,16 +378,8 @@ class DownloadWorker
             settings: com.nihaltp.sbskip.model.AppSettings,
             onProgress: (Float) -> Unit,
             sponsorBlockCategories: Set<String>,
-            youtubeVideoId: String?,
-            youtubeVideoUrl: String?,
-            youtubeTitle: String?,
-            authorName: String?,
-            authorUrl: String?,
             thumbnailUrl: String?,
-            sbskipSegments: String,
-            removedCategories: Set<String>,
             convertToAudio: Boolean,
-            musicMetadata: com.nihaltp.sbskip.model.MusicMetadata?,
         ): File {
             val paths = ytDlpRuntime.ensure()
             val workDir = ytDlpRuntime.workDir(applicationContext.cacheDir, item.id)
@@ -415,15 +394,7 @@ class DownloadWorker
                     ffmpegLocation = paths.ffmpegLauncher,
                     sponsorBlockCategories = sponsorBlockCategories,
                     convertToAudio = convertToAudio,
-                    youtubeVideoId = youtubeVideoId,
-                    youtubeVideoUrl = youtubeVideoUrl,
-                    youtubeTitle = youtubeTitle,
-                    authorName = authorName,
-                    authorUrl = authorUrl,
                     thumbnailUrl = thumbnailUrl,
-                    sbskipSegments = sbskipSegments,
-                    removedCategories = removedCategories,
-                    musicMetadata = musicMetadata,
                 )
             val command =
                 listOf(paths.pythonLauncher.absolutePath, paths.zipapp.absolutePath) +

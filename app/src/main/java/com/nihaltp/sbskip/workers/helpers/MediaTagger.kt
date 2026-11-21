@@ -5,6 +5,7 @@ import android.media.MediaMetadataRetriever
 import com.arthenica.ffmpegkit.FFmpegKit
 import com.arthenica.ffmpegkit.ReturnCode
 import com.nihaltp.sbskip.BuildConfig
+import com.nihaltp.sbskip.model.DownloadSource
 import com.nihaltp.sbskip.model.ProcessingContext
 import com.nihaltp.sbskip.processing.FFmpegLock
 import com.nihaltp.sbskip.util.AppLogger
@@ -40,7 +41,10 @@ open class MediaTagger
             val sbSkipSegments = processingContext.sbSkipSegments
 
             val extension = inputFile.extension.lowercase()
-            if (extension !in setOf("mp4", "m4a", "mp3", "m4v", "mov")) {
+            val isYtDlp = processingContext.queueItem.downloadSource == DownloadSource.YTDLP
+            val isMovFamily = extension in setOf("mp4", "m4a", "m4v", "mov")
+            val isYtDlpMatroska = isYtDlp && extension in setOf("mkv", "webm")
+            if (!isMovFamily && extension != "mp3" && !isYtDlpMatroska) {
                 return inputFile
             }
 
@@ -152,8 +156,11 @@ open class MediaTagger
                             "-movflags +use_metadata_tags \"${taggedOutput.absolutePath}\""
                     }
                 } else {
-                    val movflagsArg = if (extension == "mp3") "" else "-movflags +use_metadata_tags"
-                    "-y -i \"${inputFile.absolutePath}\"$metadataArgsPart $movflagsArg -codec copy \"${taggedOutput.absolutePath}\""
+                    val movflagsArg = if (isMovFamily) "-movflags +use_metadata_tags" else ""
+                    // Preserve thumbnails and other streams already embedded by yt-dlp.
+                    val mapArg = if (isYtDlp) " -map 0" else ""
+                    "-y -i \"${inputFile.absolutePath}\"$mapArg$metadataArgsPart $movflagsArg " +
+                        "-codec copy \"${taggedOutput.absolutePath}\""
                 }
 
             val session =
