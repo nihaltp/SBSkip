@@ -89,7 +89,7 @@ open class MediaTagger
             val finalArtist = finalArtistList.filter { it.isNotBlank() }.joinToString(", ")
 
             val finalAlbum = existingMetadata.album ?: processingContext.musicMetadata?.album
-            val finalYear = existingMetadata.year ?: processingContext.musicMetadata?.year?.toString()
+            val finalYear = normalizeDateTag(existingMetadata.year) ?: processingContext.musicMetadata?.year?.toString()
             val finalGenre = existingMetadata.genre ?: processingContext.musicMetadata?.genre
 
             if (finalTitle.isNotBlank()) {
@@ -217,6 +217,16 @@ open class MediaTagger
 
         private fun escapeForFfmpeg(value: String): String {
             return value.replace("\\", "\\\\").replace("\"", "\\\"")
+        }
+
+        private fun normalizeDateTag(value: String?): String? {
+            return value?.let {
+                when {
+                    it.length == 8 && it.all { it.isDigit() } -> "${it.substring(0, 4)}-${it.substring(4, 6)}-${it.substring(6, 8)}"
+                    it.length == 4 && it.all { it.isDigit() } -> it
+                    else -> it
+                }
+            }
         }
 
         internal fun resolveCategoriesForMetadata(processingContext: ProcessingContext): List<String> {
