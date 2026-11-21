@@ -137,9 +137,10 @@ object YtDlpCommandBuilder {
 
         // Custom SBSKIP_* metadata tags.
         val metadataTags = mutableListOf<Pair<String, String>>()
-        request.youtubeVideoId?.takeIf { it.isNotEmpty() }?.let {
-            metadataTags.add("SBSKIP_YOUTUBE_VIDEO_ID" to it)
-        }
+        // Critical SBSKIP tags that MUST be present in output for identification
+        metadataTags.add("SBSKIP_YOUTUBE_VIDEO_ID" to (request.youtubeVideoId?.takeIf { it.isNotEmpty() } ?: "unknown"))
+        metadataTags.add("SBSKIP_PROCESSED" to "true")
+
         request.youtubeVideoUrl?.takeIf { it.isNotEmpty() }?.let {
             metadataTags.add("SBSKIP_YOUTUBE_VIDEO_URL" to it)
         }
@@ -159,7 +160,6 @@ object YtDlpCommandBuilder {
             metadataTags.add("SBSKIP_SEGMENTS" to it)
         }
         metadataTags.add("SBSKIP_VERSION" to BuildConfig.VERSION_NAME)
-        metadataTags.add("SBSKIP_PROCESSED" to "true")
         metadataTags.add("SBSKIP_PROCESSED_AT" to System.currentTimeMillis().toString())
         request.removedCategories?.takeIf { it.isNotEmpty() }?.let {
             metadataTags.add("SBSKIP_REMOVED_CATEGORIES" to it.joinToString(","))
