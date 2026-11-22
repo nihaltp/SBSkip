@@ -76,10 +76,10 @@ object YouTubeMetadataExtractor {
             @Suppress("UNUSED_PARAMETER")
             @kotlinx.serialization.Serializable
             data class CommentMetadata(
-                val youtubeId: String?,
-                val youtubeUrl: String?,
-                val youtubeTitle: String?,
-                val authorName: String?,
+                val youtubeId: String? = null,
+                val youtubeUrl: String? = null,
+                val youtubeTitle: String? = null,
+                val authorName: String? = null,
             )
 
             val commentData = json.decodeFromString<CommentMetadata>(unescaped)

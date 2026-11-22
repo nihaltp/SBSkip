@@ -22,7 +22,7 @@ data class SbskipFileMetadata(
 )
 
 @Serializable
-private data class FfprobeFormat(val tags: Map<String, String>?)
+private data class FfprobeFormat(val tags: Map<String, String>? = null)
 
 @Serializable
 private data class FfprobeResult(val format: FfprobeFormat?)
