@@ -7,6 +7,7 @@ import androidx.annotation.VisibleForTesting
 import androidx.documentfile.provider.DocumentFile
 import com.nihaltp.sbskip.data.repository.DownloadedVideoRepository
 import com.nihaltp.sbskip.data.repository.SettingsRepository
+import com.nihaltp.sbskip.metadata.FfmpegMetadataReader
 import com.nihaltp.sbskip.model.DownloadedVideoEntity
 import com.nihaltp.sbskip.notifications.ImportNotificationManager
 import com.nihaltp.sbskip.util.parser.YouTubeUrlParser

@@ -11,11 +11,11 @@ import android.provider.OpenableColumns
 import android.webkit.MimeTypeMap
 import androidx.documentfile.provider.DocumentFile
 import com.nihaltp.sbskip.data.repository.SettingsRepository
+import com.nihaltp.sbskip.metadata.SbskipMetadataReader
 import com.nihaltp.sbskip.model.MediaFileMetadata
 import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.util.AppLogger
 import com.nihaltp.sbskip.util.FilenameSanitizer
-import com.nihaltp.sbskip.util.SbskipMetadataReader
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -316,10 +316,9 @@ class AndroidDownloadStorage
                 val uri = Uri.parse(uriString)
                 val resolver = context.contentResolver
 
-                // First try ffprobe-based SBSKIP tag reader (Picard-style named tags)
                 val sbskipMetadata =
                     try {
-                        sbskipMetadataReader.readSbskipMetadata(context, resolver, uri)
+                        sbskipMetadataReader.readAndWriteBackSbskipTags(context, resolver, uri)
                     } catch (e: Exception) {
                         AppLogger.error("Storage", e, "SbskipMetadataReader failed for URI: $uriString")
                         null

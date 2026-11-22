@@ -1,4 +1,4 @@
-package com.nihaltp.sbskip.util
+package com.nihaltp.sbskip.metadata
 
 import android.content.ContentResolver
 import android.content.Context

@@ -1,10 +1,11 @@
-package com.nihaltp.sbskip.util
+package com.nihaltp.sbskip.metadata
 
 import android.content.ContentResolver
 import android.net.Uri
 import android.provider.OpenableColumns
 import com.arthenica.ffmpegkit.FFmpegKitConfig
 import com.arthenica.ffmpegkit.FFprobeKit
+import com.nihaltp.sbskip.util.AppLogger
 import com.nihaltp.sbskip.util.parser.YouTubeUrlParser
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
@@ -25,14 +26,6 @@ private data class FfprobeFormat(val tags: Map<String, String>?)
 
 @Serializable
 private data class FfprobeResult(val format: FfprobeFormat?)
-
-@Serializable
-private data class CommentMetadata(
-    val youtubeId: String?,
-    val youtubeUrl: String?,
-    val youtubeTitle: String?,
-    val authorName: String?,
-)
 
 class FfmpegMetadataReader
     @Inject
@@ -74,68 +67,25 @@ class FfmpegMetadataReader
                 val result = json.decodeFromString<FfprobeResult>(output)
                 val tags = result.format?.tags ?: emptyMap()
 
-                // First try direct YOUTUBE_VIDEO_ID tag (legacy), then the SBSKIP_* tags
-                // that MediaTagger writes on tagged files.
-                var youtubeId =
-                    tags["YOUTUBE_VIDEO_ID"]?.takeIf { it.isNotBlank() }
-                        ?: tags["SBSKIP_YOUTUBE_VIDEO_ID"]?.takeIf { it.isNotBlank() }
-                var youtubeUrl =
-                    tags["YOUTUBE_VIDEO_URL"]?.takeIf { it.isNotBlank() }
-                        ?: tags["SBSKIP_YOUTUBE_VIDEO_URL"]?.takeIf { it.isNotBlank() }
-                var youtubeTitle =
-                    tags["title"]?.takeIf { it.isNotBlank() }
-                        ?: tags["SBSKIP_YOUTUBE_TITLE"]?.takeIf { it.isNotBlank() }
-                var authorName =
-                    tags["author"]?.takeIf { it.isNotBlank() }
-                        ?: tags["SBSKIP_AUTHOR_NAME"]?.takeIf { it.isNotBlank() }
-                val removedCategories =
-                    tags["SBSKIP_REMOVED_CATEGORIES"]?.takeIf { it.isNotBlank() }
+                val fallbackTitle = tags["title"]?.takeIf { it.isNotBlank() } ?: fileName.substringBeforeLast('.', fileName)
+                val extracted = YouTubeMetadataExtractor.extract(tags, fallbackTitle)
 
-                // If not found, try parsing the comment JSON field (where MediaTagger writes it)
-                if (youtubeId == null || authorName == null) {
-                    val comment = tags["comment"]?.takeIf { it.isNotBlank() }
-                    if (comment != null) {
-                        val unescaped = comment.replace("\\\"", "\"")
-                        try {
-                            val commentData =
-                                json.decodeFromString<CommentMetadata>(unescaped)
-                            youtubeId = commentData.youtubeId?.takeIf { it.isNotBlank() } ?: youtubeId
-                            youtubeUrl = commentData.youtubeUrl?.takeIf { it.isNotBlank() } ?: youtubeUrl
-                            youtubeTitle = commentData.youtubeTitle?.takeIf { it.isNotBlank() } ?: youtubeTitle
-                            authorName = commentData.authorName?.takeIf { it.isNotBlank() } ?: authorName
-                            if (youtubeId == null) {
-                                AppLogger.metadata(
-                                    "ImportFolder: No youtubeId in comment JSON for $fileName",
-                                )
-                            } else {
-                                AppLogger.metadata(
-                                    "ImportFolder: Found YOUTUBE_VIDEO_ID=$youtubeId in $fileName (via comment)",
-                                )
-                            }
-                        } catch (e: Exception) {
-                            AppLogger.metadata(
-                                "ImportFolder: Failed to parse comment JSON for $fileName: ${e.message}",
-                            )
-                        }
-                    }
-                }
-
-                val cleanYoutubeId = youtubeId?.let { YouTubeUrlParser.cleanVideoId(it) }
+                val cleanYoutubeId = extracted?.youtubeId?.let { YouTubeUrlParser.cleanVideoId(it) }
 
                 if (cleanYoutubeId == null) {
                     AppLogger.metadata(
-                        "ImportFolder: No valid YOUTUBE_VIDEO_ID found in $fileName (raw: $youtubeId, tags: $tags)",
+                        "ImportFolder: No valid YOUTUBE_VIDEO_ID found in $fileName (tags: $tags)",
                     )
                 } else {
                     AppLogger.metadata("ImportFolder: Found YOUTUBE_VIDEO_ID=$cleanYoutubeId in $fileName")
                 }
                 return SbskipFileMetadata(
                     youtubeId = cleanYoutubeId,
-                    youtubeUrl = youtubeUrl,
-                    youtubeTitle = youtubeTitle,
-                    authorName = authorName,
+                    youtubeUrl = extracted?.youtubeUrl,
+                    youtubeTitle = extracted?.youtubeTitle,
+                    authorName = extracted?.authorName,
                     fileSize = fileSize,
-                    removedCategories = removedCategories,
+                    removedCategories = tags["SBSKIP_REMOVED_CATEGORIES"]?.takeIf { it.isNotBlank() },
                 )
             } catch (e: Exception) {
                 AppLogger.metadata("ImportFolder: Failed to parse ffprobe output for $fileName: ${e.message}")

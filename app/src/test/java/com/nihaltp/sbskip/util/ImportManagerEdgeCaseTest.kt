@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
 import com.nihaltp.sbskip.data.repository.DownloadedVideoRepository
 import com.nihaltp.sbskip.data.repository.SettingsRepository
+import com.nihaltp.sbskip.metadata.FfmpegMetadataReader
 import com.nihaltp.sbskip.model.AppSettings
 import com.nihaltp.sbskip.notifications.ImportNotificationManager
 import io.mockk.Runs
