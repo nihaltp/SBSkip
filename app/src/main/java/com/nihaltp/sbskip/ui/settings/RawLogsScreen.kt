@@ -4,7 +4,12 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
+import android.os.Handler
+import android.os.Looper
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -14,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -33,6 +39,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nihaltp.sbskip.R
+import com.nihaltp.sbskip.util.ExportImportUtil
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,6 +53,28 @@ fun RawLogsScreen(
     var logRefreshKey by remember { mutableStateOf(0) }
     val rawLogsText = remember(logRefreshKey) { viewModel.getLogs() }
     val context = LocalContext.current
+
+    // Launcher for saving logs to a file via SAF
+    val saveLogsLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.CreateDocument("text/plain"),
+        ) { uri: Uri? ->
+            uri?.let { fileUri ->
+                CoroutineScope(Dispatchers.IO).launch {
+                    val success = ExportImportUtil.writeTextToUri(context, fileUri, rawLogsText)
+                    val message =
+                        if (success) {
+                            context.resources.getString(R.string.logs_exported_toast)
+                        } else {
+                            context.resources.getString(R.string.logs_export_failed_toast)
+                        }
+                    // Show toast on UI thread
+                    Handler(Looper.getMainLooper()).post {
+                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
 
     Scaffold(
         topBar = {
@@ -76,6 +108,15 @@ fun RawLogsScreen(
                         context.startActivity(chooser)
                     }) {
                         Icon(Icons.Default.Share, contentDescription = "Share")
+                    }
+                    IconButton(onClick = {
+                        val filename = "sbskip_logs_${java.text.SimpleDateFormat(
+                            "yyyyMMdd_HHmmss",
+                            java.util.Locale.US,
+                        ).format(java.util.Date())}.txt"
+                        saveLogsLauncher.launch(filename)
+                    }) {
+                        Icon(Icons.Default.Download, contentDescription = stringResource(R.string.logs_export_button))
                     }
                     IconButton(onClick = {
                         viewModel.clearLogs()
