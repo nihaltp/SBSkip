@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.nihaltp.sbskip.model.AlreadyDownloadedBehavior
 import com.nihaltp.sbskip.model.AppSettings
+import com.nihaltp.sbskip.model.DownloadFolderDefaults
 import com.nihaltp.sbskip.model.DownloaderType
 import com.nihaltp.sbskip.model.PendingDownload
 import com.nihaltp.sbskip.model.PlaylistDownloadState
@@ -101,8 +102,8 @@ class DataStoreSettingsRepository
                     dynamicColor = preferences[PreferencesKeys.DYNAMIC_COLOR] ?: true,
                     notificationsEnabled = preferences[PreferencesKeys.NOTIFICATIONS_ENABLED] ?: true,
                     downloader = downloader,
-                    videoFolder = preferences[PreferencesKeys.VIDEO_FOLDER] ?: "Movies/SB Skip/",
-                    audioFolder = preferences[PreferencesKeys.AUDIO_FOLDER] ?: "Music/SB Skip/",
+                    videoFolder = preferences[PreferencesKeys.VIDEO_FOLDER] ?: DownloadFolderDefaults.VIDEO_FOLDER,
+                    audioFolder = preferences[PreferencesKeys.AUDIO_FOLDER] ?: DownloadFolderDefaults.AUDIO_FOLDER,
                     videoFolderUri = preferences[PreferencesKeys.VIDEO_FOLDER_URI] ?: "",
                     audioFolderUri = preferences[PreferencesKeys.AUDIO_FOLDER_URI] ?: "",
                     tempFolder = preferences[PreferencesKeys.TEMP_FOLDER] ?: "SB Skip/tmp/",
@@ -183,8 +184,8 @@ class DataStoreSettingsRepository
                             runCatching {
                                 DownloaderType.valueOf(preferences[PreferencesKeys.DOWNLOADER] ?: DownloaderType.YTDLP.name)
                             }.getOrDefault(DownloaderType.YTDLP),
-                        videoFolder = preferences[PreferencesKeys.VIDEO_FOLDER] ?: "Movies/SB Skip/",
-                        audioFolder = preferences[PreferencesKeys.AUDIO_FOLDER] ?: "Music/SB Skip/",
+                        videoFolder = preferences[PreferencesKeys.VIDEO_FOLDER] ?: DownloadFolderDefaults.VIDEO_FOLDER,
+                        audioFolder = preferences[PreferencesKeys.AUDIO_FOLDER] ?: DownloadFolderDefaults.AUDIO_FOLDER,
                         videoFolderUri = preferences[PreferencesKeys.VIDEO_FOLDER_URI] ?: "",
                         audioFolderUri = preferences[PreferencesKeys.AUDIO_FOLDER_URI] ?: "",
                         tempFolder = preferences[PreferencesKeys.TEMP_FOLDER] ?: "SB Skip/tmp/",

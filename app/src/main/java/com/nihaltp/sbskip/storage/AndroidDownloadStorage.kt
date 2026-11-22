@@ -11,6 +11,7 @@ import android.provider.OpenableColumns
 import android.webkit.MimeTypeMap
 import androidx.documentfile.provider.DocumentFile
 import com.nihaltp.sbskip.data.repository.SettingsRepository
+import com.nihaltp.sbskip.model.DownloadFolderDefaults
 import com.nihaltp.sbskip.model.MediaFileMetadata
 import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.util.AppLogger
@@ -80,7 +81,7 @@ internal fun computeStoragePaths(
             val restOfPath = customFolder.substringAfter('/', "")
             finalFolder = if (restOfPath.isNotEmpty()) "Download/$restOfPath" else "Download"
         } else {
-            finalFolder = "Movies/SB Skip"
+            finalFolder = DownloadFolderDefaults.VIDEO_FOLDER.trimEnd('/')
         }
     } else {
         if (audioDirsMap.containsKey(lowerSegment)) {
@@ -92,7 +93,7 @@ internal fun computeStoragePaths(
             val restOfPath = customFolder.substringAfter('/', "")
             finalFolder = if (restOfPath.isNotEmpty()) "Download/$restOfPath" else "Download"
         } else {
-            finalFolder = "Music/SB Skip"
+            finalFolder = DownloadFolderDefaults.AUDIO_FOLDER.trimEnd('/')
         }
     }
 

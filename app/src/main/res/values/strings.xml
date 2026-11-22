@@ -130,8 +130,6 @@
     <string name="verbose_logging">Verbose logging</string>
     <string name="verbose_logging_desc">Capture detailed queue and processor logs.</string>
     <string name="concurrent_limit_value">1 (sequential)</string>
-    <string name="default_video_folder" translatable="false">Movies/SB Skip/</string>
-    <string name="default_audio_folder" translatable="false">Music/SB Skip/</string>
     <string name="default_temp_folder">App cache / SAF target</string>
     <string name="settings_global_categories_value">Sponsor, Intro, Outro, and more</string>
     <string name="settings_per_download_overrides_value">Enabled</string>

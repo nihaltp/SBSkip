@@ -1672,17 +1672,30 @@ class MainViewModel
 
             // Enqueue directly with YT-DLP source - no local file needed, worker downloads via yt-dlp
             // Pass custom categories directly to enqueue instead of encoding in URL
+            val mediaType = if (convertVideoToAudio) MediaType.AUDIO else MediaType.VIDEO
+            val settings = settingsRepository.settings.first()
+            val folderUri =
+                when (mediaType) {
+                    MediaType.AUDIO -> settings.audioFolderUri
+                    MediaType.VIDEO -> settings.videoFolderUri
+                }
+            // Explicitly pass the user-selected folder so yt-dlp output honors it.
+            // Unset ("") => computeStoragePaths default => Download/SBSkip/<Audio|Video>.
+            val audioOutputDirUri = if (mediaType == MediaType.AUDIO) folderUri else null
+            val videoOutputDirUri = if (mediaType == MediaType.VIDEO) folderUri else null
             val result =
                 queueRepository.enqueue(
                     localFileUri = "", // yt-dlp downloads from URL
                     title = metadata.title.orEmpty().ifBlank { videoId },
                     youtubeUrl = normalizedUrl, // Use clean URL without categories parameter
-                    mediaType = if (convertVideoToAudio) MediaType.AUDIO else MediaType.VIDEO,
+                    mediaType = mediaType,
                     convertVideoToAudio = convertVideoToAudio,
                     deleteOriginalVideo = deleteOriginalVideo,
                     downloadSource = DownloadSource.YTDLP,
                     bypassDurationCheck = false,
                     skipDuplicateCheck = skipDuplicateCheck,
+                    audioOutputDirUri = audioOutputDirUri,
+                    videoOutputDirUri = videoOutputDirUri,
                     customSponsorBlockCategories = customCategories,
                 )
 
@@ -2278,16 +2291,27 @@ class MainViewModel
                     skipped++
                     continue
                 }
+                val mediaType = if (convertVideoToAudio) MediaType.AUDIO else MediaType.VIDEO
+                val settings = settingsRepository.settings.first()
+                val folderUri =
+                    when (mediaType) {
+                        MediaType.AUDIO -> settings.audioFolderUri
+                        MediaType.VIDEO -> settings.videoFolderUri
+                    }
+                val audioOutputDirUri = if (mediaType == MediaType.AUDIO) folderUri else null
+                val videoOutputDirUri = if (mediaType == MediaType.VIDEO) folderUri else null
                 val result =
                     queueRepository.enqueue(
                         localFileUri = "",
                         title = video.title,
                         youtubeUrl = Constants.buildYouTubeWatchUrl(video.videoId),
-                        mediaType = if (convertVideoToAudio) MediaType.AUDIO else MediaType.VIDEO,
+                        mediaType = mediaType,
                         convertVideoToAudio = convertVideoToAudio,
                         deleteOriginalVideo = deleteOriginalVideo,
                         downloadSource = DownloadSource.YTDLP,
                         skipDuplicateCheck = true,
+                        audioOutputDirUri = audioOutputDirUri,
+                        videoOutputDirUri = videoOutputDirUri,
                     )
                 if (result.success) enqueued++ else skipped++
             }
