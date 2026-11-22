@@ -409,22 +409,20 @@ fun SettingsScreen(
                                 textInputState = settings.autoCleanSuffix
                             },
                         )
-                        if (!settings.overwriteBehavior) {
-                            SettingValueRow(
-                                title = stringResource(id = R.string.settings_video_folder),
-                                value = settings.videoFolder,
-                                onClick = {
-                                    videoFolderLauncher.launch(null)
-                                },
-                            )
-                            SettingValueRow(
-                                title = stringResource(id = R.string.settings_audio_folder),
-                                value = settings.audioFolder,
-                                onClick = {
-                                    audioFolderLauncher.launch(null)
-                                },
-                            )
-                        }
+                        SettingValueRow(
+                            title = stringResource(id = R.string.settings_video_folder),
+                            value = settings.videoFolder,
+                            onClick = {
+                                videoFolderLauncher.launch(null)
+                            },
+                        )
+                        SettingValueRow(
+                            title = stringResource(id = R.string.settings_audio_folder),
+                            value = settings.audioFolder,
+                            onClick = {
+                                audioFolderLauncher.launch(null)
+                            },
+                        )
                     }
                 }
 
