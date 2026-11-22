@@ -71,7 +71,8 @@ object YouTubeMetadataExtractor {
      */
     @Suppress("UNUSED_PARAMETER")
     fun extractFromCommentJson(comment: String): ExtractedMetadata? {
-        val unescaped = comment.replace("\\\"", "\"")
+        // The comment from ffprobe is already a valid JSON string with proper escaping.
+        // Parse directly with the JSON parser which handles escaped quotes correctly.
         try {
             @Suppress("UNUSED_PARAMETER")
             @kotlinx.serialization.Serializable
@@ -82,7 +83,7 @@ object YouTubeMetadataExtractor {
                 val authorName: String? = null,
             )
 
-            val commentData = json.decodeFromString<CommentMetadata>(unescaped)
+            val commentData = json.decodeFromString<CommentMetadata>(comment)
             if (commentData.youtubeId != null) {
                 return ExtractedMetadata(
                     youtubeId = commentData.youtubeId,

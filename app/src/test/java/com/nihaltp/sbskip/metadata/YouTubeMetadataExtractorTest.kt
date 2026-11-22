@@ -159,4 +159,34 @@ class YouTubeMetadataExtractorTest {
         // authorName is nullable in CommentMetadata, should be null when missing
         assertNull(result.authorName)
     }
+
+    @Test
+    fun `extractFromCommentJson should handle escaped quotes in youtubeTitle`() {
+        // This mimics the comment string value after outer ffprobe JSON parsing.
+        // The actual ffprobe output has: "youtubeTitle":"The Bloodline (From \"Khalifa\")"
+        // (with actual quotes around Khalifa, not backslash-quote - the backslash was outer JSON escaping)
+        val commentJson =
+            """
+            {
+                "processed": true,
+                "youtubeId": "Uw8DeMIBGO4",
+                "youtubeUrl": "https://www.youtube.com/watch?v=Uw8DeMIBGO4",
+                "youtubeTitle": "The Bloodline (From \"Khalifa\")",
+                "authorName": "Jakes Bejoy - Topic",
+                "authorUrl": "https://www.youtube.com/channel/UCF35kALVhAo3kWiREPpkfmQ",
+                "thumbnailUrl": "https://img.youtube.com/vi/Uw8DeMIBGO4/mqdefault.jpg",
+                "processedAt": "1785694113298",
+                "sbskipVersion": "1.8.0",
+                "removedCategories": ["SPONSOR", "SELF_PROMOTION", "INTERACTION_REMINDER", "INTRO", "OUTRO", "PREVIEW_RECAP", "HOOK", "FILLER_TANGENT", "MUSIC_OFFTOPIC"],
+                "sbSkipSegments": ""
+            }
+            """.trimIndent()
+
+        val result = YouTubeMetadataExtractor.extractFromCommentJson(commentJson)
+
+        assertNotNull(result)
+        assertEquals("Uw8DeMIBGO4", result!!.youtubeId)
+        assertEquals("The Bloodline (From \"Khalifa\")", result.youtubeTitle)
+        assertEquals("Jakes Bejoy - Topic", result.authorName)
+    }
 }
