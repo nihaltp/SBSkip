@@ -8,6 +8,7 @@ import com.nihaltp.sbskip.data.repository.SettingsRepository
 import com.nihaltp.sbskip.model.AppSettings
 import com.nihaltp.sbskip.model.DownloadSource
 import com.nihaltp.sbskip.model.DownloaderType
+import com.nihaltp.sbskip.model.MediaType
 import com.nihaltp.sbskip.model.QueueActionResult
 import com.nihaltp.sbskip.model.YouTubeMetadata
 import com.nihaltp.sbskip.storage.DownloadStorage
@@ -136,6 +137,127 @@ class MainViewModelYtDlpRoutingTest {
                     any(),
                     any(),
                     any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    DownloadSource.YTDLP,
+                )
+            }
+        }
+
+    @Test
+    fun `startDownloadAndClean passes configured audio folder uri to yt-dlp enqueue`() =
+        runTest(testDispatcher) {
+            val settings =
+                AppSettings(
+                    downloader = DownloaderType.YTDLP,
+                    audioFolderUri = "content://audio/folder",
+                    videoFolderUri = "",
+                )
+            coEvery { settingsRepository.settings } returns flowOf(settings)
+
+            injectUiState {
+                it.copy(
+                    isNewPipeInstalled = false,
+                    convertVideoToAudio = true,
+                    urlInput = "https://www.youtube.com/watch?v=aaaaaaaaaaa",
+                )
+            }
+
+            viewModel.startDownloadAndClean()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            coVerify {
+                queueRepository.enqueue(
+                    any(),
+                    any(),
+                    any(),
+                    MediaType.AUDIO,
+                    any(),
+                    any(),
+                    "content://audio/folder",
+                    null,
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    DownloadSource.YTDLP,
+                )
+            }
+        }
+
+    @Test
+    fun `startDownloadAndClean passes configured video folder uri to yt-dlp enqueue`() =
+        runTest(testDispatcher) {
+            val settings =
+                AppSettings(
+                    downloader = DownloaderType.YTDLP,
+                    audioFolderUri = "",
+                    videoFolderUri = "content://video/folder",
+                )
+            coEvery { settingsRepository.settings } returns flowOf(settings)
+
+            injectUiState {
+                it.copy(
+                    isNewPipeInstalled = false,
+                    convertVideoToAudio = false,
+                    urlInput = "https://www.youtube.com/watch?v=aaaaaaaaaaa",
+                )
+            }
+
+            viewModel.startDownloadAndClean()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            coVerify {
+                queueRepository.enqueue(
+                    any(),
+                    any(),
+                    any(),
+                    MediaType.VIDEO,
+                    any(),
+                    any(),
+                    null,
+                    "content://video/folder",
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    DownloadSource.YTDLP,
+                )
+            }
+        }
+
+    @Test
+    fun `startDownloadAndClean passes null folder uri to yt-dlp enqueue when unset`() =
+        runTest(testDispatcher) {
+            val settings = AppSettings(downloader = DownloaderType.YTDLP)
+            coEvery { settingsRepository.settings } returns flowOf(settings)
+
+            injectUiState {
+                it.copy(
+                    isNewPipeInstalled = false,
+                    convertVideoToAudio = true,
+                    urlInput = "https://www.youtube.com/watch?v=aaaaaaaaaaa",
+                )
+            }
+
+            viewModel.startDownloadAndClean()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            coVerify {
+                queueRepository.enqueue(
+                    any(),
+                    any(),
+                    any(),
+                    MediaType.AUDIO,
+                    any(),
+                    any(),
+                    "",
+                    null,
                     any(),
                     any(),
                     any(),

@@ -19,9 +19,9 @@ class AndroidDownloadStoragePathsTest {
             )
         // effectiveRelativePath should strip "YT"
         assertEquals("MALAYALAM", paths.effectiveRelativePath)
-        // MediaStore folder should still resolve properly (using YT as base, though custom folder resolution without tree puts it where?)
-        // The first segment of "YT" is not in allowed dirs, so it falls back to Movies/SB Skip, and appends the stripped relative path.
-        assertEquals("Movies/SB Skip/MALAYALAM", paths.mediaStoreFolder)
+        // The first segment of "YT" is not in allowed dirs, so it falls back to
+        // Download/SBSkip/Video, and appends the stripped relative path.
+        assertEquals("Download/SBSkip/Video/MALAYALAM", paths.mediaStoreFolder)
     }
 
     @Test
